@@ -9,19 +9,20 @@ const sDay = (d, n) => new Date(Date.parse(d) + n * 864e5).toISOString().slice(0
 // rows: [[datum, wert, kurs]]. Phase bestätigt = 3. Tag in Folge jenseits der Schwelle.
 // Wende bestätigt = Wert hat sich in der Phase um "back" Punkte vom Extrem gelöst.
 // Austritt = Wert verlässt die Extremzone wieder (nach mind. 3 Tagen darin), z. B. von unter 30 wieder über 30 → sicherer, aber später.
-export function phaseSignals(rows, hi, lo, back = 5) {
-  const out = []; let run = null;
+export function phaseSignals(rows, hi, lo, back = 5, o = {}) {
+  // o.minDays = Tage in Folge bis zum Signal (1 = schon beim ersten Berühren), o.tol = Berührung zählt schon ± Punkte vor der Grenze
+  const md = Math.max(1, o.minDays ?? 3), tol = o.tol ?? 0, out = []; let run = null;
   for (const [d, v] of rows) {
     if (v == null) { run = null; continue; }
-    const type = v >= hi ? 'greed' : v <= lo ? 'fear' : null;
-    if (type && run && run.type === type) {
-      run.days++; run.ext = type === 'greed' ? Math.max(run.ext, v) : Math.min(run.ext, v);
-      if (run.days === 3) out.push({ d, kind: 'phase', type, v });
-      if (run.days >= 3 && !run.turned && Math.abs(v - run.ext) >= back) { run.turned = true; out.push({ d, kind: 'turn', type, v, ext: run.ext }); }
-    } else {
-      if (run && run.days >= 3) out.push({ d, kind: 'exit', type: run.type, v, ext: run.ext, days: run.days });
+    const type = v >= hi - tol ? 'greed' : v <= lo + tol ? 'fear' : null;
+    if (type && run && run.type === type) { run.days++; run.ext = type === 'greed' ? Math.max(run.ext, v) : Math.min(run.ext, v); }
+    else {
+      if (run && run.days >= md) out.push({ d, kind: 'exit', type: run.type, v, ext: run.ext, days: run.days });
       run = type ? { type, days: 1, ext: v, turned: false } : null;
     }
+    if (!run) continue;
+    if (run.days === md) out.push({ d, kind: 'phase', type: run.type, v });
+    if (run.days >= md && !run.turned && Math.abs(v - run.ext) >= back) { run.turned = true; out.push({ d, kind: 'turn', type: run.type, v, ext: run.ext }); }
   }
   return out;
 }
@@ -61,7 +62,7 @@ export function methodSignals(H, method, o) {
     return [r[0], v, r[3]];
   });
   else rows = H.filter(r => r[col] != null).map(r => [r[0], r[col], r[3]]);
-  let sig = trig(phaseSignals(rows, hi, lo, back), T);
+  let sig = trig(phaseSignals(rows, hi, lo, back, { minDays: o.minDays, tol: o.tol }), T);
   if (method === 'price') {
     const px = H.filter(r => r[3] != null), idx = new Map(px.map((r, i) => [r[0], i]));
     sig = sig.filter(s => {
@@ -232,7 +233,41 @@ export function heatEvents(list, price, h) {
 
 /* ---------- Alarm-Texte (Browser + Telegram) ---------- */
 const nf = (n, lang) => n == null ? '–' : Math.round(n).toLocaleString(lang === 'de' ? 'de-DE' : 'en-US') + ' $';
+function alarmTextAr(kind, x) {
+  const P = n => n == null ? '–' : Math.round(n).toLocaleString('en-US') + ' $', pc = v => (v > 0 ? '+' : '') + v.toFixed(1) + ' %';
+  const tail = x.idx != null ? `\nالمؤشر الآن ${x.idx} (${x.zone}) · BTC ${P(x.price)}` : `\nBTC ${P(x.price)}`, na = '\n<i>سيناريوهات، ليست نصيحة استثمارية.</i>';
+  if (kind === 'cluster') {
+    const { c, ev, lvl, pct } = x, z = c.z, S = c.side === 'S', name = `${c.id} تجمّع ${S ? 'شورت' : 'لونغ'}`;
+    const title = { approach: `🔔 ${name}: على بعد ${pct} % فقط`, zone: `🔔 ${name}: تم الوصول إلى المنطقة`, poc: `🎯 ${name}: تم الوصول إلى التجمّع` }[ev];
+    const facts = `التجمّع ${P(z.p)} · المنطقة ${P(z.lo)} – ${P(z.hi)} · ≈ ${Math.round(z.usd / 1e6)} مليون $ · تنبيه من ${P(lvl)}`;
+    const scen = S ? 'فوق السعر توجد تصفيات شورت كثيرة، وهذه المناطق تجذب السعر غالباً. السيناريو أ: تُلمس المنطقة ثم ارتداد للأسفل ← فرصة شورت بعد التأكيد. السيناريو ب: زخم قوي ← Short Squeeze ويستمر السعر بالصعود.'
+      : 'تحت السعر توجد تصفيات لونغ كثيرة، وهذه المناطق تجذب السعر غالباً. السيناريو أ: تُلمس المنطقة ثم ارتداد للأعلى ← فرصة لونغ بعد التأكيد. السيناريو ب: سوق ضعيف ← سلسلة تصفيات ويستمر السعر بالهبوط.';
+    return { title, body: `${facts}\n${scen}${tail}${na}` };
+  }
+  if (kind === 'react' || kind === 'break') {
+    const c = x.x, next = x.next, L = c.side === 'L', name = `${c.id} تجمّع ${L ? 'لونغ' : 'شورت'}`, mio = Math.round(c.usd / 1e6), mv = (x.price / c.ext - 1) * 100, up = kind === 'react' ? L : !L;
+    const tm = new Date(c.t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const title = kind === 'react' ? `🎯 لمس ${name} (${mio} مليون $) ← رد فعل ${L ? 'للأعلى' : 'للأسفل'} ${pc(mv)}` : `⚠️ اختراق ${name} (${mio} مليون $) ← استمرار ${L ? 'للأسفل' : 'للأعلى'}`;
+    const nx = next ? `التجمّع التالي ${up ? 'الأعلى' : 'الأدنى'}: ${next.id} ${P(next.z.p)} (${pc((next.z.p / x.price - 1) * 100)}، ≈ ${Math.round(next.z.usd / 1e6)} مليون $)` : 'لا يوجد تجمّع آخر قريب.';
+    return { title, body: `تم لمس التجمّع ${P(c.p)} (المنطقة ${P(c.lo)} – ${P(c.hi)}) الساعة ${tm}، ثم ${L ? 'أدنى' : 'أعلى'} سعر ${P(c.ext)}.\n${nx}${tail}${na}` };
+  }
+  if (kind === 'line') { const up = x.dir > 0; return { title: `🔔 تم عبور خط التنبيه ${x.id} ${up ? 'للأعلى' : 'للأسفل'}`, body: `تم عبور الخط الخاص ${P(x.p)} ${up ? 'من الأسفل' : 'من الأعلى'}.${tail}` }; }
+  if (kind === 'phase' || kind === 'turn' || kind === 'exit') {
+    const g = x.type === 'greed', who = x.official ? ' · المؤشر الرسمي' : '';
+    const title = kind === 'phase' ? `⚠️ تأكيد ${g ? 'الطمع الشديد' : 'الخوف الشديد'}${who}` : kind === 'turn' ? `🔄 انعطاف بعد ${g ? 'الطمع الشديد' : 'الخوف الشديد'}${who}` : `${g ? '🔻 مغادرة الطمع الشديد ← إشارة شورت' : '🔺 مغادرة الخوف الشديد ← إشارة لونغ'}${who}`;
+    const body = kind === 'phase' ? (g ? `المؤشر فوق ${x.hi} (القيمة ${x.v}). حسب الفيديو: جني الأرباح وعدم الزيادة.` : `المؤشر تحت ${x.lo} (القيمة ${x.v}). حسب الفيديو: منطقة شراء، اشترِ على دفعات.`)
+      : kind === 'turn' ? `ابتعد المؤشر ${Math.abs(x.v - x.ext)} نقاط عن القيمة القصوى (${x.ext}).` : `غادر المؤشر المنطقة القصوى بعد ${x.days} أيام (الآن ${x.v}). أبطأ من إشارة الدخول لكن أكثر أماناً.`;
+    return { title, body: body + tail + na };
+  }
+  if (kind === 'peak') { const g = x.type === 'greed'; return { title: g ? '🔻 نقطة قصوى: قمة محتملة' : '🔺 نقطة قصوى: قاع محتمل', body: `شكّل المؤشر ${g ? 'قمة' : 'قاعاً'} عند ${x.v} في ${x.at} (مؤكد الآن).${tail}${na}` }; }
+  if (kind === 'div') {
+    const bull = x.type.includes('bull'), hid = x.type[0] === 'h';
+    return { title: `${bull ? '🟢' : '🔴'} انفراج ${hid ? 'خفي ' : ''}${bull ? 'صاعد' : 'هابط'} ← إشارة ${bull ? 'لونغ' : 'شورت'}`, body: `السعر ${P(x.a.p)} ← ${P(x.b.p)}، المؤشر ${x.a.v} ← ${x.b.v}. مؤكد بعد ${x.right} أيام.${tail}${na}` };
+  }
+  return { title: kind, body: tail };
+}
 export function alarmText(kind, x, lang = 'de') {
+  if (lang === 'ar') return alarmTextAr(kind, x);
   const de = lang === 'de', P = n => nf(n, lang), tail = x.idx != null ? (de ? `\nIndex jetzt ${x.idx} (${x.zone}) · BTC ${P(x.price)}` : `\nIndex now ${x.idx} (${x.zone}) · BTC ${P(x.price)}`) : `\nBTC ${P(x.price)}`;
   const na = de ? '\n<i>Szenarien, keine Anlageberatung.</i>' : '\n<i>Scenarios, not investment advice.</i>';
   if (kind === 'cluster') {

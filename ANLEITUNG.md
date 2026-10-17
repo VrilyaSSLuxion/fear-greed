@@ -1,4 +1,4 @@
-# Fear & Greed – Version 11
+# Fear & Greed – Version 12
 
 ## Starten
 
@@ -6,13 +6,22 @@
 |---|---|
 | `start.bat` | Startet das Programm (falls nicht schon aktiv) und öffnet **http://localhost:8797** |
 | `stop.bat` | Beendet das Programm |
-| `fear-greed-v11.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
+| `fear-greed-v12.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
 
-Das Programm startet automatisch mit Windows (`Fear-Greed-V11.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
+Das Programm startet automatisch mit Windows (`Fear-Greed-V12.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
 Live-Werte jede Minute (einstellbar), große Verläufe stündlich. Protokoll: `data\server.log`.
-Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v10 leiten weiter).
+Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v11 leiten weiter).
 
 Beim ersten Öffnen erscheint das **Handbuch** (Knopf „Handbuch“ oben rechts, abschaltbar).
+
+## Neu in V12
+- **Handbuch** neu: Trennlinie, zentrierte Überschriften, Abschnitte in goldenen Kästen, „Worum geht es?“ mit allen offiziellen Indizes, Kanal-Link und den zwei Videos (15.10.2026 ab 11:57 erstmals vom Bau, 16.10.2026 ab 8:21 verbesserte Version), Meinung des Seitenbetreibers
+- **Signal ab Tag** (1/2/3) und **Berührung ± Punkte** (Zahnrad → Signale)
+- **Tops/Böden (rückwirkend)** ab 35 % Bewegung, **Pivot-Linien** (höchstes Hoch / tiefstes Tief danach) – eigene Knöpfe, Farben im Zahnrad
+- **Rahmen**: Schalter oben, Farbe/Dicke im Zahnrad; Überschriften in Kästen, deutlichere Tabellen-Linien, senkrechte Trennlinien, 7 letzte Tage
+- **Was das jetzt heißt**: Label pulsiert, daneben die **Tendenz** (kaufen/verkaufen/steigend/fallend)
+- **Flaggen** 🇺🇸/🇪🇺 im Titel und Ticker, $ und € rechts
+- **Sprache Arabisch** (AR), Texte rechtsbündig, Alarm-Meldungen im Browser arabisch
 
 ## Neu in V11
 - **Cluster-Labels mit Volumen**: z. B. „L2 79,6K · 34 Mio“, stärkster Cluster mit ★; Label-Spalte breiter
