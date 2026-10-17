@@ -50,7 +50,7 @@ fs.writeFileSync(path.join(OUT, 'index.html'), html);
 const engine = fs.readFileSync(path.join(ROOT, 'collector', 'engine.mjs'), 'utf8').replace(/^export /gm, '');
 const standalone = html.replace('<!--ENGINE-->', `<script>window.FG_STANDALONE = true;</script>
 <script type="module">\n${engine}\nwindow.FG_ENGINE = { collect };\nwindow.dispatchEvent(new Event('fg-engine'));\n</script>`);
-fs.writeFileSync(path.join(OUT, 'fear-greed-v12.html'), standalone);
+fs.writeFileSync(path.join(OUT, 'fear-greed-v13.html'), standalone);
 fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
 
 const m = latest.modes;

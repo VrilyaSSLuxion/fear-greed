@@ -1,4 +1,4 @@
-# Fear & Greed – Version 12
+# Fear & Greed – Version 13
 
 ## Starten
 
@@ -6,13 +6,28 @@
 |---|---|
 | `start.bat` | Startet das Programm (falls nicht schon aktiv) und öffnet **http://localhost:8797** |
 | `stop.bat` | Beendet das Programm |
-| `fear-greed-v12.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
+| `fear-greed-v13.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
 
-Das Programm startet automatisch mit Windows (`Fear-Greed-V12.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
+Das Programm startet automatisch mit Windows (`Fear-Greed-V13.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
 Live-Werte jede Minute (einstellbar), große Verläufe stündlich. Protokoll: `data\server.log`.
-Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v11 leiten weiter).
+Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v12 leiten weiter).
 
 Beim ersten Öffnen erscheint das **Handbuch** (Knopf „Handbuch“ oben rechts, abschaltbar).
+
+## Neu in V13
+- **Ansicht „SMC 2“**: SMC mit eigenen Erweiterungen (Flaggen, $ und €, Trennstriche, erweiterter Ticker) – **SMC** bleibt 1:1 das Original
+- **Titelzeile**: Titel im eigenen goldenen Kasten, Trennstriche zwischen Titel | Kurse | 24h | Knöpfe | DE·EN·AR, größere Kurse und Flaggen, kein Freiraum
+- **Handbuch** wieder wie V11 (ohne große Kästen), nur die Überschriften in kleinen goldenen Rahmen – Inhalt von V12 (Links, Videos, Meinung) bleibt
+- **Fenster-Überschriften**: goldener Rahmen und goldene Schrift, Farben im Zahnrad → Rahmen
+- **Trendfilter für Kauf-Signale** (Zahnrad → Signale): EMA 200, ADX, MACD (Woche) – einzeln oder kombiniert; Modus aus / markieren (⚠) / ausblenden. Standard: markieren mit EMA 200. Die Methoden-Tabelle hat für jeden Filter eine eigene Zeile zum Vergleich. Alarme (Browser + Telegram) bekommen den Hinweis „⚠ Gegen den Trend“
+- **Gleitende Durchschnitte**: EMA 200 + EMA 50 im Kurs-Chart, SMA 20 im Index-Chart, Knopf „MA“, Art/Periode/Farbe im Zahnrad
+- **Fibonacci**: Schnellwahl der Stufen 61,8/38,2 (Zahnrad → Signale), Fibonacci-Linien zwischen Pivot-Hoch und -Tief (Knopf „Fibo“, Stufen einstellbar)
+- **L/S-Labels an den Punkten** (VrilyaSS): grünes L unter Angst-Punkten, rotes S über Gier-Punkten; Text L/S oder Long/Short, Größe, Farben einstellbar
+- **Pivot-Bereich** eigener Schalter (Sicht · 7T · 1M · 3M · 6M · 12M · Alles), unabhängig vom Chart-Bereich
+- **Vollbild ⛶** an jedem Fenster (Esc schließt)
+- **Ticker**: Höhe oben am Griff ziehbar (bis halbe Bildschirmhöhe, Doppelklick = Standard), einklappbar (▾), rechter Teil größer, Größen im Zahnrad
+- **Bitcoin in den nächsten 24 Stunden**: Prozentzahlen kleiner, Schriftgröße einstellbar
+- Kleinere Änderungen: Linie/Kerzen im Kasten, hellere Rahmen bei inaktiven Knöpfen, Aktion + Tendenz in einer Zeile, weniger Leerraum in der Hauptkarte, Empfehlungs-Zeile ganz umrahmt, Trennlinie vor „liquidate.fun öffnen“, Einschätzung untereinander (① Smart Money → ② Offiziell → ③ Kombiniert)
 
 ## Neu in V12
 - **Handbuch** neu: Trennlinie, zentrierte Überschriften, Abschnitte in goldenen Kästen, „Worum geht es?“ mit allen offiziellen Indizes, Kanal-Link und den zwei Videos (15.10.2026 ab 11:57 erstmals vom Bau, 16.10.2026 ab 8:21 verbesserte Version), Meinung des Seitenbetreibers

@@ -45,6 +45,37 @@ export function mean7(H, col) {
   return rows.map((r, i) => { const w = []; for (let j = Math.max(0, i - 6); j <= i; j++) w.push(rows[j][col]); return [r[0], w.length >= 3 ? Math.round(w.reduce((a, b) => a + b) / w.length) : null, r[3]]; });
 }
 
+/* ---------- Trendfilter (für Kauf-Signale) ---------- */
+// Je Tag: Kurs unter EMA(n), starker Abwärtstrend laut ADX(14) (ADX > adxMin und -DI > +DI), MACD auf Wochenbasis negativ und unter Signal
+export function trendInfo(H, o = {}) {
+  const px = H.filter(r => r[3] != null), C = px.map(r => r[3]), Hh = px.map(r => r[10] ?? r[3]), Ll = px.map(r => r[11] ?? r[3]), map = new Map();
+  if (!px.length) return map;
+  const ema = (a, n) => { const k = 2 / (n + 1), out = []; let e = a[0]; a.forEach((v, i) => { e = i ? v * k + e * (1 - k) : v; out.push(e); }); return out; };
+  const rma = (a, n) => { const out = []; let m = 0; a.forEach((v, i) => { m = i < n ? (m * i + v) / (i + 1) : (m * (n - 1) + v) / n; out.push(m); }); return out; };
+  const tr = [], pdm = [], mdm = [];
+  for (let i = 0; i < C.length; i++) {
+    if (!i) { tr.push(Hh[0] - Ll[0]); pdm.push(0); mdm.push(0); continue; }
+    const up = Hh[i] - Hh[i - 1], dn = Ll[i - 1] - Ll[i];
+    tr.push(Math.max(Hh[i] - Ll[i], Math.abs(Hh[i] - C[i - 1]), Math.abs(Ll[i] - C[i - 1]))); pdm.push(up > dn && up > 0 ? up : 0); mdm.push(dn > up && dn > 0 ? dn : 0);
+  }
+  const atr = rma(tr, 14), pdi = rma(pdm, 14).map((v, i) => 100 * v / (atr[i] || 1)), mdi = rma(mdm, 14).map((v, i) => 100 * v / (atr[i] || 1));
+  const adx = rma(pdi.map((p, i) => 100 * Math.abs(p - mdi[i]) / ((p + mdi[i]) || 1)), 14);
+  const e = ema(C, o.emaN ?? 200), m12 = ema(C, 84), m26 = ema(C, 182), m = m12.map((v, i) => v - m26[i]), sig = ema(m, 63);
+  px.forEach((r, i) => map.set(r[0], { ema: C[i] < e[i], adx: adx[i] > (o.adxMin ?? 25) && mdi[i] > pdi[i], macd: m[i] < 0 && m[i] < sig[i], e: e[i], adxV: adx[i] }));
+  return map;
+}
+// f = { basis: ['ema','adx','macd'], mode: 'off' | 'mark' | 'hide' } – ein Indikator reicht, um „gegen den Trend“ zu sein
+export function applyTrend(sig, info, f) {
+  if (!f || !info || f.mode === 'off' || !f.basis?.length) return sig;
+  const out = [];
+  for (const x of sig) {
+    const t = info.get(x.d), ag = x.type === 'fear' && t && f.basis.some(b => t[b]);
+    if (ag && f.mode === 'hide') continue;
+    out.push(ag ? { ...x, against: f.basis.filter(b => t[b]) } : x);
+  }
+  return out;
+}
+
 /* ---------- Signal-Methoden ---------- */
 // std = 7-Tage-Mittel (wie bisher) · daily = Tageswert (schneller) · both = 90 UND 365 Tage extrem (weniger Fehlsignale)
 // peak = Extrempunkt (siehe peakSignals)
@@ -52,7 +83,7 @@ export function mean7(H, col) {
 export const METHODS = ['std', 'daily', 'both', 'price', 'peak'];
 export function methodSignals(H, method, o) {
   const { col, rawCol, colA, colB, hi, lo, back = 5 } = o;
-  if (method === 'peak') return peakSignals(divRows(H, col), o.peak || {});
+  if (method === 'peak') return applyTrend(peakSignals(divRows(H, col), o.peak || {}), o.trendInfo, o.trend);
   const T = o.trigger || 'entry';
   let rows;
   if (method === 'daily') rows = H.filter(r => r[rawCol] != null).map(r => [r[0], r[rawCol], r[3]]);
@@ -71,7 +102,7 @@ export function methodSignals(H, method, o) {
       return s.type === 'greed' ? p >= Math.max(...win) * (1 - (o.tol ?? 4) / 100) : p <= Math.min(...win) * (1 + (o.tol ?? 4) / 100);
     });
   }
-  return sig;
+  return applyTrend(sig, o.trendInfo, o.trend);
 }
 
 // Extrempunkt: Index bildet ein bestätigtes Hoch (≥ hi) bzw. Tief (≤ lo) und der Kurs steht nahe seinem 60-Tage-Hoch/-Tief.
@@ -266,7 +297,17 @@ function alarmTextAr(kind, x) {
   }
   return { title: kind, body: tail };
 }
+const TN = { ema: 'EMA', adx: 'ADX', macd: 'MACD (Woche)' };
 export function alarmText(kind, x, lang = 'de') {
+  const r = alarmTextBase(kind, x, lang);
+  if (x.against?.length) {
+    const b = x.against.map(k => TN[k] || k).join(' + ');
+    const w = lang === 'de' ? `⚠ Gegen den Trend (${b} zeigt Abwärtstrend) – nur kleine Tranche, Stop setzen.` : lang === 'ar' ? `⚠ عكس الاتجاه (${b} يُظهر اتجاهاً هابطاً) – دفعة صغيرة فقط مع وقف خسارة.` : `⚠ Against the trend (${b} shows a downtrend) – small tranche only, set a stop.`;
+    r.title = '⚠ ' + r.title; r.body = w + '\n' + r.body;
+  }
+  return r;
+}
+function alarmTextBase(kind, x, lang = 'de') {
   if (lang === 'ar') return alarmTextAr(kind, x);
   const de = lang === 'de', P = n => nf(n, lang), tail = x.idx != null ? (de ? `\nIndex jetzt ${x.idx} (${x.zone}) · BTC ${P(x.price)}` : `\nIndex now ${x.idx} (${x.zone}) · BTC ${P(x.price)}`) : `\nBTC ${P(x.price)}`;
   const na = de ? '\n<i>Szenarien, keine Anlageberatung.</i>' : '\n<i>Scenarios, not investment advice.</i>';
