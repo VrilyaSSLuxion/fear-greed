@@ -1,4 +1,4 @@
-# Fear & Greed – Version 10
+# Fear & Greed – Version 11
 
 ## Starten
 
@@ -6,13 +6,22 @@
 |---|---|
 | `start.bat` | Startet das Programm (falls nicht schon aktiv) und öffnet **http://localhost:8797** |
 | `stop.bat` | Beendet das Programm |
-| `fear-greed-v10.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
+| `fear-greed-v11.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
 
-Das Programm startet automatisch mit Windows (`Fear-Greed-V10.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
+Das Programm startet automatisch mit Windows (`Fear-Greed-V11.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
 Live-Werte jede Minute (einstellbar), große Verläufe stündlich. Protokoll: `data\server.log`.
-Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v9 leiten weiter).
+Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v10 leiten weiter).
 
 Beim ersten Öffnen erscheint das **Handbuch** (Knopf „Handbuch“ oben rechts, abschaltbar).
+
+## Neu in V11
+- **Cluster-Labels mit Volumen**: z. B. „L2 79,6K · 34 Mio“, stärkster Cluster mit ★; Label-Spalte breiter
+- **LF/SF = weit entferntester starker Cluster** (mind. 50 % des Volumens des stärksten, max. 20 % vom Kurs – beides einstellbar), eigene Linie (Strich-Punkt) und Alarm
+- **Reaktions-Alarm**: Cluster angelaufen → Reaktion (Standard 1 % Gegenbewegung in 24 Std.) oder Durchbruch (1 % darüber hinaus), mit Zeit, Volumen und nächstem Cluster; Browser + Telegram
+- **Aktuelle Kurslinie** bis zur Preisskala (wie TradingView)
+- **Ticker**: LIQUIDATIONEN mit 4 Zeilen (SF, S1, L1, LF: Preis · Abstand · Mio. · Alarmstufe), Prozentzahlen unter dem Balken größer
+- **Einschätzung**: ① Smart Money, ② offiziell (Lehrbuch), ③ kombiniert (Gewichtung 1:1 / 2:1 / 3:1 im Zahnrad, Standard 2:1)
+- Trennlinien in der Liquiditäts-Einschätzung, im Titel (Preise | 24h | Knöpfe | DE/EN), sichtbare Rahmen um Schalter-Gruppen
 
 ## Neu in V10
 - **Signale als Dreiecke**: ▲ unter dem Kurs = Long, ▼ über dem Kurs = Short; hohl = Phase bestätigt, voll = Wende, voll mit weißem Rand = Zone verlassen

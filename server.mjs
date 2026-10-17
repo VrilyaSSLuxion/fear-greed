@@ -1,4 +1,4 @@
-// Fear & Greed V10 – Hintergrund-Programm
+// Fear & Greed V11 – Hintergrund-Programm
 // Läuft unsichtbar, sammelt jede Minute (einstellbar) alle Daten (inkl. dauerhaftem Liquidations-Mitschnitt),
 // speichert den Verlauf, liefert die Seite unter http://localhost:8797 aus und verschickt Telegram-Alarme.
 import http from 'node:http';
@@ -7,7 +7,7 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { collect } from './collector/engine.mjs';
-import { methodSignals, phaseSignals, trig, mean7, divergences, divRows, clusterSet, heatEvents, alarmText } from './collector/shared.mjs';
+import { methodSignals, phaseSignals, trig, mean7, divergences, divRows, clusterSet, heatEvents, alarmText, touchTrack, nextCluster } from './collector/shared.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DATA = path.join(ROOT, 'data'), WWW = path.join(ROOT, 'www');
@@ -22,9 +22,9 @@ const log = (...a) => console.log(new Date().toLocaleString('de-DE'), '·', ...a
 /* ---------- Konfiguration (API-Keys, Telegram) ---------- */
 const CFG_PATH = path.join(ROOT, 'config.json');
 const DEF = { sosovalueApiKey: '', coinglassApiKey: '', coinalyzeApiKey: '', intervalMin: 1, publishMin: 10, histMin: 60,
-  heat: { pct: 1, approach: true, zone: true, poc: true, nearest: true, extra: 2, alarmExtra: false, cool: 720 }, lines: [],
+  heat: { pct: 1, approach: true, zone: true, poc: true, nearest: true, extra: 2, alarmExtra: false, cool: 720, far: true, farPct: 50, farRange: 20, reactOn: true, react: 1, brk: 1, reactH: 24 }, lines: [],
   div: { left: 5, right: 5, minGap: 5, maxGap: 60, hidden: false, zone: true, src: '7', win: 'auto', official: false }, sig: { method: 'std', trigger: 'entry' },
-  telegram: { token: '', chatId: '', enabled: false, events: ['p1', 'p2', 'turn', 'heat', 'lines', 'div'] } };
+  telegram: { token: '', chatId: '', enabled: false, events: ['p1', 'p2', 'turn', 'heat', 'lines', 'div', 'react'] } };
 function cfg() { try { const c = JSON.parse(fs.readFileSync(CFG_PATH, 'utf8')); return { ...DEF, ...c, heat: { ...DEF.heat, ...(c.heat || {}) }, div: { ...DEF.div, ...(c.div || {}) }, sig: { ...DEF.sig, ...(c.sig || {}) }, telegram: { ...DEF.telegram, ...(c.telegram || {}) } }; } catch { return structuredClone(DEF); } }
 function saveCfg(c) { fs.writeFileSync(CFG_PATH, JSON.stringify(c, null, 2)); }
 if (!fs.existsSync(CFG_PATH)) saveCfg(DEF);
@@ -100,8 +100,21 @@ async function checkAlerts(latest, history) {
 async function checkHeatAlerts(latest) {
   const c = cfg(), t = c.telegram; if (!t.enabled || !t.token || !t.chatId || !t.events.includes('heat')) return;
   const sent = (state.alertsSent ||= {}), price = latest.btc.price, idx = latest.modes.binance90?.index;
-  for (const e of heatEvents(clusterSet(latest.heatmap, { nearest: c.heat.nearest, extra: c.heat.extra }), price, c.heat))
+  for (const e of heatEvents(clusterSet(latest.heatmap, clOptS(c.heat)), price, c.heat))
     await send1(`heat:${e.c.id}:${e.ev}:${e.c.z.p}`, alarmText('cluster', { ...e, pct: c.heat.pct, idx, zone: ZNAME(idx), price }), sent, c.heat.cool * 60e3);
+}
+const clOptS = h => ({ nearest: h.nearest, extra: h.extra, far: h.far ? { pct: h.farPct, range: h.farRange } : null });
+// Cluster angelaufen → Reaktion / Durchbruch (Zustand in state.touch, auch ohne Telegram weitergeführt)
+async function checkReactAlerts(latest) {
+  const c = cfg(), t = c.telegram, h = c.heat; if (!h.reactOn) return;
+  const price = latest.btc.price, CL = clusterSet(latest.heatmap, clOptS(h)), ev = touchTrack(state.touch ||= {}, CL, price, h);
+  if (!t.enabled || !t.token || !t.chatId || !t.events.includes('react')) return;
+  const idx = latest.modes.binance90?.index;
+  for (const e of ev) {
+    if (e.kind === 'touch') continue;
+    const up = e.kind === 'react' ? e.x.side === 'L' : e.x.side === 'S';
+    await send1(`touch:${e.kind}:${e.x.id}:${e.x.p}:${e.x.t}`, alarmText(e.kind, { x: e.x, next: nextCluster(CL, price, up, e.x.p), price, idx, zone: ZNAME(idx) }), state.alertsSent ||= {});
+  }
 }
 // eigene Alarmlinien: Alarm beim Kreuzen (Seite merkt sich die Seite des Kurses je Linie)
 async function checkLineAlerts(latest) {
@@ -137,7 +150,7 @@ async function run() {
     // Tagebuch: aktueller Stand je Lauf (für spätere Auswertung, ab wann ein Punkt verlässlich war)
     fs.appendFileSync(path.join(DATA, 'journal.jsonl'), JSON.stringify({ t: Date.now(), btc: latest.btc.price, idx: Object.fromEntries(Object.entries(latest.modes).map(([k, m]) => [k, [m.index, m.live]])) }) + '\n');
     buildSite();
-    await checkAlerts(latest, history); await checkHeatAlerts(latest); await checkLineAlerts(latest); saveState();
+    await checkAlerts(latest, history); await checkHeatAlerts(latest); await checkLineAlerts(latest); await checkReactAlerts(latest); saveState();
     lastRun = Date.now(); lastError = null;
     if (!lastPublish || Date.now() - lastPublish >= I.publish * 60e3 - 5000) await publish();
     if (!HCACHE.logged || HCACHE.logged !== HCACHE.t) { HCACHE.logged = HCACHE.t; log(`Verläufe neu geholt · Index ${latest.modes.binance90?.index}`); }
@@ -151,8 +164,8 @@ function buildSite() {
   fs.writeFileSync(path.join(WWW, 'index.html'), html);
   const engine = fs.readFileSync(path.join(ROOT, 'collector', 'engine.mjs'), 'utf8').replace(/^export /gm, '');
   // alte Links (V6, V7) leiten auf die neue Einzeldatei weiter
-  for (const v of ['v6', 'v7', 'v8', 'v9']) fs.writeFileSync(path.join(WWW, `fear-greed-${v}.html`), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=fear-greed-v10.html"><a href="fear-greed-v10.html">fear-greed-v10.html</a>');
-  fs.writeFileSync(path.join(WWW, 'fear-greed-v10.html'), html.replace('<!--ENGINE-->', `<script>window.FG_STANDALONE = true;</script>\n<script type="module">\n${engine}\nwindow.FG_ENGINE = { collect };\nwindow.dispatchEvent(new Event('fg-engine'));\n</script>`));
+  for (const v of ['v6', 'v7', 'v8', 'v9', 'v10']) fs.writeFileSync(path.join(WWW, `fear-greed-${v}.html`), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=fear-greed-v11.html"><a href="fear-greed-v11.html">fear-greed-v11.html</a>');
+  fs.writeFileSync(path.join(WWW, 'fear-greed-v11.html'), html.replace('<!--ENGINE-->', `<script>window.FG_STANDALONE = true;</script>\n<script type="module">\n${engine}\nwindow.FG_ENGINE = { collect };\nwindow.dispatchEvent(new Event('fg-engine'));\n</script>`));
 }
 
 /* ---------- Online veröffentlichen (GitHub Pages) ---------- */
@@ -180,13 +193,13 @@ async function publish() {
 }
 
 /* ---------- Windows-Autostart ---------- */
-const LNK = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'Fear-Greed-V10.lnk');
+const LNK = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'Fear-Greed-V11.lnk');
 const autostartOn = () => fs.existsSync(LNK);
 function setAutostart(on) {
   return new Promise((res, rej) => {
     if (!on) { try { if (fs.existsSync(LNK)) fs.unlinkSync(LNK); res(false); } catch (e) { rej(e); } return; }
     const vbs = path.join(ROOT, 'start-hidden.vbs');
-    const ps = `$s=(New-Object -ComObject WScript.Shell).CreateShortcut('${LNK.replace(/'/g, "''")}');$s.TargetPath=\"$env:WINDIR\\System32\\wscript.exe\";$s.Arguments='"${vbs.replace(/'/g, "''")}"';$s.WorkingDirectory='${ROOT.replace(/'/g, "''")}';$s.Description='Fear & Greed V10 (Hintergrund)';$s.Save()`;
+    const ps = `$s=(New-Object -ComObject WScript.Shell).CreateShortcut('${LNK.replace(/'/g, "''")}');$s.TargetPath=\"$env:WINDIR\\System32\\wscript.exe\";$s.Arguments='"${vbs.replace(/'/g, "''")}"';$s.WorkingDirectory='${ROOT.replace(/'/g, "''")}';$s.Description='Fear & Greed V11 (Hintergrund)';$s.Save()`;
     execFile('powershell.exe', ['-NoProfile', '-Command', ps], err => err ? rej(err) : res(true));
   });
 }
@@ -206,7 +219,7 @@ const server = http.createServer(async (req, res) => {
   if (p === '/api/status') {
     const c = cfg();
     const I = iv();
-    return send(res, 200, { server: true, version: 10, autostart: autostartOn(), lastRun, lastError, intervals: I, nextRun: lastRun ? lastRun + I.data * 60e3 : null, heat: c.heat, lines: c.lines, div: c.div, sig: c.sig,
+    return send(res, 200, { server: true, version: 11, autostart: autostartOn(), lastRun, lastError, intervals: I, nextRun: lastRun ? lastRun + I.data * 60e3 : null, heat: c.heat, lines: c.lines, div: c.div, sig: c.sig,
       keys: { sosovalue: !!c.sosovalueApiKey, coinglass: !!c.coinglassApiKey, coinalyze: !!c.coinalyzeApiKey },
       telegram: { enabled: c.telegram.enabled, configured: !!(c.telegram.token && c.telegram.chatId), events: c.telegram.events },
       publish: { enabled: c.publish !== false, last: lastPublish, error: publishError, url: c.publishUrl || 'https://vrilyassluxion.github.io/fear-greed/' } });
@@ -229,7 +242,7 @@ const server = http.createServer(async (req, res) => {
     if (b.sig) c.sig = { ...c.sig, ...b.sig };
     saveCfg(c); send(res, 200, { ok: true }); if (b.recollect) run(); return;
   }
-  if (p === '/api/telegram/test' && req.method === 'POST') { try { await telegram('✅ Testnachricht vom Fear & Greed V10 – Alarme kommen hier an.'); return send(res, 200, { ok: true }); } catch (e) { return send(res, 400, { error: e.message }); } }
+  if (p === '/api/telegram/test' && req.method === 'POST') { try { await telegram('✅ Testnachricht vom Fear & Greed V11 – Alarme kommen hier an.'); return send(res, 200, { ok: true }); } catch (e) { return send(res, 400, { error: e.message }); } }
   if (p === '/api/telegram/chatid' && req.method === 'POST') {
     // Chat-ID automatisch finden: Nutzer schreibt dem Bot vorher eine Nachricht
     try {
@@ -248,7 +261,7 @@ const server = http.createServer(async (req, res) => {
 });
 server.on('error', e => { if (e.code === 'EADDRINUSE') { log(`Port ${PORT} belegt – das Programm läuft schon (http://localhost:${PORT}).`); process.exit(0); } throw e; });
 server.listen(PORT, '127.0.0.1', () => {
-  log(`Fear & Greed V10 läuft: http://localhost:${PORT}`);
+  log(`Fear & Greed V11 läuft: http://localhost:${PORT}`);
   buildSite();
   const loop = async () => { await run(); setTimeout(loop, iv().data * 60e3); };
   loop();

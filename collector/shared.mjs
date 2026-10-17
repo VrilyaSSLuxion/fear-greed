@@ -163,6 +163,12 @@ export function clusterSet(hm, o = {}) {
     const inside = z => taken.some(t => z.p >= t.lo && z.p <= t.hi) || taken.some(t => Math.abs(z.p / t.p - 1) < (o.sep ?? 0.015));
     if (top) { out.push({ id: side + '1', side, kind: 'top', z: top }); taken.push(top); }
     if (o.nearest !== false && near && !inside(near)) { out.push({ id: side + '2', side, kind: 'near', z: near }); taken.push(near); }
+    // LF/SF = weit entferntester starker Cluster: mind. far.pct % des Volumens des stärksten, höchstens far.range % vom Kurs entfernt
+    if (o.far && top && hm.price) {
+      const pr = hm.price, cand = (list || []).filter(z => z.usd >= top.usd * o.far.pct / 100 && Math.abs(z.p / pr - 1) * 100 <= o.far.range && !inside(z));
+      const f = cand.sort((a, b) => Math.abs(b.p - pr) - Math.abs(a.p - pr))[0];
+      if (f && Math.abs(f.p - pr) > Math.abs(top.p - pr)) { out.push({ id: side + 'F', side, kind: 'far', z: f }); taken.push(f); }
+    }
     let n = 2, extras = 0;                                   // weitere Cluster heißen immer ab 3 (L2/S2 = nächster)
     for (const z of list || []) {
       if (extras >= (o.extra ?? 0)) break;
@@ -186,7 +192,31 @@ export function liqBias(hm, price, within = 12) {
   const q = L.pull / (L.pull + S.pull);
   return { L, S, q, first: q > 0.58 ? 'down' : q < 0.42 ? 'up' : 'both' };
 }
-export const alarmLevel =(c, pct) => c.side === 'L' ? c.z.p * (1 + pct / 100) : c.z.p * (1 - pct / 100);
+// Cluster angelaufen → Reaktion (Kurs entfernt sich um react % in Gegenrichtung) oder Durchbruch (Kurs läuft brk % über den Cluster hinaus).
+// st = gemerkter Zustand (bleibt erhalten, auch wenn der Cluster nach dem Abholen aus der Heatmap verschwindet)
+export function touchTrack(st, list, price, h, now = Date.now()) {
+  const T = (st.t ||= {}), ev = [];
+  if (!(price > 0)) return ev;
+  for (const c of list) {
+    if (c.kind === 'extra' && !h.alarmExtra) continue;
+    const z = c.z, key = c.id + ':' + z.p;
+    if (!T[key] && (c.side === 'L' ? price <= z.hi : price >= z.lo)) { T[key] = { id: c.id, side: c.side, kind: c.kind, p: z.p, lo: z.lo, hi: z.hi, usd: z.usd, t: now, ext: price }; ev.push({ kind: 'touch', x: T[key] }); }
+  }
+  for (const [key, x] of Object.entries(T)) {
+    if (now - x.t > (h.reactH ?? 24) * 3600e3) { delete T[key]; continue; }
+    x.ext = x.side === 'L' ? Math.min(x.ext, price) : Math.max(x.ext, price);
+    const brk = x.side === 'L' ? price <= x.p * (1 - (h.brk ?? 1) / 100) : price >= x.p * (1 + (h.brk ?? 1) / 100);
+    const react = x.side === 'L' ? price >= x.ext * (1 + (h.react ?? 1) / 100) : price <= x.ext * (1 - (h.react ?? 1) / 100);
+    if (brk && !x.brk) { x.brk = now; ev.push({ kind: 'break', x }); }
+    else if (react && !x.react && !x.brk) { x.react = now; ev.push({ kind: 'react', x }); }
+  }
+  return ev;
+}
+// nächster Cluster in Bewegungsrichtung (für die Meldung)
+export function nextCluster(list, price, up, skipP) {
+  return list.filter(x => x.z.p !== skipP && (up ? x.z.p > price : x.z.p < price)).sort((a, b) => up ? a.z.p - b.z.p : b.z.p - a.z.p)[0] || null;
+}
+export const alarmLevel = (c, pct) => c.side === 'L' ? c.z.p * (1 + pct / 100) : c.z.p * (1 - pct / 100);
 // Ereignisse: Annäherung (X % davor), Zone erreicht (Kante), Cluster/POC erreicht
 export function heatEvents(list, price, h) {
   const out = []; if (!(price > 0)) return out;
@@ -226,6 +256,20 @@ export function alarmText(kind, x, lang = 'de') {
           zone: 'Price is inside the zone – longs are being liquidated (extra selling).\nBounce wick = long chance. Break with volume = cascade, continuation down.',
           poc: 'The strongest level is reached, much of the liquidity is taken.\nA bounce often follows; a clean break below means strong selling.' }[ev]);
     return { title, body: `${facts}\n${scen}${tail}${na}` };
+  }
+  if (kind === 'react' || kind === 'break') {
+    const c = x.x, next = x.next, L = c.side === 'L', name = c.id + ' ' + (L ? 'Long' : 'Short') + '-Cluster', mio = Math.round(c.usd / 1e6);
+    const pc = v => (v > 0 ? '+' : '') + (de ? v.toFixed(1).replace('.', ',') : v.toFixed(1)) + ' %';
+    const tm = new Date(c.t).toLocaleTimeString(de ? 'de-DE' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
+    const mv = (x.price / c.ext - 1) * 100, up = kind === 'react' ? L : !L;
+    const title = kind === 'react'
+      ? (de ? `🎯 ${name} angelaufen (${mio} Mio. $) → Reaktion nach ${L ? 'oben' : 'unten'} ${pc(mv)}` : `🎯 ${name} hit (${mio} M $) → reaction ${L ? 'up' : 'down'} ${pc(mv)}`)
+      : (de ? `⚠️ ${name} durchbrochen (${mio} Mio. $) → weiter nach ${L ? 'unten' : 'oben'}` : `⚠️ ${name} broken (${mio} M $) → continuing ${L ? 'down' : 'up'}`);
+    const nx = next
+      ? (de ? `Nächster ${up ? 'höherer' : 'tieferer'} Cluster: ${next.id} ${P(next.z.p)} (${pc((next.z.p / x.price - 1) * 100)}, ≈ ${Math.round(next.z.usd / 1e6)} Mio. $)` : `Next ${up ? 'higher' : 'lower'} cluster: ${next.id} ${P(next.z.p)} (${pc((next.z.p / x.price - 1) * 100)}, ≈ ${Math.round(next.z.usd / 1e6)} M $)`)
+      : (de ? 'Kein weiterer Cluster in Reichweite.' : 'No further cluster in range.');
+    const body = (de ? `Cluster ${P(c.p)} (Zone ${P(c.lo)} – ${P(c.hi)}) um ${tm} angelaufen, ${L ? 'Tief' : 'Hoch'} danach ${P(c.ext)}.` : `Cluster ${P(c.p)} (zone ${P(c.lo)} – ${P(c.hi)}) hit at ${tm}, then ${L ? 'low' : 'high'} ${P(c.ext)}.`) + '\n' + nx;
+    return { title, body: body + tail + na };
   }
   if (kind === 'line') {
     const up = x.dir > 0;
