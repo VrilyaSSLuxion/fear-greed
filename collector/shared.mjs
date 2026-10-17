@@ -165,7 +165,21 @@ export function clusterSet(hm, o = {}) {
   }
   return out;
 }
-export const alarmLevel = (c, pct) => c.side === 'L' ? c.z.p * (1 + pct / 100) : c.z.p * (1 - pct / 100);
+// Liquiditäts-Einschätzung: Welche Seite liegt näher und dichter am Kurs? Longs (unten) vs. Shorts (oben).
+// Zug je Cluster = Volumen / Abstand^1,5 – nahe, große Cluster ziehen stärker. q > 0,58 = eher zuerst nach unten, < 0,42 = eher zuerst nach oben.
+export function liqBias(hm, price, within = 12) {
+  if (!hm || !(price > 0)) return null;
+  const stat = list => {
+    const L = (list || []).filter(z => z && Math.abs(z.p / price - 1) * 100 <= within); if (!L.length) return null;
+    const d = L.map(z => Math.abs(z.p / price - 1) * 100), ps = L.map(z => z.p);
+    return { n: L.length, near: Math.min(...d), usd: L.reduce((s, z) => s + z.usd, 0), lo: Math.min(...ps), hi: Math.max(...ps), spread: (Math.max(...ps) - Math.min(...ps)) / price * 100, pull: L.reduce((s, z, i) => s + z.usd / Math.max(0.3, d[i]) ** 1.5, 0) };
+  };
+  const L = stat(hm.longs?.length ? hm.longs : [hm.longTop, hm.longNear]), S = stat(hm.shorts?.length ? hm.shorts : [hm.shortTop, hm.shortNear]);
+  if (!L || !S) return null;
+  const q = L.pull / (L.pull + S.pull);
+  return { L, S, q, first: q > 0.58 ? 'down' : q < 0.42 ? 'up' : 'both' };
+}
+export const alarmLevel =(c, pct) => c.side === 'L' ? c.z.p * (1 + pct / 100) : c.z.p * (1 - pct / 100);
 // Ereignisse: Annäherung (X % davor), Zone erreicht (Kante), Cluster/POC erreicht
 export function heatEvents(list, price, h) {
   const out = []; if (!(price > 0)) return out;

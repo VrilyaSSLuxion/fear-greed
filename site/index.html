@@ -242,6 +242,20 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
   .arr small{font-size:10px;letter-spacing:.14em;color:#9fb5ad;font-weight:700;text-transform:uppercase}
   .arr b{font-size:44px;line-height:1}
   .arr.day{border-left:1px solid #2b4a42;padding-left:16px;margin-left:2px}
+  .arr.tick,.price .pp.sepl{border-left:1px solid #2b4a42;padding-left:14px}
+  .hpp{display:flex;flex-direction:column;line-height:1.08}
+  .hpp b+b{border-top:1px solid #3a2a44;margin-top:3px;padding-top:3px}
+  .rec2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .recb{background:#1a0e21;border:1px solid var(--line2);border-radius:12px;padding:10px 12px}
+  .recb .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:700}
+  .recb b{display:block;margin-top:5px;font-size:15px;line-height:1.35}
+  .rtab{margin-top:10px;table-layout:fixed;width:100%}
+  .rtab td,.rtab th{white-space:normal!important;overflow-wrap:anywhere}
+  .rtab th:first-child,.rtab td:first-child{width:58px}
+  .rtab td,.rtab th{font-size:12px;padding:6px 5px;height:auto;vertical-align:top;line-height:1.35}
+  .rtab tr.on td{background:rgba(255,255,255,.05)}
+  .recrow{display:grid;grid-template-columns:70px 1fr 1fr;gap:6px;align-items:center;margin-top:6px;font-size:12px}
+  .recrow input{background:#120916;border:1px solid var(--line2);color:var(--text);border-radius:8px;padding:6px 8px;font:inherit;font-size:12px;min-width:0}
   .arr.day .pct{font-size:12px;letter-spacing:0;margin-top:2px;text-transform:none}
   .layers{position:relative}
   .laymenu{position:absolute;right:0;top:calc(100% + 6px);z-index:35;background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:10px 14px;display:none;min-width:280px;box-shadow:0 14px 34px rgba(0,0,0,.5)}
@@ -380,6 +394,8 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
     .price .b{font-size:34px}
     .arr b{font-size:26px}
     .arr.day{padding-left:9px}
+    .arr.tick,.price .pp.sepl{padding-left:8px}
+    .rec2{grid-template-columns:1fr}
     .liqtitle>span{font-size:13px}
     .liqtitle small{font-size:10px}
     .laymenu{right:auto;left:0;min-width:240px}
@@ -418,7 +434,7 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
   <!-- ======= Kopfzeile ======= -->
   <div class="top">
     <div class="brand" id="brand"></div>
-    <div class="hprice"><b id="hPrice">–</b><span class="chg" id="hChg">–</span></div>
+    <div class="hprice"><div class="hpp"><b id="hPrice">–</b><b class="vss" id="hEur"></b></div><span class="chg" id="hChg">–</span></div>
     <a class="hbtn tgBtn" id="tgBtn" rel="noopener"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.3 18.7 19.4c-.2 1-.9 1.3-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.8 8.7-7.9c.4-.3-.1-.5-.6-.2L6.6 13.3l-4.6-1.4c-1-.3-1-1 .2-1.5L20.5 3.3c.8-.3 1.6.2 1.4 1z"/></svg><span id="tgLbl"></span></a>
     <a class="hbtn kiBtn" id="kiBtn" rel="noopener"><span>✦</span><span id="kiLbl"></span></a>
     <button class="whyBtn" id="whyBtn" data-t="why"></button>
@@ -494,6 +510,10 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
         <div class="zl" id="zl"></div>
         <div class="note" id="noteTxt"></div>
       </div>
+      <div class="card vss" id="recCard">
+        <div class="h"><span data-t="recTitle"></span><small data-t="recNote"></small></div>
+        <div id="rec"></div>
+      </div>
     </div>
   </div>
 
@@ -521,6 +541,7 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
         <button class="tog vss" id="togDiv" data-t="btnDiv"></button>
         <button class="tog vss" id="togBell" data-t="btnBell"></button>
         <button class="tog vss" id="togOwn" data-t="btnOwn"></button>
+        <button class="tog vss" id="togMid" data-t="btnMid"></button>
         <div class="layers vss"><button class="tog" id="layBtn" data-t="btnLayers"></button><div class="laymenu" id="layMenu"></div></div>
         <button class="tog on" id="togOff" data-t="btnOff"></button>
         <div class="seg" id="rangeSeg"><button data-v="7" data-t="r7"></button><button data-v="30" data-t="r1m"></button><button data-v="91" data-t="r3"></button><button data-v="182" data-t="r6"></button><button data-v="365" data-t="r12"></button><button data-v="99999" data-t="rAll"></button></div>
@@ -573,8 +594,8 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
 <!-- ======= Ticker ======= -->
 <div class="ticker">
   <div class="price"><span class="b">₿</span>
-    <div class="arr" id="arrTick"><small data-t="tTick"></small><b id="tDir">↑</b></div>
-    <div class="pp" id="pp"><div id="tPrice">–</div><small id="tEur">–</small></div>
+    <div class="arr tick" id="arrTick"><small data-t="tTick"></small><b id="tDir">↑</b></div>
+    <div class="pp sepl" id="pp"><div id="tPrice">–</div><small id="tEur">–</small></div>
     <div class="arr day" id="arrDay"><small data-t="tDayLbl"></small><b id="tDayDir">↑</b><small class="pct" id="tDayPct"></small></div>
   </div>
   <div class="liqtitle"><span data-t="liqTitle"></span><small id="heatTickL"></small><small id="heatTickS"></small></div>
@@ -615,7 +636,7 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
     <div class="set"><label><span data-t="language"></span></label><div class="seg" id="defLangSeg"><button data-v="de">Deutsch</button><button data-v="en">English</button></div></div>
     <div class="set"><label><span data-t="currency"></span></label><div class="seg" id="defCurSeg"><button data-v="usd">US-Dollar $</button><button data-v="eur">Euro €</button></div></div>
     <div class="set"><label><span data-t="offSrc"></span><small data-t="offSrcSub"></small></label><div class="seg" id="defOffSeg"></div></div>
-    <div class="set" id="dlRow"><label><span data-t="download"></span><small data-t="downloadSub"></small></label><a class="btn" href="fear-greed-v8.html" download data-t="downloadBtn"></a></div>
+    <div class="set" id="dlRow"><label><span data-t="download"></span><small data-t="downloadSub"></small></label><a class="btn" href="fear-greed-v9.html" download data-t="downloadBtn"></a></div>
     <div class="sethead" data-t="lvHead"></div>
     <p class="muted" style="margin-top:6px" data-t="lvSub"></p>
     <div id="lvSet"></div>
@@ -625,6 +646,8 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
     <div id="heatSet"></div>
     <div class="sethead" data-t="linesHead"></div>
     <div id="lineSet"></div>
+    <div class="sethead" data-t="recHead"></div>
+    <div id="recSet"></div>
     <div class="sethead" data-t="alHead"></div>
     <div class="chk" id="alBrowser"></div>
     <div class="btns" style="justify-content:flex-start;margin-top:8px"><button class="btn sm" id="alTest" data-t="alTest"></button></div>
@@ -855,10 +878,13 @@ Object.assign(T.en, {
 Object.assign(T.de, {"manual":"Handbuch","manTitle":"Handbuch · so funktioniert diese Seite","introStart":"Beim Start anzeigen","introSet":"Handbuch beim Start","introSub":"Infokarte beim Öffnen der Seite zeigen","daysSet":"Letzte Tage (Liste)","daysSub":"Anzahl Tage unter dem Kreis (3–14)","daysTitle":"Die letzten {n} Tage einzeln","daysNote":"Index = 7-Tage-Mittel · Tageswert = ohne Mittelung","cDaily":"Tageswert","liveNow":"heute, live","tTick":"Tick","tDayLbl":"24 h","tickLong":"🔔 Long-Alarm ab {a} · L1 {c}","tickShort":"🔔 Short-Alarm ab {a} · S1 {c}","btnSigOff":"Signale offiziell","btnDiv":"Divergenz","btnBell":"🔔 Alarmlinien","btnOwn":"Eigene Linien","btnLayers":"Ebenen ▾","layH_heat":"Heatmap & Alarme","layH_sig":"Signale","layH_more":"Weitere","lay_heat":"Heatmap (Bänder)","lay_cl":"Cluster L1/S1","lay_near":"Nächste Cluster L2/S2 (gestrichelt)","lay_extra":"Weitere Cluster L3… (gepunktet)","lay_bell":"🔔 Alarmlinien (Gold)","lay_mid":"Mitte M zwischen L1 und S1","lay_own":"Eigene Alarmlinien A1, A2 …","lay_dots":"Punkte (Extremphasen)","lay_sig":"Signale ◆ ▲ ▼","lay_sigOff":"Signale offizieller Index","lay_div":"Divergenz (Bull/Bear)","lay_nums":"Zahlen","lay_bands":"Index im Chart","lay_off":"Offizieller Index (Linie)","sigHead":"Signale & Divergenz","sigmSub":"Methode für die Signale im Chart, die Alarme und Telegram. Der Vergleich aller Methoden steht unter „Trend & Einschätzung“.","m_std":"Standard","m_daily":"Tageswert","m_both":"90 + 365 Tage","m_price":"Kurs-Bestätigung","m_peak":"Extrempunkt","m_help_std":"Wie bisher: 7-Tage-Mittel, ◆ am 3. Tag jenseits der Stufe, ▲/▼ wenn der Index 5 Punkte vom Extrem zurückläuft.","m_help_daily":"Wie Standard, aber mit dem Tageswert statt dem 7-Tage-Mittel: früher, aber mehr Fehlsignale.","m_help_both":"Signal nur, wenn der Index mit 90 UND mit 365 Tagen Vergleich extrem ist: weniger, dafür strengere Signale.","m_help_price":"Standard, aber Gier-Signale nur nahe am 30-Tage-Hoch, Angst-Signale nur nahe am 30-Tage-Tief des Kurses.","m_help_peak":"Index bildet ein bestätigtes Hoch (≥ 65) bzw. Tief (≤ 35), während der Kurs nahe seinem 60-Tage-Hoch/-Tief steht (△/▽ hohl). Erkennt die meisten Tops, aber mit vielen Fehlsignalen.","m_div":"Divergenz (Einstellung)","m_div365":"Divergenz 365 Tage","m_off":"Offizieller Index (Phase + Wende)","m_offdiv":"Divergenz offizieller Index","divHead":"Divergenz (wie RSI bei TradingView)","divLeft":"Tage links (vor dem Tief/Hoch)","divRight":"Bestätigung nach Tagen (rechts)","divMin":"Mindestabstand der zwei Tiefs/Hochs (Tage)","divMax":"Höchstabstand (Tage)","divSrc":"Quelle","divSrc7":"7-Tage-Mittel","divSrcD":"Tageswert","divWin":"Vergleichszeitraum","divWinSub":"„wie Chart“ folgt 365 T / 90 T oben","divAuto":"wie Chart","div_hidden":"Versteckte Divergenz (H Bull/H Bear)","div_zone":"Nur in Angst-/Gier-Bereich (≤ 40 / ≥ 60)","div_official":"Auch für den offiziellen Index","divHelp":"Bull = Kurs tieferes Tief, Index höheres Tief → Long-Signal. Bear = Kurs höheres Hoch, Index tieferes Hoch → Short-Signal. Ein Tief/Hoch gilt als bestätigt, wenn es danach die eingestellten Tage nicht unter-/überschritten wird; das Label erscheint am Bestätigungstag und wandert danach nie mehr.","linesHead":"Eigene Alarmlinien","linesNone":"Noch keine eigenen Linien.","lineAdd":"+ Linie","lineDel":"Löschen","linesHelp":"Preise in US-Dollar. Im Chart mit der Maus nach oben/unten ziehen (Knopf „Eigene Linien“ an). Alarm, sobald der Kurs die Linie kreuzt – im Browser und per Telegram.","hExtra":"Weitere Cluster","hExtraU":"je Seite","hCool":"Sperrzeit je Alarm","hOpt_alarmExtra":"Alarm auch für weitere Cluster","hHelp":"L1/S1 = stärkster Long-/Short-Cluster (durchgezogen), L2/S2 = nächster (gestrichelt), L3… = weitere (gepunktet). 🔔 Gold = Alarmstufe. Die Sperrzeit gilt je Cluster und Preis – wird ein Cluster abgeholt und neu berechnet, kommt der Alarm für den neuen sofort. Farben unter „Chart-Darstellung“.","hk_top":"stärkster","hk_near":"nächster","hk_extra":"weiterer","hFrom":"Alarm ab","hMid":"Mitte L1/S1","hPrice":"Kurs jetzt","hAlarmPct":"Alarm-Abstand {p} %","al_lines":"Eigene Alarmlinien","al_div":"Divergenz (Bull/Bear)","al_off":"Signale offizieller Index","chipPick":"Anklicken = als Linie im Chart zeigen","chipGapAvg":"Abstand zum Ø offiziell","sig_peak_fear":"Extrempunkt Boden","sig_peak_greed":"Extrempunkt Top","mTitle":"Methoden-Vergleich (Backtest)","mNote":"seit Beginn der Daten, Stufe 1","mCol":"Methode","mN":"Kauf/Verk.","mBuyOk":"Kauf ✓","mSellOk":"Verk. ✓","mTops":"Tops","mBottoms":"Böden","mHelp":"Kauf ✓ / Verk. ✓ = Kurs 30 Tage später in Signalrichtung. Tops/Böden = große Wendepunkte (Kursbewegung ≥ 20 %), die ein passendes Signal innerhalb ±21 Tagen erwischt hat. Vergangene Ergebnisse sind keine Garantie.","st_bellColor":"Alarmlinien (Glocke)","st_midColor":"Mitte M","st_ownColor":"Eigene Linien","st_sigOffColor":"Signale offiziell","st_divBull":"Divergenz Bull","st_divBear":"Divergenz Bear","introHtml":"<p class=\"lead\">Willkommen beim <b>VrilyaSS Fear &amp; Greed INDEX</b> – einem Nachbau des „Smart Money Fear &amp; Greed“ von <b>Smart Money Crypto</b> (YouTube), mit eigenen Erweiterungen.</p>\n<h3>Worum geht es?</h3>\n<p>Die bekannten Fear &amp; Greed Indizes (z. B. alternative.me, CoinMarketCap) messen die Stimmung vor allem über Spot-Volumen, Volatilität, Social Media und Umfragen. Smart Money Crypto hat in seinen Livestreams („Jetzt wackelt der (letzte) Boden“ und „Unsere Longs sind aufgegangen! Was jetzt? Live Trading“, beide 16.10.2026) einen eigenen Index gezeigt, der stattdessen misst, was er für aussagekräftiger hält: wie Futures-Trader, große Geldflüsse und das Makro-Umfeld gerade positioniert sind. Laut seinem Video dreht dieser Index früher als der offizielle – z. B. Juli 2026: extreme Gier Wochen, bevor der offizielle Index folgte. Deshalb hält er die offiziellen Indizes für weniger brauchbar. Diese Seite baut seinen Index aus frei verfügbaren Daten nach. <i>Keine offizielle Seite, keine Anlageberatung.</i></p>\n<h3>So wird gerechnet</h3>\n<ul><li><b>10 Bausteine:</b> Funding, Open-Interest-Änderung, Long/Short-Verhältnis, Liquidationen, RSI &amp; Volatilität (Futures-Markt) sowie ETF-Flows, Stablecoin-Zufluss, Coinbase-Premium, VIX und DXY-Trend (Flows und Makro).</li>\n<li>Jeder Baustein wird mit seinen eigenen letzten <b>90 oder 365 Tagen</b> verglichen (0 = Angst, 100 = Gier; oben „365 T / 90 T“).</li>\n<li>Der Index ist der Durchschnitt, angezeigt als <b>7-Tage-Mittel</b>. „Binance“ = nur Binance-Daten wie im Video, „Multi-Source“ = mehrere Börsen.</li>\n<li><b>Zonen</b> wie im Video: 0–24 Extreme Angst (kaufen) · 25–44 Angst (in Tranchen kaufen) · 45–54 Neutral (abwarten) · 55–74 Gier (halten) · 75–100 Extreme Gier (Gewinne sichern).</li></ul>\n<h3>Signale im Chart (ohne Repaint)</h3>\n<ul><li><b>Punkte:</b> Spitze einer Extremphase (mindestens 3 Tage über 75 bzw. unter 25). Voll = Phase vorbei, hohl = Phase läuft noch und kann wandern.</li>\n<li><b>◆ Phase bestätigt:</b> am 3. Tag in Folge jenseits der Stufe. <b>▲/▼ Wende bestätigt:</b> der Index ist 5 Punkte vom Extrem zurückgelaufen.</li>\n<li><b>Stufen</b> 75/25 (wie im Video) und 85/15 – Werte und Farben im Zahnrad.</li>\n<li><b>Methode</b> (Zahnrad → Signale): Standard, Tageswert, 90 + 365 Tage, Kurs-Bestätigung oder Extrempunkt (△/▽ hohl).</li>\n<li><b>Divergenz</b> wie RSI bei TradingView: Kurs tieferes Tief + Index höheres Tief = <b>Bull</b> (Long-Signal), Kurs höheres Hoch + Index tieferes Hoch = <b>Bear</b> (Short-Signal). Ein Tief/Hoch ist bestätigt, wenn es danach X Tage hält (Standard 5); das Label erscheint am Bestätigungstag und wandert nie mehr.</li>\n<li><b>Signale offiziell:</b> dieselben Punkte und Signale für den offiziellen Index, in Türkis.</li>\n<li><b>Auswertung</b> unter „Trend &amp; Einschätzung“: Trefferquote nach 30 Tagen und wie viele große Tops/Böden jede Methode erwischt hat. Ehrlich: Keine Methode trifft alles. Im Backtest war die bullische Divergenz für Böden am treffsichersten, Tops sind schwieriger.</li></ul>\n<h3>Liquidations-Heatmap und Alarme</h3>\n<ul><li>Schätzung aus Binance-Daten der letzten ~21 Tage, wo Positionen liquidiert würden. <b>L1/S1</b> = stärkster Long-/Short-Cluster (durchgezogen), <b>L2/S2</b> = nächster (gestrichelt), <b>L3…</b> = weitere (gepunktet). Heller Bereich = Zone um den Cluster.</li>\n<li><b>🔔 Goldene gepunktete Linie</b> = Alarmstufe (Standard 1 % vor dem Cluster). <b>M</b> = Mitte zwischen L1 und S1 (optional).</li>\n<li><b>Eigene Alarmlinien</b> (A1, A2 …): Knopf „Eigene Linien“, mit der Maus verschieben oder im Zahnrad eintragen. Alarm beim Kreuzen.</li>\n<li>Alarme kommen im Browser (Ton + Meldung, solange die Seite offen ist) und per <b>Telegram</b> (über das Programm auf dem PC, auch wenn die Seite zu ist). Jede Meldung erklärt die typischen Szenarien.</li></ul>\n<h3>Wo stelle ich was ein?</h3>\n<ul><li><b>Knöpfe über dem Chart:</b> Linie/Kerzen, Zahlen, Index im Chart, Heatmap, Stufen, Signale, Signale offiziell, Divergenz, Alarmlinien, eigene Linien, <b>Ebenen ▾</b> (alles einzeln an/aus), Zeitraum.</li>\n<li><b>Chart bedienen:</b> Mausrad = Zeit zoomen, ziehen = verschieben, rechte Skala ziehen = Höhe zoomen (auch im Index-Chart), Doppelklick = zurück, Trennleiste ziehen = Höhe der Charts.</li>\n<li><b>Zahnrad:</b> Ansicht, Handy, Sprache, Währung, offizieller Index, Stufen, Signal-Methode, Divergenz, Heatmap &amp; Alarme, eigene Linien, Programm (Autostart, Intervalle, Online), API-Keys, Telegram, Knöpfe, Farben.</li>\n<li><b>Daten:</b> am PC jede Minute neu (einstellbar), online alle 10 Minuten. Der Stand steht unten in der Fußzeile.</li></ul>\n<p class=\"muted\">Dieses Fenster lässt sich jederzeit über „Handbuch“ öffnen.</p>"});
 Object.assign(T.en, {"manual":"Manual","manTitle":"Manual · how this page works","introStart":"Show on start","introSet":"Manual on start","introSub":"Show the info card when the page opens","daysSet":"Last days (list)","daysSub":"Number of days below the gauge (3–14)","daysTitle":"The last {n} days, one by one","daysNote":"Index = 7-day average · daily = unsmoothed","cDaily":"Daily","liveNow":"today, live","tTick":"Tick","tDayLbl":"24 h","tickLong":"🔔 Long alert from {a} · L1 {c}","tickShort":"🔔 Short alert from {a} · S1 {c}","btnSigOff":"Official signals","btnDiv":"Divergence","btnBell":"🔔 Alert lines","btnOwn":"Own lines","btnLayers":"Layers ▾","layH_heat":"Heatmap & alerts","layH_sig":"Signals","layH_more":"More","lay_heat":"Heatmap (bands)","lay_cl":"Clusters L1/S1","lay_near":"Nearest clusters L2/S2 (dashed)","lay_extra":"More clusters L3… (dotted)","lay_bell":"🔔 Alert lines (gold)","lay_mid":"Middle M between L1 and S1","lay_own":"Own alert lines A1, A2 …","lay_dots":"Dots (extreme phases)","lay_sig":"Signals ◆ ▲ ▼","lay_sigOff":"Official index signals","lay_div":"Divergence (bull/bear)","lay_nums":"Numbers","lay_bands":"Index in chart","lay_off":"Official index (line)","sigHead":"Signals & divergence","sigmSub":"Method for chart signals, alerts and Telegram. All methods are compared under \"Trend & assessment\".","m_std":"Standard","m_daily":"Daily value","m_both":"90 + 365 days","m_price":"Price confirmation","m_peak":"Extreme point","m_help_std":"As before: 7-day average, ◆ on the 3rd day beyond the level, ▲/▼ when the index moves 5 points off the extreme.","m_help_daily":"Like standard but on the daily value: earlier, more false signals.","m_help_both":"Signal only if the index is extreme on BOTH 90 and 365 days: fewer, stricter signals.","m_help_price":"Standard, but greed signals only near the 30-day price high, fear signals only near the 30-day low.","m_help_peak":"Index forms a confirmed high (≥ 65) or low (≤ 35) while price is near its 60-day high/low (hollow △/▽). Catches most tops, with many false signals.","m_div":"Divergence (settings)","m_div365":"Divergence 365 days","m_off":"Official index (phase + turn)","m_offdiv":"Divergence official index","divHead":"Divergence (like RSI on TradingView)","divLeft":"Days left (before the low/high)","divRight":"Confirmed after days (right)","divMin":"Min. distance of the two lows/highs (days)","divMax":"Max. distance (days)","divSrc":"Source","divSrc7":"7-day average","divSrcD":"Daily value","divWin":"Comparison window","divWinSub":"\"like chart\" follows 365 / 90 above","divAuto":"like chart","div_hidden":"Hidden divergence (H bull/H bear)","div_zone":"Only in fear/greed range (≤ 40 / ≥ 60)","div_official":"Also for the official index","divHelp":"Bull = price lower low, index higher low → long signal. Bear = price higher high, index lower high → short signal. A low/high counts as confirmed once it holds for the set days; the label appears on the confirmation day and never moves.","linesHead":"Own alert lines","linesNone":"No own lines yet.","lineAdd":"+ Line","lineDel":"Delete","linesHelp":"Prices in US dollars. Drag up/down in the chart (\"Own lines\" on). Alert when price crosses the line – in the browser and via Telegram.","hExtra":"More clusters","hExtraU":"per side","hCool":"Cooldown per alert","hOpt_alarmExtra":"Alerts for more clusters too","hHelp":"L1/S1 = strongest long/short cluster (solid), L2/S2 = nearest (dashed), L3… = more (dotted). 🔔 gold = alert level. The cooldown applies per cluster and price – once a cluster is taken and recalculated, the new one alerts immediately. Colours under \"Chart appearance\".","hk_top":"strongest","hk_near":"nearest","hk_extra":"further","hFrom":"alert from","hMid":"middle L1/S1","hPrice":"price now","hAlarmPct":"alert distance {p} %","al_lines":"Own alert lines","al_div":"Divergence (bull/bear)","al_off":"Official index signals","chipPick":"Click = show as line in the chart","chipGapAvg":"Gap to official avg.","sig_peak_fear":"Extreme point bottom","sig_peak_greed":"Extreme point top","mTitle":"Method comparison (backtest)","mNote":"since start of data, level 1","mCol":"Method","mN":"Buy/sell","mBuyOk":"Buy ✓","mSellOk":"Sell ✓","mTops":"Tops","mBottoms":"Bottoms","mHelp":"Buy ✓ / sell ✓ = price 30 days later in signal direction. Tops/bottoms = major turns (price move ≥ 20 %), caught = matching signal within ±21 days. Past results are no guarantee.","st_bellColor":"Alert lines (bell)","st_midColor":"Middle M","st_ownColor":"Own lines","st_sigOffColor":"Official signals","st_divBull":"Divergence bull","st_divBear":"Divergence bear","introHtml":"<p class=\"lead\">Welcome to the <b>VrilyaSS Fear &amp; Greed INDEX</b> – a rebuild of the \"Smart Money Fear &amp; Greed\" by <b>Smart Money Crypto</b> (YouTube), with own extensions.</p>\n<h3>What is it?</h3>\n<p>The well-known Fear &amp; Greed indices (alternative.me, CoinMarketCap …) measure sentiment mostly from spot volume, volatility, social media and surveys. In his live streams (16 Oct 2026) Smart Money Crypto showed his own index that measures what he considers more meaningful: how futures traders, large flows and the macro backdrop are positioned. According to his video it turns earlier than the official one (e.g. July 2026). This page rebuilds his index from freely available data. <i>Not an official page, not investment advice.</i></p>\n<h3>Calculation</h3>\n<ul><li>10 building blocks: funding, open interest change, long/short ratio, liquidations, RSI &amp; volatility, ETF flows, stablecoin inflow, Coinbase premium, VIX, DXY trend.</li>\n<li>Each block is ranked against its own last 90 or 365 days (0 = fear, 100 = greed); the index is the average, shown as 7-day average.</li>\n<li>Zones as in the video: 0–24 extreme fear · 25–44 fear · 45–54 neutral · 55–74 greed · 75–100 extreme greed.</li></ul>\n<h3>Signals (no repaint)</h3>\n<ul><li>Dots = peak of an extreme phase (hollow = still running). ◆ = phase confirmed on day 3, ▲/▼ = turn confirmed (5 points off the extreme).</li>\n<li>Method (settings → signals): standard, daily, 90 + 365, price confirmation, extreme point. Divergence like RSI on TradingView (Bull/Bear label on the confirmation day). Official signals in teal.</li>\n<li>The backtest table under \"Trend &amp; assessment\" shows hit rates and how many major tops/bottoms each method caught.</li></ul>\n<h3>Heatmap and alerts</h3>\n<ul><li>L1/S1 strongest, L2/S2 nearest, L3… further clusters; 🔔 gold line = alert level (1 % before the cluster); M = middle; own lines A1, A2 … can be dragged.</li>\n<li>Alerts in the browser and via Telegram (through the PC program), each with typical scenarios.</li></ul>\n<h3>Controls</h3>\n<ul><li>Buttons above the chart and <b>Layers ▾</b>; mouse wheel = zoom time, drag = pan, drag right scale = zoom height, double-click = reset; gear = all settings.</li></ul>\n<p class=\"muted\">Open this window any time via \"Manual\".</p>"});
 
+Object.assign(T.de, {"btnMid":"Mitte","cntTip":"Zahl = Anzahl im sichtbaren Zeitraum (mehr im Zeitraum „Alles“)","tickLong":"🔔 Long-Alarm ab {a} ({d}) · stärkster Long-Cluster L1 (POC) {c}","tickShort":"🔔 Short-Alarm ab {a} ({d}) · stärkster Short-Cluster S1 (POC) {c}","liqHead":"Liquiditäts-Einschätzung","liqNote":"Schätzung, keine Garantie","liqS":"Über dem Kurs: Short-Cluster {lo} – {hi}, nächster {d} % entfernt, ≈ {u} Mio. $ in {n} Clustern (Spanne {s} %)","liqL":"Unter dem Kurs: Long-Cluster {lo} – {hi}, nächster {d} % entfernt, ≈ {u} Mio. $ in {n} Clustern (Spanne {s} %)","liq_down":"→ Die Longs liegen näher und dichter. Wahrscheinlicher wird zuerst nach unten abgeholt (Long-Liquidationen), danach oft Gegenbewegung Richtung Short-Cluster.","liq_up":"→ Die Shorts liegen näher und dichter. Wahrscheinlicher wird zuerst nach oben abgeholt (Short-Squeeze), danach oft Rücklauf Richtung Long-Cluster.","liq_both":"→ Beide Seiten ähnlich nah und stark – keine klare Richtung, Ausbruch abwarten.","liqS_down":"Liquidität: Longs liegen näher/dichter unter dem Kurs → eher zuerst nach unten.","liqS_up":"Liquidität: Shorts liegen näher/dichter über dem Kurs → eher zuerst nach oben.","liqS_both":"Liquidität: beide Seiten ähnlich – keine klare Richtung.","recTitle":"Empfehlung Spot & Futures","recNote":"aus der Zone des Index","recSpot":"Spot","recFut":"Futures (Perpetual)","recZone":"Zone","recHelp":"Regelbasierte Vorlage aus den Zonen des Videos – keine Anlageberatung. Texte im Zahnrad unter „Empfehlungen“ änderbar.","recHead":"Empfehlungen (Spot / Futures)","recReset":"Auf Standard zurücksetzen","viewSetSub":"Ansicht beim Öffnen der Seite (Standard SMC) · oben umschalten gilt bis zum Neuladen"});
+Object.assign(T.en, {"btnMid":"Middle","cntTip":"Number = count in the visible range (more under \"All\")","tickLong":"🔔 Long alert from {a} ({d}) · strongest long cluster L1 (POC) {c}","tickShort":"🔔 Short alert from {a} ({d}) · strongest short cluster S1 (POC) {c}","liqHead":"Liquidity assessment","liqNote":"estimate, no guarantee","liqS":"Above price: short clusters {lo} – {hi}, nearest {d} % away, ≈ {u} M $ in {n} clusters (span {s} %)","liqL":"Below price: long clusters {lo} – {hi}, nearest {d} % away, ≈ {u} M $ in {n} clusters (span {s} %)","liq_down":"→ Longs are closer and denser. More likely price first sweeps down (long liquidations), then often moves back towards the short clusters.","liq_up":"→ Shorts are closer and denser. More likely price first sweeps up (short squeeze), then often moves back towards the long clusters.","liq_both":"→ Both sides similar – no clear direction, wait for a breakout.","liqS_down":"Liquidity: longs closer/denser below → rather down first.","liqS_up":"Liquidity: shorts closer/denser above → rather up first.","liqS_both":"Liquidity: both sides similar – no clear direction.","recTitle":"Spot & futures guide","recNote":"from the index zone","recSpot":"Spot","recFut":"Futures (perpetual)","recZone":"Zone","recHelp":"Rule-based template from the video zones – not investment advice. Texts editable in settings under \"Recommendations\".","recHead":"Recommendations (spot / futures)","recReset":"Reset to default","viewSetSub":"View when the page opens (default SMC) · switching above lasts until reload"});
+
 /* ================= Zustand ================= */
 const $ = id => document.getElementById(id);
 const store = { get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { } } };
-let LANG = store.get('fg6_lang', 'de'), MODE = store.get('fg6_mode', 'binance'), RANGE = +store.get('fg6_range', '182'), TAB = 'days';
+let LANG = store.get('fg9_deflang', 'de'), MODE = store.get('fg6_mode', 'binance'), RANGE = +store.get('fg6_range', '182'), TAB = 'days';
 let OPT = { nums: false, bands: false, off: true, heat: false, sig: true, ...(() => { try { return JSON.parse(store.get('fg8_opt', '{}')); } catch { return {}; } })() };
 // Ansicht per Link einstellbar, z. B. ?range=all&nums=1&bands=1&mode=binance&lang=en&cur=eur&off=cmc
 const QS = new URLSearchParams(location.search);
@@ -871,7 +897,7 @@ if (QS.get('mode')) MODE = QS.get('mode');
 if (QS.get('lang')) LANG = QS.get('lang');
 let D = null, H = [], STANDALONE = false, LIVE = { price: null, ch: null, dir: 0, eur: null };
 let CUR = QS.get('cur') || store.get('fg6_cur', 'usd'), OFFSRC = QS.get('off') || store.get('fg6_off', 'alt');
-let VSTYLE = QS.get('view') || store.get('fg6_view', 'smc'), WIN = QS.get('win') || store.get('fg6_win', '90'), CTYPE = QS.get('ctype') || store.get('fg6_ctype', 'line');
+let VSTYLE = QS.get('view') || store.get('fg9_defview', 'smc'), WIN = QS.get('win') || store.get('fg6_win', '90'), CTYPE = QS.get('ctype') || store.get('fg6_ctype', 'line');
 const mkey = () => MODE + (WIN === '90' ? '90' : '');
 const idxCol = () => MODE === 'binance' ? (WIN === '90' ? 14 : 1) : (WIN === '90' ? 15 : 2);
 const rawCol = () => MODE === 'binance' ? (WIN === '90' ? 16 : 12) : (WIN === '90' ? 17 : 13);
@@ -947,10 +973,10 @@ function seg(id, get, set) {
   upd(); return upd;
 }
 const updMode = seg('modeSeg', () => MODE, v => { MODE = v; VIEW = null; render(); });
-const updLang = seg('langSeg', () => LANG, v => { LANG = v; store.set('fg6_lang', v); updDefLang(); render(); });
+const updLang = seg('langSeg', () => LANG, v => { LANG = v; render(); });
 seg('rangeSeg', () => RANGE, v => { RANGE = +v; store.set('fg6_range', v); resetView(); renderCharts(); });
-const updView = seg('viewSeg', () => VSTYLE, v => { VSTYLE = v; store.set('fg6_view', v); updDefView(); hideHover(); render(); });
-const updDefView = seg('defViewSeg', () => VSTYLE, v => { VSTYLE = v; store.set('fg6_view', v); updView(); render(); });
+const updView = seg('viewSeg', () => VSTYLE, v => { VSTYLE = v; hideHover(); render(); });
+const updDefView = seg('defViewSeg', () => store.get('fg9_defview', 'smc'), v => { store.set('fg9_defview', v); VSTYLE = v; updView(); render(); });
 const updWin = seg('winSeg', () => WIN, v => { WIN = v; store.set('fg6_win', v); VIEW = null; updDefWin(); render(); });
 const updDefWin = seg('defWinSeg', () => WIN, v => { WIN = v; store.set('fg6_win', v); VIEW = null; updWin(); render(); });
 seg('ctypeSeg', () => CTYPE, v => { CTYPE = v; store.set('fg6_ctype', v); renderCharts(); });
@@ -958,14 +984,14 @@ const updCur = seg('curSeg', () => CUR, v => { CUR = v; store.set('fg6_cur', v);
 const updDefCur = seg('defCurSeg', () => CUR, v => { CUR = v; store.set('fg6_cur', v); updCur(); render(); });
 $('defOffSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setOff(b.dataset.v); });
 seg('defModeSeg', () => store.get('fg6_mode', 'multi'), v => { store.set('fg6_mode', v); MODE = v; VIEW = null; updMode(); render(); });
-const updDefLang = seg('defLangSeg', () => LANG, v => { LANG = v; store.set('fg6_lang', v); updLang(); render(); });
+const updDefLang = seg('defLangSeg', () => store.get('fg9_deflang', 'de'), v => { store.set('fg9_deflang', v); LANG = v; updLang(); render(); });
 seg('tabs', () => TAB, v => { TAB = v; renderRight(); });
 for (const [id, k] of [['togNums', 'nums'], ['togBands', 'bands'], ['togOff', 'off'], ['togHeat', 'heat'], ['togSig', 'sig']]) $(id).classList.toggle('on', OPT[k]);
 for (const k of ['p1', 'p2']) $(k === 'p1' ? 'togLv1' : 'togLv2').onclick = e => { LV[k].show = !LV[k].show; saveLV(); e.currentTarget.classList.toggle('on', LV[k].show); renderCharts(); };
 for (const [id, k] of [['togNums', 'nums'], ['togBands', 'bands'], ['togOff', 'off'], ['togHeat', 'heat'], ['togSig', 'sig']])
   $(id).onclick = e => { OPT[k] = !OPT[k]; e.currentTarget.classList.toggle('on', OPT[k]); store.set('fg8_opt', JSON.stringify(OPT)); renderLayMenu(); renderCharts(); };
 // Ebenen (VrilyaSS): direkte Knöpfe + Menü „Ebenen“
-const LAYBTN = [['togSigOff', 'sigOff'], ['togDiv', 'div'], ['togBell', 'bell'], ['togOwn', 'own']];
+const LAYBTN = [['togSigOff', 'sigOff'], ['togDiv', 'div'], ['togBell', 'bell'], ['togOwn', 'own'], ['togMid', 'mid']];
 function renderLayMenu() {
   const o = k => `<label><input type="checkbox" data-o="${k}" ${OPT[k] ? 'checked' : ''}> ${t('lay_' + k)}</label>`;
   const l = k => `<label><input type="checkbox" data-l="${k}" ${LAY[k] ? 'checked' : ''}> ${t('lay_' + k)}</label>`;
@@ -1146,7 +1172,7 @@ window.addEventListener('orientationchange', () => setTimeout(showRotHint, 300))
 window.addEventListener('resize', () => setTimeout(showRotHint, 300));
 showRotHint();
 function renderSettings() {
-  renderHeatSet(); renderSigSet(); renderLineSet();
+  renderHeatSet(); renderSigSet(); renderLineSet(); renderRecSet();
   renderLevelSet(); renderAlertSet(); renderServerSet();
   $('btnSet').innerHTML = ['tg', 'ki'].map(k => `<div class="brow"><b>${t('btn_' + k)}</b>
     <input data-b="${k}" data-f="label" value="${esc(BTNS[k].label)}" placeholder="${t('btnLabel')}" aria-label="${t('btnLabel')}">
@@ -1205,7 +1231,7 @@ let builtComps = false;
 function render() {
   document.body.className = 'v-' + VSTYLE;
   if (!D) return;
-  applyTexts(); renderHeader(); renderMain(); renderDays(); renderSide(); renderCharts(); renderTrend(); renderCompare(); renderTable(); renderRight(); renderFooter(); renderTicker(); updLay();
+  applyTexts(); renderHeader(); renderMain(); renderDays(); renderSide(); renderRec(); renderCharts(); renderTrend(); renderCompare(); renderTable(); renderRight(); renderFooter(); renderTicker(); updLay();
 }
 function renderHeader() {
   $('brand').textContent = VSTYLE === 'vss' ? 'VrilyaSS Fear & Greed INDEX' : 'SMART MONEY FEAR & GREED';
@@ -1215,7 +1241,10 @@ function renderHeader() {
     if (url) { el.href = url; el.target = '_blank'; } else { el.removeAttribute('href'); el.removeAttribute('target'); }
   }
   const p = LIVE.price ?? D.btc.price, ch = LIVE.ch ?? D.btc.ch24;
-  $('hPrice').textContent = money(p, 0, LIVE.eur);
+  if (VSTYLE === 'vss') {
+    const er = LIVE.eur || D.eurusd;
+    $('hPrice').textContent = usd(p, 0); $('hEur').textContent = er ? (LANG === 'de' ? fmt(p / er, 0) + ' €' : '€' + fmt(p / er, 0)) : '';
+  } else $('hPrice').textContent = money(p, 0, LIVE.eur);
   $('hChg').textContent = `${sgn(ch, 2)} % · 24h`; $('hChg').className = 'chg ' + (ch < 0 ? 'neg' : 'pos');
 }
 function renderMain() {
@@ -1342,6 +1371,27 @@ function renderDays() {
   });
   el.innerHTML = html + '</table></div>';
 }
+const REC_DEF = {
+  de: { spot: { xfear: 'Kaufen bzw. DCA (Sparplan erhöhen)', fear: 'In Tranchen kaufen', neutral: 'Abwarten, Bestand halten', greed: 'Halten, nicht nachkaufen', xgreed: 'Gewinne sichern, in Tranchen verkaufen' },
+        fut: { xfear: 'Long aufbauen, kleiner Hebel 1–5x, Stop unter dem letzten Tief', fear: 'Long in Tranchen, Hebel 1–3x', neutral: 'Keine neue Position – Ausbruch abwarten (max. 2x)', greed: 'Longs absichern, Gewinne mitnehmen, kein neuer Long', xgreed: 'Longs schließen; Short nur mit Bestätigung (▼ Wende / Bear-Divergenz), Hebel 1–3x' } },
+  en: { spot: { xfear: 'Buy / DCA (raise savings plan)', fear: 'Buy in tranches', neutral: 'Wait, hold', greed: 'Hold, do not add', xgreed: 'Take profits, sell in tranches' },
+        fut: { xfear: 'Build long, small leverage 1–5x, stop below last low', fear: 'Long in tranches, 1–3x', neutral: 'No new position – wait for breakout (max 2x)', greed: 'Hedge longs, take profits, no new long', xgreed: 'Close longs; short only with confirmation (▼ turn / bear divergence), 1–3x' } }
+};
+function recGet() { const d = REC_DEF[LANG] || REC_DEF.de; try { const s = JSON.parse(store.get('fg9_rec', 'null')); return s ? { spot: { ...d.spot, ...s.spot }, fut: { ...d.fut, ...s.fut } } : d; } catch { return d; } }
+function renderRec() {
+  if (!D || VSTYLE !== 'vss') return;
+  const m = M(), z = zoneOf(m.index ?? 50), R = recGet();
+  $('rec').innerHTML = `<div class="rec2"><div class="recb"><div class="k">${t('recSpot')}</div><b style="color:${z.c}">${esc(R.spot[z.k])}</b></div><div class="recb"><div class="k">${t('recFut')}</div><b style="color:${z.c}">${esc(R.fut[z.k])}</b></div></div>
+    <div class="tw"><table class="rtab"><tr><th>${t('recZone')}</th><th>Spot</th><th>Futures</th></tr>${ZL.map(x => `<tr class="${x === z ? 'on' : ''}"><td><b style="color:${x.c}">${x.from}–${x.to}</b></td><td>${esc(R.spot[x.k])}</td><td>${esc(R.fut[x.k])}</td></tr>`).join('')}</table></div>
+    ${liqShort() ? `<p class="muted" style="font-size:12px;margin-top:8px">${liqShort()}</p>` : ''}<p class="muted" style="font-size:11px;margin-top:6px">${t('recHelp')}</p>`;
+}
+function renderRecSet() {
+  const R = recGet();
+  $('recSet').innerHTML = `<div class="recrow" style="color:var(--dim)"><span></span><span>Spot</span><span>Futures</span></div>` + ZL.map(x => `<div class="recrow"><b style="color:${x.c}">${x.from}–${x.to}</b><input data-rz="${x.k}" data-rf="spot" value="${esc(R.spot[x.k])}"><input data-rz="${x.k}" data-rf="fut" value="${esc(R.fut[x.k])}"></div>`).join('')
+    + `<div class="btns" style="justify-content:flex-start"><button class="btn sm" id="recReset">${t('recReset')}</button></div>`;
+}
+$('recSet').addEventListener('input', e => { const z = e.target.dataset.rz, f = e.target.dataset.rf; if (!z) return; const R = recGet(); R[f] = { ...R[f], [z]: e.target.value }; store.set('fg9_rec', JSON.stringify(R)); renderRec(); });
+$('recSet').addEventListener('click', e => { if (e.target.id !== 'recReset') return; store.set('fg9_rec', 'null'); renderRecSet(); renderRec(); });
 function renderFooter() {
   const up = new Date(D.updated), hm = up.toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' });
   const IV = D.intervals || { data: 10, publish: 10 };
@@ -1351,9 +1401,10 @@ function renderFooter() {
 }
 function renderTicker() {
   $('pp').classList.toggle('div', store.get('fg6_tdiv', '1') === '1');
-  const CL = VSTYLE === 'vss' ? clusterSet(D.heatmap, { nearest: false }) : [], L1 = CL.find(c => c.id === 'L1'), S1 = CL.find(c => c.id === 'S1');
-  $('heatTickS').textContent = S1 ? t('tickShort', { a: money(alarmLevel(S1, HEAT.pct), 0), c: money(S1.z.p, 0) }) : '';
-  $('heatTickL').textContent = L1 ? t('tickLong', { a: money(alarmLevel(L1, HEAT.pct), 0), c: money(L1.z.p, 0) }) : '';
+  const CL = clusterSet(D.heatmap, { nearest: false }), L1 = CL.find(c => c.id === 'L1'), S1 = CL.find(c => c.id === 'S1'), pNow = LIVE.price ?? D.btc.price;
+  const dist = v => sgn((v / pNow - 1) * 100, 1) + ' %';
+  $('heatTickS').textContent = S1 ? t('tickShort', { a: money(alarmLevel(S1, HEAT.pct), 0), c: money(S1.z.p, 0), d: dist(alarmLevel(S1, HEAT.pct)) }) : '';
+  $('heatTickL').textContent = L1 ? t('tickLong', { a: money(alarmLevel(L1, HEAT.pct), 0), c: money(L1.z.p, 0), d: dist(alarmLevel(L1, HEAT.pct)) }) : '';
   const p = LIVE.price ?? D.btc.price;
   $('tPrice').textContent = '$' + p.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const er = LIVE.eur || D.eurusd;
@@ -1501,6 +1552,14 @@ function renderSigStats() {
   $('sigStats').innerHTML = `<div class="h" style="margin-top:4px"><span>${t('sigStatsTitle')}</span><small>${t('sigStatsNote')}</small></div><div class="tw"><table><tr><th>${t('sigCol')}</th><th class="r">${t('sigN')}</th><th class="r">7T ${t('sigUp')}</th><th class="r">Ø 7T</th><th class="r">30T ${t('sigUp')}</th><th class="r">Ø 30T</th></tr>${rows}</table></div>
     <div class="h" style="margin-top:16px"><span>${t('mTitle')}</span><small>${t('mNote')}</small></div><div class="tw"><table class="mtab">${mt}</table></div><p class="muted" style="font-size:12px;margin-top:6px">${t('mHelp')}</p>`;
 }
+// Liquiditäts-Einschätzung: liegen die Longs (unten) oder die Shorts (oben) näher und dichter am Kurs?
+function liqInfo() { const HM = D?.heatmap; return HM ? liqBias(HM, LIVE.price || D.btc.price) : null; }
+function liqText() {
+  const b = liqInfo(); if (!b) return '';
+  const f = (s, side) => t('liq' + side, { lo: money(s.lo, 0), hi: money(s.hi, 0), d: fmt(s.near, 1), u: fmt(s.usd / 1e6, 0), n: s.n, s: fmt(s.spread, 1) });
+  return `<b>${t('liqHead')}</b> <span class="flat">(${t('liqNote')})</span><br><span style="color:${STYLE.heatShort}">▲</span> ${f(b.S, 'S')}<br><span style="color:${STYLE.heatLong}">▼</span> ${f(b.L, 'L')}<br><b style="color:var(--gold)">${t('liq_' + b.first)}</b>`;
+}
+const liqShort = () => { const b = liqInfo(); return b ? t('liqS_' + b.first) : ''; };
 function renderHeatInfo() {
   const HM = D?.heatmap, el = $('heatInfo'), show = VSTYLE === 'vss' && HM && (OPT.heat || LAY.cl || LAY.bell);
   el.classList.toggle('hidden', !show); if (!show) return;
@@ -1510,7 +1569,7 @@ function renderHeatInfo() {
     return `<br><span style="color:${colr};font-weight:800">${c.id}</span> ${t('hk_' + c.kind)} ${c.side === 'L' ? 'Long' : 'Short'}-Cluster <b>${money(c.z.p, 0)}</b> <span class="flat">(${t('hZone')} ${money(c.z.lo, 0)} – ${money(c.z.hi, 0)} · ≈ ${fmt(c.z.usd / 1e6, 0)} ${Mio})</span>${al ? ` · <span style="color:${STYLE.bellColor}">🔔 ${t('hFrom')} ${money(alarmLevel(c, HEAT.pct), 0)}</span>` : ''}`;
   };
   const mid = HM.longTop && HM.shortTop ? (HM.longTop.p + HM.shortTop.p) / 2 : null, own = LINES.filter(l => l.on);
-  el.innerHTML = t('heatLine2', { h: Math.round(HM.hours / 24) }) + ' · ' + t('hAlarmPct', { p: fmt(HEAT.pct, HEAT.pct % 1 ? 1 : 0) })
+  el.innerHTML = (liqText() ? liqText() + '<div style="height:10px"></div>' : '') + t('heatLine2', { h: Math.round(HM.hours / 24) }) + ' · ' + t('hAlarmPct', { p: fmt(HEAT.pct, HEAT.pct % 1 ? 1 : 0) })
     + CL.filter(c => c.side === 'S').sort((p, q) => q.z.p - p.z.p).map(row).join('')
     + `<br><span style="color:${STYLE.midColor};font-weight:800">M</span> ${t('hMid')} <b>${money(mid, 0)}</b> <span class="flat">· ${t('hPrice')} ${money(LIVE.price || D.btc.price, 0)}</span>`
     + CL.filter(c => c.side === 'L').sort((p, q) => q.z.p - p.z.p).map(row).join('')
@@ -1629,7 +1688,7 @@ function renderCharts() {
     const i = idxOf.get(s.d); if (i == null) continue;
     const pr = priceAtDay(i); if (pr == null) continue;
     const c = s.type === 'fear' ? LV[k].dLo : LV[k].dHi, x = X(i), y = Y(pr);
-    if (s.kind === 'phase') g += `<path d="M${x},${y - 7} L${x + 6},${y} L${x},${y + 7} L${x - 6},${y} Z" fill="none" stroke="${c}" stroke-width="2"/>`;
+    if (s.kind === 'phase') { const yy = y + (s.type === 'fear' ? 17 : -17); g += `<path d="M${x},${yy - 9} L${x + 8},${yy} L${x},${yy + 9} L${x - 8},${yy} Z" fill="${c}" fill-opacity=".28" stroke="${c}" stroke-width="2.4"/>`; }
     else if (s.kind === 'peak') g += s.type === 'fear' ? `<path d="M${x},${y + 9} L${x + 7},${y + 21} L${x - 7},${y + 21} Z" fill="none" stroke="${c}" stroke-width="2.2"/>` : `<path d="M${x},${y - 9} L${x + 7},${y - 21} L${x - 7},${y - 21} Z" fill="none" stroke="${c}" stroke-width="2.2"/>`;
     else g += s.type === 'fear' ? `<path d="M${x},${y + 9} L${x + 7},${y + 21} L${x - 7},${y + 21} Z" fill="${c}" stroke="#160b1b" stroke-width="1.5"/>` : `<path d="M${x},${y - 9} L${x + 7},${y - 21} L${x - 7},${y - 21} Z" fill="${c}" stroke="#160b1b" stroke-width="1.5"/>`;
   }
@@ -1645,7 +1704,7 @@ function renderCharts() {
       for (const s of offSignalsFor(k)) {
         const i = idxOf.get(s.d); if (i == null) continue; const pr = priceAtDay(i); if (pr == null) continue;
         const x = X(i), y = Y(pr), up = s.type === 'fear';
-        if (s.kind === 'phase') { const yy = y + (up ? 27 : -27); g += `<path d="M${x},${yy - 6} L${x + 5},${yy} L${x},${yy + 6} L${x - 5},${yy} Z" fill="none" stroke="${oc2}" stroke-width="2"/>`; }
+        if (s.kind === 'phase') { const yy = y + (up ? 30 : -30); g += `<path d="M${x},${yy - 8} L${x + 7},${yy} L${x},${yy + 8} L${x - 7},${yy} Z" fill="${oc2}" fill-opacity=".28" stroke="${oc2}" stroke-width="2.4"/>`; }
         else g += up ? `<path d="M${x},${y + 34} L${x + 6},${y + 45} L${x - 6},${y + 45} Z" fill="${oc2}" stroke="#160b1b" stroke-width="1.5"/>` : `<path d="M${x},${y - 34} L${x + 6},${y - 45} L${x - 6},${y - 45} Z" fill="${oc2}" stroke="#160b1b" stroke-width="1.5"/>`;
       }
     }
@@ -1663,6 +1722,15 @@ function renderCharts() {
         g += `<rect x="${X(ic) - w / 2}" y="${y - 9}" width="${w}" height="17" rx="4" fill="${c}"/><text x="${X(ic)}" y="${y + 3.5}" fill="#0b0b10" font-size="11" font-weight="800" text-anchor="middle">${tx}</text>`;
       }
     }
+  }
+  // Anzahl im sichtbaren Bereich auf den Knöpfen (damit man sieht, ob es im Zeitraum überhaupt Signale gibt)
+  if (VSTYLE === 'vss') {
+    const inV = d => idxOf.has(d), lvs = activeLv();
+    const nSig = lvs.reduce((s, k) => s + signalsFor(k).filter(x => inV(x.d)).length, 0);
+    const nOff = lvs.reduce((s, k) => s + offSignalsFor(k).filter(x => inV(x.d)).length, 0);
+    const nDiv = divList().filter(x => inV(x.conf) || inV(x.b.d)).length + (DIV.official ? divListOff().filter(x => inV(x.conf) || inV(x.b.d)).length : 0);
+    $('togSig').textContent = `${t('btnSig')} · ${nSig}`; $('togSigOff').textContent = `${t('btnSigOff')} · ${nOff}`; $('togDiv').textContent = `${t('btnDiv')} · ${nDiv}`;
+    $('togSig').title = $('togSigOff').title = $('togDiv').title = t('cntTip');
   }
   const vals = data.map(d => d[col]);
   let th = n <= 31 ? 5 : n <= 120 ? 10 : 14, piv = pivots(vals, th);
@@ -1955,7 +2023,7 @@ function renderTrend() {
   };
   $('tcols').innerHTML = box(sm, t('tSM', { m: MODE === 'multi' ? 'Multi-Source' : 'Binance' }), 'act_', 'ourWhy') + box(of, t('tOff', { s: of.name }), 'tb_', 'tbWhy');
   $('overall').innerHTML = overallText(sm, of);
-  $('csum').innerHTML = t('sumHead', { v: sm.v ?? '–', z: sm.z ? t(sm.z) : '–', t: tword(sm.t7), a: sm.z ? t('act_' + sm.z) : '–', s: of.name, o: of.v ?? '–', oz: of.z ? t(of.z) : '–', ot: tword(of.t7), tb: of.z ? t('tb_' + of.z) : '–' }) + ' ' + overallText(sm, of);
+  $('csum').innerHTML = t('sumHead', { v: sm.v ?? '–', z: sm.z ? t(sm.z) : '–', t: tword(sm.t7), a: sm.z ? t('act_' + sm.z) : '–', s: of.name, o: of.v ?? '–', oz: of.z ? t(of.z) : '–', ot: tword(of.t7), tb: of.z ? t('tb_' + of.z) : '–' }) + ' ' + overallText(sm, of) + (liqShort() ? ' ' + liqShort() : '');
 }
 function overallText(sm, of) {
   if (sm.v == null || of.v == null) return '';
