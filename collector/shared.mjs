@@ -45,6 +45,71 @@ export function mean7(H, col) {
   return rows.map((r, i) => { const w = []; for (let j = Math.max(0, i - 6); j <= i; j++) w.push(rows[j][col]); return [r[0], w.length >= 3 ? Math.round(w.reduce((a, b) => a + b) / w.length) : null, r[3]]; });
 }
 
+/* ---------- Pivots: höchstes Hoch und tiefstes Tief (danach oder im ganzen Zeitraum) ---------- */
+// Zeiträume in Tagen (Schlüssel wie im Chart-Knopf): 7T, 1M, 3M, 6M, 12M, gesamt
+export const PV_DAYS = { '7': 7, '30': 30, '91': 91, '182': 182, '365': 365, all: 99999 };
+export const PV_ORDER = ['7', '30', '91', '182', '365', 'all'];
+// rows = Verlaufszeilen mit Kurs; lowMode 'after' = tiefstes Tief nach dem höchsten Hoch (gibt es danach keins: tiefstes Tief im Zeitraum), 'range' = tiefstes Tief im ganzen Zeitraum
+export function pivotOf(rows, lowMode = 'after') {
+  let iH = -1, vH = -Infinity, iL = -1, vL = Infinity;
+  rows.forEach((r, k) => { const v = r[10] ?? r[3]; if (v != null && v > vH) { vH = v; iH = k; } });
+  const scan = from => rows.forEach((r, k) => { if (k < from) return; const v = r[11] ?? r[3]; if (v != null && v < vL) { vL = v; iL = k; } });
+  scan(lowMode === 'range' ? 0 : iH + 1);
+  const after = iL >= 0 && lowMode !== 'range';
+  if (iL < 0 && lowMode !== 'range') scan(0);
+  return { iH, iL, hi: iH >= 0 ? { p: vH, d: rows[iH][0] } : null, lo: iL >= 0 ? { p: vL, d: rows[iL][0], after: after ? rows[iH][0] : null } : null };
+}
+// Alarm-Stufen: nur abgeschlossene Tage (vor "today"), damit ein Bruch nicht sofort das Tief mitverschiebt
+export function pivotAlarmLevels(H, per, lowMode, today) {
+  const px = H.filter(r => r[3] != null && r[0] < today), rows = px.slice(-(PV_DAYS[per] ?? 91));
+  return rows.length >= 3 ? pivotOf(rows, lowMode) : null;
+}
+// Rückblick: Wie oft wurde das Pivot-Tief (-Hoch) dieses Zeitraums unterschritten (überschritten), und was passierte danach?
+// back = Kurs schließt innerhalb von 7 Tagen wieder auf der anderen Seite (Fehlausbruch / Sweep); ch30 = Kurs 30 Tage später gegenüber der Stufe
+export function pivotStats(H, per, side, lowMode = 'after', o = {}) {
+  const px = H.filter(r => r[3] != null), n = PV_DAYS[per] ?? 91, win = o.win ?? 7, gap = o.gap ?? 7, ev = [];
+  let last = -1e9;
+  for (let i = Math.min(n, 30); i < px.length; i++) {
+    if (i - last < gap) continue;
+    const pv = pivotOf(px.slice(Math.max(0, i - n), i), lowMode), lv = side === 'lo' ? pv.lo : pv.hi; if (!lv) continue;
+    const r = px[i], hit = side === 'lo' ? (r[11] ?? r[3]) < lv.p : (r[10] ?? r[3]) > lv.p; if (!hit) continue;
+    last = i;
+    if (i + win >= px.length) continue;                          // noch zu frisch für eine Auswertung
+    let back = false; for (let k = i; k <= i + win; k++) if (side === 'lo' ? px[k][3] > lv.p : px[k][3] < lv.p) { back = true; break; }
+    const c30 = px[i + 30]?.[3];
+    ev.push({ d: r[0], p: lv.p, back, ch30: c30 ? (c30 / lv.p - 1) * 100 : null });
+  }
+  const w30 = ev.filter(e => e.ch30 != null);
+  return { n: ev.length, back: ev.filter(e => e.back).length, n30: w30.length, up30: w30.filter(e => e.ch30 > 0).length,
+    avg30: w30.length ? w30.reduce((a, e) => a + e.ch30, 0) / w30.length : null, from: px[0]?.[0] };
+}
+// Pivot-Alarme: Tief unterschritten / Hoch überschritten / Annäherung (± nearPct). pa = { per: ['91', …], lo, hi, near, nearPct, low }
+export function pivotEvents(H, price, pa, today) {
+  const out = []; if (!(price > 0) || !pa?.per?.length) return out;
+  const L = {}; for (const k of PV_ORDER) L[k] = pivotAlarmLevels(H, k, pa.low, today);
+  for (const side of ['lo', 'hi']) {
+    if (!pa[side]) continue;
+    const brk = [], near = [];
+    for (const per of PV_ORDER.filter(k => pa.per.includes(k))) {
+      const x = L[per]?.[side]; if (!x) continue;
+      const crossed = side === 'lo' ? price < x.p : price > x.p, dist = Math.abs(price / x.p - 1) * 100;
+      if (crossed) brk.push({ per, lvl: x }); else if (pa.near && dist <= (pa.nearPct ?? 1)) near.push({ per, lvl: x, dist });
+    }
+    const beyond = PV_ORDER.map(per => ({ per, ...(L[per]?.[side] || {}) })).filter(v => v.p && (side === 'lo' ? v.p < price : v.p > price))
+      .sort((a, b) => side === 'lo' ? b.p - a.p : a.p - b.p);
+    const key = (ev, list) => `pv:${side}:${ev}:${list.map(x => x.per + '@' + Math.round(x.lvl.p)).join(',')}`;
+    if (brk.length) out.push({ side, ev: 'break', list: brk, next: beyond[0] || null, key: key('break', brk) });
+    if (near.length) out.push({ side, ev: 'near', list: near, next: null, key: key('near', near) });
+  }
+  return out;
+}
+// fertige Daten für den Alarm-Text: Rückblick für den längsten betroffenen Zeitraum, nächster Cluster in Bruch-Richtung
+export function pivotPayload(H, e, CL, price, lowMode) {
+  const main = e.list.at(-1), st = pivotStats(H, main.per, e.side, lowMode);
+  const cl = e.ev === 'break' && CL?.length ? nextCluster(CL, price, e.side === 'hi') : null;
+  return { ...e, main, st, cl };
+}
+
 /* ---------- Trendfilter (für Kauf-Signale) ---------- */
 // Je Tag: Kurs unter EMA(n), starker Abwärtstrend laut ADX(14) (ADX > adxMin und -DI > +DI), MACD auf Wochenbasis negativ und unter Signal
 export function trendInfo(H, o = {}) {
@@ -264,6 +329,49 @@ export function heatEvents(list, price, h) {
 
 /* ---------- Alarm-Texte (Browser + Telegram) ---------- */
 const nf = (n, lang) => n == null ? '–' : Math.round(n).toLocaleString(lang === 'de' ? 'de-DE' : 'en-US') + ' $';
+const PVN = {
+  de: { '7': '7 Tage', '30': '1 Monat', '91': '3 Monate', '182': '6 Monate', '365': '12 Monate', all: 'gesamter Verlauf' },
+  en: { '7': '7 days', '30': '1 month', '91': '3 months', '182': '6 months', '365': '12 months', all: 'all-time' },
+  ar: { '7': '7 أيام', '30': 'شهر', '91': '3 أشهر', '182': '6 أشهر', '365': '12 شهراً', all: 'كامل السجل' } };
+export const PVS = {
+  de: { '7': '7T', '30': '1M', '91': '3M', '182': '6M', '365': '12M', all: 'Alles' },
+  en: { '7': '7D', '30': '1M', '91': '3M', '182': '6M', '365': '12M', all: 'All' },
+  ar: { '7': '7ي', '30': '1ش', '91': '3ش', '182': '6ش', '365': '12ش', all: 'الكل' } };
+const dmyS = d => d ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '';
+function pivotText(x, lang, P, tail, na) {
+  const de = lang === 'de', ar = lang === 'ar', lo = x.side === 'lo', m = x.main, st = x.st, pers = x.list.map(v => PVS[lang][v.per]).join(' · ');
+  const pc = v => (v > 0 ? '+' : '') + v.toFixed(1).replace('.', de ? ',' : '.') + ' %', dist = x.list[0].dist;
+  const lvTxt = `${P(m.lvl.p)} (${dmyS(m.lvl.d)})`, aft = lo && m.lvl.after ? (ar ? `، بعد القمة في ${dmyS(m.lvl.after)}` : de ? `, nach dem Hoch vom ${dmyS(m.lvl.after)}` : `, after the high of ${dmyS(m.lvl.after)}`) : '', nm = PVN[lang][m.per] + aft;
+  let title, body;
+  if (ar) {
+    title = x.ev === 'break' ? `${lo ? '📉 كسر قاع البيفوت' : '📈 اختراق قمة البيفوت'} · ${pers}` : `🔔 ${lo ? 'قاع' : 'قمة'} البيفوت ${pers}: على بعد ${dist.toFixed(1)} % فقط`;
+    body = x.ev === 'break' ? `${lo ? 'تم كسر أدنى قاع' : 'تم اختراق أعلى قمة'} (${nm}) عند ${lvTxt} – السعر الآن ${P(x.price)}.` : `السعر ${P(x.price)} على بعد ${dist.toFixed(1)} % فقط من ${lo ? 'أدنى قاع' : 'أعلى قمة'} (${nm}) ${lvTxt}.`;
+    if (st?.n) body += `\nسابقاً (منذ ${st.from?.slice(0, 4)}): في ${st.back} من ${st.n} حالة أغلق السعر خلال 7 أيام مرة أخرى ${lo ? 'فوق المستوى' : 'تحت المستوى'} (اختراق كاذب / سحب سيولة).` + (st.n30 ? ` بعد 30 يوماً كان السعر فوق المستوى في ${st.up30} من ${st.n30} (المتوسط ${pc(st.avg30)}).` : '');
+    if (x.ev === 'break') {
+      body += lo ? `\nالسيناريو أ – سحب سيولة: يستعيد السعر القاع بسرعة ← لونغ فقط بعد التأكيد (إغلاق يومي فوق ${P(m.lvl.p)})، ووقف الخسارة تحت القاع الجديد.\nالسيناريو ب – كسر: يبقى السعر تحته` : `\nالسيناريو أ – سحب سيولة: يعود السعر تحت القمة بسرعة ← شورت فقط بعد التأكيد (إغلاق يومي تحت ${P(m.lvl.p)})، ووقف الخسارة فوق القمة الجديدة.\nالسيناريو ب – اختراق: يبقى السعر فوقها`;
+      const tg = [x.next ? `${lo ? 'قاع' : 'قمة'} البيفوت ${PVS.ar[x.next.per]} ${P(x.next.p)}` : '', x.cl ? `تجمّع ${x.cl.id} ${P(x.cl.z.p)} (≈ ${Math.round(x.cl.z.usd / 1e6)} مليون $)` : ''].filter(Boolean).join(' · ');
+      body += tg ? ` ← الهدف التالي: ${tg}.` : '.';
+    } else body += `\nعند الكسر يصلك تنبيه منفصل.`;
+    return { title, body: body + tail + na };
+  }
+  const T = (d, e) => de ? d : e;
+  title = x.ev === 'break' ? `${lo ? T('📉 Pivot-Tief unterschritten', '📉 Pivot low broken') : T('📈 Pivot-Hoch überschritten', '📈 Pivot high broken')} · ${pers}`
+    : `🔔 ${lo ? T('Pivot-Tief', 'Pivot low') : T('Pivot-Hoch', 'Pivot high')} ${pers}: ${T('nur noch', 'only')} ${dist.toFixed(1).replace('.', de ? ',' : '.')} % ${T('entfernt', 'away')}`;
+  body = x.ev === 'break'
+    ? T(`${lo ? 'Tiefstes Tief' : 'Höchstes Hoch'} (${nm}) bei ${lvTxt} ${lo ? 'unterschritten' : 'überschritten'} – Kurs jetzt ${P(x.price)}.`, `${lo ? 'Lowest low' : 'Highest high'} (${nm}) at ${lvTxt} ${lo ? 'broken to the downside' : 'broken to the upside'} – price now ${P(x.price)}.`)
+    : T(`Kurs ${P(x.price)} ist nur noch ${dist.toFixed(1).replace('.', ',')} % vom ${lo ? 'tiefsten Tief' : 'höchsten Hoch'} (${nm}) ${lvTxt} entfernt.`, `Price ${P(x.price)} is only ${dist.toFixed(1)} % from the ${lo ? 'lowest low' : 'highest high'} (${nm}) ${lvTxt}.`);
+  if (st?.n) body += T(`\nBisher (seit ${st.from?.slice(0, 4)}): In ${st.back} von ${st.n} Fällen schloss der Kurs innerhalb von 7 Tagen wieder ${lo ? 'darüber' : 'darunter'} (Fehlausbruch / Liquiditäts-Sweep), in ${st.n - st.back} lief er weiter.`
+      + (st.n30 ? ` Nach 30 Tagen lag der Kurs in ${st.up30} von ${st.n30} Fällen über der Stufe (Ø ${pc(st.avg30)}).` : ''),
+    `\nSo far (since ${st.from?.slice(0, 4)}): in ${st.back} of ${st.n} cases price closed back ${lo ? 'above' : 'below'} within 7 days (false break / liquidity sweep), in ${st.n - st.back} it kept going.`
+      + (st.n30 ? ` After 30 days price was above the level in ${st.up30} of ${st.n30} cases (avg ${pc(st.avg30)}).` : ''));
+  if (x.ev === 'break') {
+    body += lo ? T(`\nSzenario A – Sweep: Kurs holt das Tief schnell zurück → Long erst nach Bestätigung (Tagesschluss wieder über ${P(m.lvl.p)}), Stop unter dem neuen Tief.\nSzenario B – Ausbruch: Kurs bleibt darunter`, `\nScenario A – sweep: price quickly reclaims the low → long only after confirmation (daily close back above ${P(m.lvl.p)}), stop below the new low.\nScenario B – breakdown: price stays below`)
+      : T(`\nSzenario A – Sweep: Kurs fällt schnell wieder unter das Hoch → Short erst nach Bestätigung (Tagesschluss wieder unter ${P(m.lvl.p)}), Stop über dem neuen Hoch.\nSzenario B – Ausbruch: Kurs bleibt darüber`, `\nScenario A – sweep: price quickly falls back below the high → short only after confirmation (daily close back below ${P(m.lvl.p)}), stop above the new high.\nScenario B – breakout: price stays above`);
+    const tg = [x.next ? `${lo ? T('Pivot-Tief', 'pivot low') : T('Pivot-Hoch', 'pivot high')} ${PVS[lang][x.next.per]} ${P(x.next.p)}` : '', x.cl ? `${x.cl.side === 'L' ? 'Long' : 'Short'}-Cluster ${x.cl.id} ${P(x.cl.z.p)} (≈ ${Math.round(x.cl.z.usd / 1e6)} ${T('Mio.', 'M')} $)` : ''].filter(Boolean).join(' · ');
+    body += tg ? T(` → nächstes Ziel: ${tg}.`, ` → next target: ${tg}.`) : '.';
+  } else body += T('\nWird die Stufe gebrochen, kommt ein eigener Alarm.', '\nIf the level breaks you get a separate alert.');
+  return { title, body: body + tail + na };
+}
 function alarmTextAr(kind, x) {
   const P = n => n == null ? '–' : Math.round(n).toLocaleString('en-US') + ' $', pc = v => (v > 0 ? '+' : '') + v.toFixed(1) + ' %';
   const tail = x.idx != null ? `\nالمؤشر الآن ${x.idx} (${x.zone}) · BTC ${P(x.price)}` : `\nBTC ${P(x.price)}`, na = '\n<i>سيناريوهات، ليست نصيحة استثمارية.</i>';
@@ -282,6 +390,7 @@ function alarmTextAr(kind, x) {
     const nx = next ? `التجمّع التالي ${up ? 'الأعلى' : 'الأدنى'}: ${next.id} ${P(next.z.p)} (${pc((next.z.p / x.price - 1) * 100)}، ≈ ${Math.round(next.z.usd / 1e6)} مليون $)` : 'لا يوجد تجمّع آخر قريب.';
     return { title, body: `تم لمس التجمّع ${P(c.p)} (المنطقة ${P(c.lo)} – ${P(c.hi)}) الساعة ${tm}، ثم ${L ? 'أدنى' : 'أعلى'} سعر ${P(c.ext)}.\n${nx}${tail}${na}` };
   }
+  if (kind === 'pivot') return pivotText(x, 'ar', P, tail, na);
   if (kind === 'line') { const up = x.dir > 0; return { title: `🔔 تم عبور خط التنبيه ${x.id} ${up ? 'للأعلى' : 'للأسفل'}`, body: `تم عبور الخط الخاص ${P(x.p)} ${up ? 'من الأسفل' : 'من الأعلى'}.${tail}` }; }
   if (kind === 'phase' || kind === 'turn' || kind === 'exit') {
     const g = x.type === 'greed', who = x.official ? ' · المؤشر الرسمي' : '';
@@ -347,6 +456,7 @@ function alarmTextBase(kind, x, lang = 'de') {
     const body = (de ? `Cluster ${P(c.p)} (Zone ${P(c.lo)} – ${P(c.hi)}) um ${tm} angelaufen, ${L ? 'Tief' : 'Hoch'} danach ${P(c.ext)}.` : `Cluster ${P(c.p)} (zone ${P(c.lo)} – ${P(c.hi)}) hit at ${tm}, then ${L ? 'low' : 'high'} ${P(c.ext)}.`) + '\n' + nx;
     return { title, body: body + tail + na };
   }
+  if (kind === 'pivot') return pivotText(x, lang, P, tail, na);
   if (kind === 'line') {
     const up = x.dir > 0;
     return { title: de ? `🔔 Alarmlinie ${x.id} ${up ? 'nach oben' : 'nach unten'} gekreuzt` : `🔔 Alert line ${x.id} crossed ${up ? 'upwards' : 'downwards'}`,

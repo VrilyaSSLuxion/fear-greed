@@ -1,4 +1,4 @@
-# Fear & Greed – Version 13
+# Fear & Greed – Version 14
 
 ## Starten
 
@@ -6,13 +6,24 @@
 |---|---|
 | `start.bat` | Startet das Programm (falls nicht schon aktiv) und öffnet **http://localhost:8797** |
 | `stop.bat` | Beendet das Programm |
-| `fear-greed-v13.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
+| `fear-greed-v14.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
 
-Das Programm startet automatisch mit Windows (`Fear-Greed-V13.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
+Das Programm startet automatisch mit Windows (`Fear-Greed-V14.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
 Live-Werte jede Minute (einstellbar), große Verläufe stündlich. Protokoll: `data\server.log`.
-Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v12 leiten weiter).
+Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v13 leiten weiter).
 
 Beim ersten Öffnen erscheint das **Handbuch** (Knopf „Handbuch“ oben rechts, abschaltbar).
+
+## Neu in V14
+- **Handbuch** wieder im Stil von V12 (goldener Strich, jeder Abschnitt im goldenen Kasten) und zusätzlich jede Überschrift im kleinen goldenen Rahmen. Neue Abschnitte: **Die drei Ansichten** (SMC / SMC 2 / VrilyaSS mit Vergleichstabelle), **Warum VrilyaSS?**, **Tops/Böden** (wie gezählt wird, mit Beispielen), **Pivot-Linien**, **Alarme – wo und wie**. Knopf „Handbuch“ jetzt in allen drei Ansichten
+- **Pivot-Knopf schaltet durch:** aus → P-Sicht → P-7T → P-1M → P-3M → P-6M → P-12M → Pivot (alles) → aus (Rechtsklick = zurück); die Leiste Sicht/7T/1M… daneben ist weg. Dicke und „tiefstes Tief nach dem Hoch / im ganzen Zeitraum“ im Zahnrad
+- **Pivot-Alarme** (Zahnrad → Pivot-Alarme): Zeiträume 7T…Alles, Tief unterschritten / Hoch überschritten / Annäherung (± %). Meldung mit Rückblick seit 2020 (wie oft der Kurs innerhalb von 7 Tagen zurückkam), Szenario A (Sweep) / B (Ausbruch) und nächstem Ziel (nächstes Pivot oder Liquidations-Cluster). Browser und Telegram
+- **Tops/Böden mit Zwischen-Stufe:** Knopf 1× = Zyklus (35 %), 2× = Zyklus + Zwischen (20 %, kleiner und blasser), 3× = aus
+- **Cluster-Knopf schaltet durch:** alle → nur nächste → nur stärkste → nur fernste → aus; Cluster-Namen (L1, S2, LF …) in kleiner Box am Linienanfang
+- **EMA 50/200:** Beschriftung in Box auf der Linie (oben / unten / auf der Linie / rechts, Box an/aus), Farbe fest / grün-rot / abgestuft nach Dauer, Verlängerung um N Kerzen (gestrichelt)
+- **Index-Chart:** Titel im Kasten, eigene Knöpfe daneben (MA, 75/25, 85/15, Offizieller Index); MA-Knopf oben schaltet nur noch den Kurs-Chart
+- **Trennlinien** im Chart (Skala rechts, unter dem Index-Chart), deutlichere goldene Leiste zum Ziehen (Farbe im Zahnrad)
+- **SMC-Titelzeile** in einer Zeile, **Zahnrad** mit grauem Rahmen, **Ticker**: TICK/24 H größer, 24-h-Prozent unten, LONGS/SHORTS fett, Liquidationen höher und Alarmzeilen größer
 
 ## Neu in V13
 - **Ansicht „SMC 2“**: SMC mit eigenen Erweiterungen (Flaggen, $ und €, Trennstriche, erweiterter Ticker) – **SMC** bleibt 1:1 das Original
