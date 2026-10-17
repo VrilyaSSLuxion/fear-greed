@@ -361,9 +361,13 @@ async function liqHeatmap(get) {
   // Kursverlauf und Käufer-Anteil von Binance gelten für alle Börsen (BTC-Kurs ist überall fast gleich), das Open Interest kommt je Börse
   const lv = { binance: liqLevels(new Map(oi.map(x => [hourOf(x.timestamp), +x.sumOpenInterest])), tkM, kl) };
   for (const ex of ['bybit', 'okx']) if (XOI[ex]?.length) lv[ex] = liqLevels(new Map(XOI[ex].map(([t, v]) => [hourOf(t), v])), tkM, kl);
-  const out = { ...liqMap(lv.binance, kl), src: 'binance', alt: {} };
-  for (const ex of ['bybit', 'okx']) if (lv[ex]) out.alt[ex] = { ...liqMap(lv[ex], kl), src: ex };
-  out.alt.all = { ...liqMap(Object.values(lv).flat(), kl), src: 'all', parts: Object.keys(lv) };
+  // V16: jede Kombination der Börsen (einzeln, zu zweit, alle drei = „all“)
+  const out = { ...liqMap(lv.binance, kl), src: 'binance', parts: ['binance'], alt: {} };
+  for (const c of [['bybit'], ['okx'], ['binance', 'bybit'], ['binance', 'okx'], ['bybit', 'okx'], ['binance', 'bybit', 'okx']]) {
+    if (!c.every(x => lv[x])) continue;
+    const key = c.length === 3 ? 'all' : c.join('+');
+    out.alt[key] = { ...liqMap(c.flatMap(x => lv[x]), kl), src: key, parts: c };
+  }
   return out;
 }
 function liqLevels(oiM, tkM, kl) {

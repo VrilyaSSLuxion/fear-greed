@@ -50,14 +50,16 @@ export function mean7(H, col) {
 export const PV_DAYS = { '7': 7, '30': 30, '91': 91, '182': 182, '365': 365, all: 99999 };
 export const PV_ORDER = ['7', '30', '91', '182', '365', 'all'];
 // rows = Verlaufszeilen mit Kurs; lowMode 'after' = tiefstes Tief nach dem höchsten Hoch (gibt es danach keins: tiefstes Tief im Zeitraum), 'range' = tiefstes Tief im ganzen Zeitraum
-export function pivotOf(rows, lowMode = 'after') {
+// V16: mode 'range' = höchstes Hoch und tiefstes Tief im Zeitraum (Standard), 'after' = Tief nach dem höchsten Hoch,
+// 'afterLow' = Hoch nach dem tiefsten Tief; gibt es danach (noch) keins, gilt das Extrem im ganzen Zeitraum
+export function pivotOf(rows, mode = 'range') {
   let iH = -1, vH = -Infinity, iL = -1, vL = Infinity;
-  rows.forEach((r, k) => { const v = r[10] ?? r[3]; if (v != null && v > vH) { vH = v; iH = k; } });
-  const scan = from => rows.forEach((r, k) => { if (k < from) return; const v = r[11] ?? r[3]; if (v != null && v < vL) { vL = v; iL = k; } });
-  scan(lowMode === 'range' ? 0 : iH + 1);
-  const after = iL >= 0 && lowMode !== 'range';
-  if (iL < 0 && lowMode !== 'range') scan(0);
-  return { iH, iL, hi: iH >= 0 ? { p: vH, d: rows[iH][0] } : null, lo: iL >= 0 ? { p: vL, d: rows[iL][0], after: after ? rows[iH][0] : null } : null };
+  const scanH = from => { iH = -1; vH = -Infinity; rows.forEach((r, k) => { if (k < from) return; const v = r[10] ?? r[3]; if (v != null && v > vH) { vH = v; iH = k; } }); };
+  const scanL = from => { iL = -1; vL = Infinity; rows.forEach((r, k) => { if (k < from) return; const v = r[11] ?? r[3]; if (v != null && v < vL) { vL = v; iL = k; } }); };
+  let hiAfter = null, loAfter = null;
+  if (mode === 'afterLow') { scanL(0); scanH(iL + 1); if (iH < 0) scanH(0); else hiAfter = rows[iL][0]; }
+  else { scanH(0); scanL(mode === 'after' ? iH + 1 : 0); if (iL < 0) scanL(0); else if (mode === 'after') loAfter = rows[iH][0]; }
+  return { iH, iL, hi: iH >= 0 ? { p: vH, d: rows[iH][0], after: hiAfter } : null, lo: iL >= 0 ? { p: vL, d: rows[iL][0], after: loAfter } : null };
 }
 // Alarm-Stufen: nur abgeschlossene Tage (vor "today"), damit ein Bruch nicht sofort das Tief mitverschiebt
 export function pivotAlarmLevels(H, per, lowMode, today) {
@@ -66,7 +68,7 @@ export function pivotAlarmLevels(H, per, lowMode, today) {
 }
 // Rückblick: Wie oft wurde das Pivot-Tief (-Hoch) dieses Zeitraums unterschritten (überschritten), und was passierte danach?
 // back = Kurs schließt innerhalb von 7 Tagen wieder auf der anderen Seite (Fehlausbruch / Sweep); ch30 = Kurs 30 Tage später gegenüber der Stufe
-export function pivotStats(H, per, side, lowMode = 'after', o = {}) {
+export function pivotStats(H, per, side, lowMode = 'range', o = {}) {
   const px = H.filter(r => r[3] != null), n = PV_DAYS[per] ?? 91, win = o.win ?? 7, gap = o.gap ?? 7, ev = [];
   let last = -1e9;
   for (let i = Math.min(n, 30); i < px.length; i++) {
@@ -110,6 +112,38 @@ export function pivotPayload(H, e, CL, price, lowMode) {
   return { ...e, main, st, cl };
 }
 
+/* ---------- 50er-Linie im Index: Bounce, Ablehnung, Durchbruch, Retest, Fehlausbruch ---------- */
+// rows: [{d, v}] tägliche Index-Werte. Zone um die 50: Long-Seite 50 + zL, Short-Seite 50 − zS; Bestätigung = Rücklauf um conf Punkte.
+// Signale erscheinen am Bestätigungstag und wandern nicht mehr. up = Long-Signal.
+export const F50_TYPES = ['bounce', 'reject', 'brkUp', 'brkDn', 'retL', 'retS', 'failUp', 'failDn'];
+export function fiftySignals(rows, o = {}) {
+  const L = o.level ?? 50, zL = o.zoneL ?? 3, cL = o.confL ?? 3, zS = o.zoneS ?? 3, cS = o.confS ?? 3, N = o.retestDays ?? 20, out = [];
+  let side = 0, lastBrk = null, touch = null;
+  const push = (i, type, up) => out.push({ d: rows[i].d, i, v: rows[i].v, type, up, kind: 'f50' });
+  for (let i = 0; i < rows.length; i++) {
+    const v = rows[i].v; if (v == null) continue;
+    const above = v > L + zL, below = v < L - zS;
+    if (!side) { side = above ? 1 : below ? -1 : 0; continue; }
+    if (!above && !below) {                                                     // in der Zone
+      if (!touch) touch = { from: side, ext: v }; else touch.ext = side > 0 ? Math.min(touch.ext, v) : Math.max(touch.ext, v);
+      if (touch.done) continue;
+      const rec = lastBrk && i - lastBrk.i <= N;
+      if (touch.from > 0 && v >= touch.ext + cL && v > L) { push(i, rec && lastBrk.dir > 0 ? 'retL' : 'bounce', true); touch.done = true; }
+      else if (touch.from < 0 && v <= touch.ext - cS && v < L) { push(i, rec && lastBrk.dir < 0 ? 'retS' : 'reject', false); touch.done = true; }
+      continue;
+    }
+    const now = above ? 1 : -1;
+    if (now === side) {                                                         // zurück auf dieselbe Seite = Bounce/Ablehnung bestätigt
+      if (touch && !touch.done) { const rec = lastBrk && i - lastBrk.i <= N; if (now > 0) push(i, rec && lastBrk.dir > 0 ? 'retL' : 'bounce', true); else push(i, rec && lastBrk.dir < 0 ? 'retS' : 'reject', false); }
+      touch = null; continue;
+    }
+    const fail = lastBrk && lastBrk.dir === -now && i - lastBrk.i <= N;          // Seitenwechsel: Durchbruch oder gescheiterter Durchbruch
+    push(i, fail ? (now > 0 ? 'failDn' : 'failUp') : (now > 0 ? 'brkUp' : 'brkDn'), now > 0);
+    lastBrk = { dir: now, i }; side = now; touch = null;
+  }
+  return out;
+}
+
 /* ---------- Trendfilter (für Kauf-Signale) ---------- */
 // Je Tag: Kurs unter EMA(n), starker Abwärtstrend laut ADX(14) (ADX > adxMin und -DI > +DI), MACD auf Wochenbasis negativ und unter Signal
 export function trendInfo(H, o = {}) {
@@ -126,7 +160,9 @@ export function trendInfo(H, o = {}) {
   const atr = rma(tr, 14), pdi = rma(pdm, 14).map((v, i) => 100 * v / (atr[i] || 1)), mdi = rma(mdm, 14).map((v, i) => 100 * v / (atr[i] || 1));
   const adx = rma(pdi.map((p, i) => 100 * Math.abs(p - mdi[i]) / ((p + mdi[i]) || 1)), 14);
   const e = ema(C, o.emaN ?? 200), m12 = ema(C, 84), m26 = ema(C, 182), m = m12.map((v, i) => v - m26[i]), sig = ema(m, 63);
-  px.forEach((r, i) => map.set(r[0], { ema: C[i] < e[i], adx: adx[i] > (o.adxMin ?? 25) && mdi[i] > pdi[i], macd: m[i] < 0 && m[i] < sig[i], e: e[i], adxV: adx[i] }));
+  // je Tag: Abwärtstrend (ema/adx/macd) und – für Verkaufs-Signale – Aufwärtstrend (emaUp/adxUp/macdUp)
+  px.forEach((r, i) => map.set(r[0], { ema: C[i] < e[i], adx: adx[i] > (o.adxMin ?? 25) && mdi[i] > pdi[i], macd: m[i] < 0 && m[i] < sig[i],
+    emaUp: C[i] > e[i], adxUp: adx[i] > (o.adxMin ?? 25) && pdi[i] > mdi[i], macdUp: m[i] > 0 && m[i] > sig[i], e: e[i], adxV: adx[i] }));
   return map;
 }
 // f = { basis: ['ema','adx','macd'], mode: 'off' | 'mark' | 'hide' } – ein Indikator reicht, um „gegen den Trend“ zu sein
@@ -134,9 +170,11 @@ export function applyTrend(sig, info, f) {
   if (!f || !info || f.mode === 'off' || !f.basis?.length) return sig;
   const out = [];
   for (const x of sig) {
-    const t = info.get(x.d), ag = x.type === 'fear' && t && f.basis.some(b => t[b]);
-    if (ag && f.mode === 'hide') continue;
-    out.push(ag ? { ...x, against: f.basis.filter(b => t[b]) } : x);
+    // f.sides: 'both' (Standard) / 'buy' / 'sell' – Kauf gegen Abwärtstrend, Verkauf gegen Aufwärtstrend
+    const t = info.get(x.d), sides = f.sides || 'both', buy = x.type === 'fear', sell = x.type === 'greed';
+    const keys = !t ? [] : buy && sides !== 'sell' ? f.basis.filter(b => t[b]) : sell && sides !== 'buy' ? f.basis.filter(b => t[b + 'Up']) : [];
+    if (keys.length && f.mode === 'hide') continue;
+    out.push(keys.length ? { ...x, against: keys } : x);
   }
   return out;
 }
@@ -338,15 +376,29 @@ export const PVS = {
   en: { '7': '7D', '30': '1M', '91': '3M', '182': '6M', '365': '12M', all: 'All' },
   ar: { '7': '7ي', '30': '1ش', '91': '3ش', '182': '6ش', '365': '12ش', all: 'الكل' } };
 const dmyS = d => d ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '';
+const F50N = {
+  de: { bounce: 'Bounce an der 50', reject: 'Ablehnung an der 50', brkUp: 'Durchbruch über 50', brkDn: 'Durchbruch unter 50', retL: 'Retest der 50 hält (Long)', retS: 'Retest der 50 hält (Short)', failUp: 'Fehlausbruch über 50 (Bullenfalle)', failDn: 'Fehlausbruch unter 50 (Bärenfalle)' },
+  en: { bounce: 'Bounce at 50', reject: 'Rejection at 50', brkUp: 'Break above 50', brkDn: 'Break below 50', retL: '50 retest holds (long)', retS: '50 retest holds (short)', failUp: 'False break above 50 (bull trap)', failDn: 'False break below 50 (bear trap)' },
+  ar: { bounce: 'ارتداد عند 50', reject: 'رفض عند 50', brkUp: 'اختراق فوق 50', brkDn: 'كسر تحت 50', retL: 'إعادة اختبار 50 صامدة (لونغ)', retS: 'إعادة اختبار 50 صامدة (شورت)', failUp: 'اختراق كاذب فوق 50 (فخ الثيران)', failDn: 'كسر كاذب تحت 50 (فخ الدببة)' } };
+export const F50S = { bounce: 'B', reject: 'A', brkUp: 'D↑', brkDn: 'D↓', retL: 'R↑', retS: 'R↓', failUp: 'F↑', failDn: 'F↓' };
+function f50Text(x, lang, tail, na) {
+  const nm = (F50N[lang] || F50N.de)[x.type], up = x.up, de = lang === 'de', ar = lang === 'ar';
+  const title = `${up ? '🟢' : '🔴'} ${nm} · ${ar ? (up ? 'لونغ' : 'شورت') : up ? 'Long' : 'Short'}`;
+  const body = ar ? `المؤشر (متوسط 7 أيام) عند ${x.v} – تأكيد يوم ${dmyS(x.d)}.` : de ? `Index (7-Tage-Mittel) bei ${x.v} – bestätigt am ${dmyS(x.d)}.` : `Index (7-day average) at ${x.v} – confirmed on ${dmyS(x.d)}.`;
+  return { title, body: body + tail + na };
+}
 function pivotText(x, lang, P, tail, na) {
   const de = lang === 'de', ar = lang === 'ar', lo = x.side === 'lo', m = x.main, st = x.st, pers = x.list.map(v => PVS[lang][v.per]).join(' · ');
   const pc = v => (v > 0 ? '+' : '') + v.toFixed(1).replace('.', de ? ',' : '.') + ' %', dist = x.list[0].dist;
-  const lvTxt = `${P(m.lvl.p)} (${dmyS(m.lvl.d)})`, aft = lo && m.lvl.after ? (ar ? `، بعد القمة في ${dmyS(m.lvl.after)}` : de ? `, nach dem Hoch vom ${dmyS(m.lvl.after)}` : `, after the high of ${dmyS(m.lvl.after)}`) : '', nm = PVN[lang][m.per] + aft;
+  const lvTxt = `${P(m.lvl.p)} (${dmyS(m.lvl.d)})`, aft = m.lvl.after ? (ar ? (lo ? `، بعد القمة في ${dmyS(m.lvl.after)}` : `، بعد القاع في ${dmyS(m.lvl.after)}`) : de ? (lo ? `, nach dem Hoch vom ${dmyS(m.lvl.after)}` : `, nach dem Tief vom ${dmyS(m.lvl.after)}`) : (lo ? `, after the high of ${dmyS(m.lvl.after)}` : `, after the low of ${dmyS(m.lvl.after)}`)) : '', nm = PVN[lang][m.per] + aft;
+  // Einordnung aus dem Rückblick: ab 60 % Rückkehr = meist Fehlausbruch, bis 40 % = meist Fortsetzung, dazwischen gemischt
+  const q = st?.n >= 5 ? st.back / st.n : null, ein = q == null ? '' : q >= .6 ? 'sweep' : q <= .4 ? 'cont' : 'mix';
   let title, body;
   if (ar) {
     title = x.ev === 'break' ? `${lo ? '📉 كسر قاع البيفوت' : '📈 اختراق قمة البيفوت'} · ${pers}` : `🔔 ${lo ? 'قاع' : 'قمة'} البيفوت ${pers}: على بعد ${dist.toFixed(1)} % فقط`;
     body = x.ev === 'break' ? `${lo ? 'تم كسر أدنى قاع' : 'تم اختراق أعلى قمة'} (${nm}) عند ${lvTxt} – السعر الآن ${P(x.price)}.` : `السعر ${P(x.price)} على بعد ${dist.toFixed(1)} % فقط من ${lo ? 'أدنى قاع' : 'أعلى قمة'} (${nm}) ${lvTxt}.`;
     if (st?.n) body += `\nسابقاً (منذ ${st.from?.slice(0, 4)}): في ${st.back} من ${st.n} حالة أغلق السعر خلال 7 أيام مرة أخرى ${lo ? 'فوق المستوى' : 'تحت المستوى'} (اختراق كاذب / سحب سيولة).` + (st.n30 ? ` بعد 30 يوماً كان السعر فوق المستوى في ${st.up30} من ${st.n30} (المتوسط ${pc(st.avg30)}).` : '');
+    if (ein && x.ev === 'break') body += `\n<b>التقييم:</b> ${ein === 'sweep' ? `تاريخياً غالباً اختراق كاذب (${st.back} من ${st.n}) ← فرصة ${lo ? 'لونغ' : 'شورت'} على الأرجح، فقط بعد التأكيد` : ein === 'cont' ? `تاريخياً غالباً استمرار (${st.n - st.back} من ${st.n}) ← على الأرجح مزيد من ${lo ? 'الهبوط' : 'الصعود'}` : `تاريخياً مختلط (${st.back} من ${st.n} عادت)`}.`;
     if (x.ev === 'break') {
       body += lo ? `\nالسيناريو أ – سحب سيولة: يستعيد السعر القاع بسرعة ← لونغ فقط بعد التأكيد (إغلاق يومي فوق ${P(m.lvl.p)})، ووقف الخسارة تحت القاع الجديد.\nالسيناريو ب – كسر: يبقى السعر تحته` : `\nالسيناريو أ – سحب سيولة: يعود السعر تحت القمة بسرعة ← شورت فقط بعد التأكيد (إغلاق يومي تحت ${P(m.lvl.p)})، ووقف الخسارة فوق القمة الجديدة.\nالسيناريو ب – اختراق: يبقى السعر فوقها`;
       const tg = [x.next ? `${lo ? 'قاع' : 'قمة'} البيفوت ${PVS.ar[x.next.per]} ${P(x.next.p)}` : '', x.cl ? `تجمّع ${x.cl.id} ${P(x.cl.z.p)} (≈ ${Math.round(x.cl.z.usd / 1e6)} مليون $)` : ''].filter(Boolean).join(' · ');
@@ -364,6 +416,8 @@ function pivotText(x, lang, P, tail, na) {
       + (st.n30 ? ` Nach 30 Tagen lag der Kurs in ${st.up30} von ${st.n30} Fällen über der Stufe (Ø ${pc(st.avg30)}).` : ''),
     `\nSo far (since ${st.from?.slice(0, 4)}): in ${st.back} of ${st.n} cases price closed back ${lo ? 'above' : 'below'} within 7 days (false break / liquidity sweep), in ${st.n - st.back} it kept going.`
       + (st.n30 ? ` After 30 days price was above the level in ${st.up30} of ${st.n30} cases (avg ${pc(st.avg30)}).` : ''));
+  if (ein && x.ev === 'break') body += T(`\n<b>Einordnung:</b> ${ein === 'sweep' ? `historisch meist Fehlausbruch (${st.back} von ${st.n}) → eher ${lo ? 'Long' : 'Short'}-Chance, erst nach Bestätigung` : ein === 'cont' ? `historisch meist Fortsetzung (${st.n - st.back} von ${st.n}) → eher weiter ${lo ? 'abwärts' : 'aufwärts'}` : `historisch gemischt (${st.back} von ${st.n} zurück)`}.`,
+    `\n<b>Assessment:</b> ${ein === 'sweep' ? `historically mostly a false break (${st.back} of ${st.n}) → rather a ${lo ? 'long' : 'short'} chance, only after confirmation` : ein === 'cont' ? `historically mostly continuation (${st.n - st.back} of ${st.n}) → rather further ${lo ? 'down' : 'up'}` : `historically mixed (${st.back} of ${st.n} came back)`}.`);
   if (x.ev === 'break') {
     body += lo ? T(`\nSzenario A – Sweep: Kurs holt das Tief schnell zurück → Long erst nach Bestätigung (Tagesschluss wieder über ${P(m.lvl.p)}), Stop unter dem neuen Tief.\nSzenario B – Ausbruch: Kurs bleibt darunter`, `\nScenario A – sweep: price quickly reclaims the low → long only after confirmation (daily close back above ${P(m.lvl.p)}), stop below the new low.\nScenario B – breakdown: price stays below`)
       : T(`\nSzenario A – Sweep: Kurs fällt schnell wieder unter das Hoch → Short erst nach Bestätigung (Tagesschluss wieder unter ${P(m.lvl.p)}), Stop über dem neuen Hoch.\nSzenario B – Ausbruch: Kurs bleibt darüber`, `\nScenario A – sweep: price quickly falls back below the high → short only after confirmation (daily close back below ${P(m.lvl.p)}), stop above the new high.\nScenario B – breakout: price stays above`);
@@ -391,6 +445,7 @@ function alarmTextAr(kind, x) {
     return { title, body: `تم لمس التجمّع ${P(c.p)} (المنطقة ${P(c.lo)} – ${P(c.hi)}) الساعة ${tm}، ثم ${L ? 'أدنى' : 'أعلى'} سعر ${P(c.ext)}.\n${nx}${tail}${na}` };
   }
   if (kind === 'pivot') return pivotText(x, 'ar', P, tail, na);
+  if (kind === 'f50') return f50Text(x, 'ar', tail, na);
   if (kind === 'line') { const up = x.dir > 0; return { title: `🔔 تم عبور خط التنبيه ${x.id} ${up ? 'للأعلى' : 'للأسفل'}`, body: `تم عبور الخط الخاص ${P(x.p)} ${up ? 'من الأسفل' : 'من الأعلى'}.${tail}` }; }
   if (kind === 'phase' || kind === 'turn' || kind === 'exit') {
     const g = x.type === 'greed', who = x.official ? ' · المؤشر الرسمي' : '';
@@ -411,7 +466,8 @@ export function alarmText(kind, x, lang = 'de') {
   const r = alarmTextBase(kind, x, lang);
   if (x.against?.length) {
     const b = x.against.map(k => TN[k] || k).join(' + ');
-    const w = lang === 'de' ? `⚠ Gegen den Trend (${b} zeigt Abwärtstrend) – nur kleine Tranche, Stop setzen.` : lang === 'ar' ? `⚠ عكس الاتجاه (${b} يُظهر اتجاهاً هابطاً) – دفعة صغيرة فقط مع وقف خسارة.` : `⚠ Against the trend (${b} shows a downtrend) – small tranche only, set a stop.`;
+    const up = x.type === 'greed';
+    const w = lang === 'de' ? `⚠ Gegen den Trend (${b} zeigt ${up ? 'Aufwärtstrend' : 'Abwärtstrend'}) – nur kleine Tranche, Stop setzen.` : lang === 'ar' ? `⚠ عكس الاتجاه (${b} يُظهر اتجاهاً ${up ? 'صاعداً' : 'هابطاً'}) – دفعة صغيرة فقط مع وقف خسارة.` : `⚠ Against the trend (${b} shows an ${up ? 'uptrend' : 'downtrend'}) – small tranche only, set a stop.`;
     r.title = '⚠ ' + r.title; r.body = w + '\n' + r.body;
   }
   return r;
@@ -457,6 +513,7 @@ function alarmTextBase(kind, x, lang = 'de') {
     return { title, body: body + tail + na };
   }
   if (kind === 'pivot') return pivotText(x, lang, P, tail, na);
+  if (kind === 'f50') return f50Text(x, lang, tail, na);
   if (kind === 'line') {
     const up = x.dir > 0;
     return { title: de ? `🔔 Alarmlinie ${x.id} ${up ? 'nach oben' : 'nach unten'} gekreuzt` : `🔔 Alert line ${x.id} crossed ${up ? 'upwards' : 'downwards'}`,

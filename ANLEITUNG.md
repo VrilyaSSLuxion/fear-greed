@@ -1,4 +1,4 @@
-# Fear & Greed – Version 15
+# Fear & Greed – Version 16
 
 ## Starten
 
@@ -6,13 +6,24 @@
 |---|---|
 | `start.bat` | Startet das Programm (falls nicht schon aktiv) und öffnet **http://localhost:8797** |
 | `stop.bat` | Beendet das Programm |
-| `fear-greed-v15.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
+| `fear-greed-v16.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
 
-Das Programm startet automatisch mit Windows (`Fear-Greed-V15.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
+Das Programm startet automatisch mit Windows (`Fear-Greed-V16.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
 Live-Werte jede Minute (einstellbar), große Verläufe stündlich. Protokoll: `data\server.log`.
-Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v14 leiten weiter).
+Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v15 leiten weiter).
 
 Beim ersten Öffnen erscheint das **Handbuch** (Knopf „Handbuch“ oben rechts, abschaltbar).
+
+## Neu in V16
+- **Pivots korrigiert:** in der angezeigten Währung gerechnet (in € vorher erst in $ gesucht, dann umgerechnet), Standard „höchstes Hoch + tiefstes Tief im Zeitraum“, dazu „tiefstes Tief nach dem Hoch“ und „höchstes Hoch nach dem Tief“; mehrere Zeiträume gleichzeitig (▾ neben „Pivot“), Fibonacci aus wählbarem Zeitraum, Richtung wie TradingView
+- **50er-Linie im Index-Chart** (Knopf „50er“): 8 Signalarten – Bounce, Ablehnung, Durchbruch hoch/runter, Retest Long/Short, Fehlausbruch hoch/runter; Zone und Bestätigung je Long/Short, Pfeile auch im Kurs-Chart, eigene Zeilen im Methoden-Vergleich, Alarm (Browser + Telegram)
+- **Trendfilter auch für Verkäufe** (⚠ neben ▼ = Verkauf gegen Aufwärtstrend), einstellbar Kauf + Verkauf / nur Kauf / nur Verkauf
+- **Alarme:** Fenster bleiben stehen (✕ = schließen, OK = erledigt), Alarm-Verlauf (Knopf 🔔), Wiederholung und Ton je Alarmart, Pivot-Alarme standardmäßig 1M/3M/6M mit „Einordnung“ aus dem Rückblick, Pivot-Erinnerungen auch per Telegram
+- **Heatmap-Börsen frei kombinierbar** (▾ mit Häkchen), Kerzen zusätzlich 1M und 1J, Beschriftung „Zeitraum:“
+- **Index-MA** mit Box „SMA 20“ und eigenen Einstellungen (Linienart, Dicke, Farbmodus), MA-Verlängerung je Linie
+- **Knöpfe gruppiert** in Kästen, Erklärungen beim Darüberfahren (Zustand + Klick/Rechtsklick), Divergenz-Knopf mit fester Breite
+- Eigene Alarmlinien über dem Kurs rot / darunter grün, Ticker-Reiter ⇅ oben/unten, Ticker-Werte größer mit gleichen Rändern, Statuszeile oben, Hinweis „neue Version – neu laden“, Tabellen und Trend-Kästen deutlicher umrahmt, gewählte Zeile im Vergleich umrahmt, gleich große Knöpfe bei „Was das jetzt heißt“, $/€ im Titel mit festen Ziffern, weniger Abstand in SMC, Zahnrad dicker umrahmt
+- **Handbuch:** V15-Abschnitte werden jetzt wirklich angezeigt (lagen in V15 hinter der V14-Fassung), neu: 50er-Linie, Pivot-Berechnung, Alarm-Verlauf/Erinnerungen, Trendfilter beidseitig
 
 ## Neu in V15
 - **Heatmap-Quelle wählbar** (Auswahl neben „Heatmap“): Binance (wie bisher), Bybit, OKX oder kombiniert – eigene Schätzung aus stündlichem Open Interest; gilt auch für Cluster-Linien, Ticker und Alarme. CoinGlass (API nur im Plan Professional, 699 $/Monat), CoinAnk (keine offizielle API, Bot-Schutz) und MEXC (kein OI-Verlauf) sind im Handbuch erklärt und verlinkt
