@@ -1,4 +1,4 @@
-# Fear & Greed – Version 16
+# Fear & Greed – Version 17
 
 ## Starten
 
@@ -6,13 +6,22 @@
 |---|---|
 | `start.bat` | Startet das Programm (falls nicht schon aktiv) und öffnet **http://localhost:8797** |
 | `stop.bat` | Beendet das Programm |
-| `fear-greed-v16.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
+| `fear-greed-v17.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
 
-Das Programm startet automatisch mit Windows (`Fear-Greed-V16.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
+Das Programm startet automatisch mit Windows (`Fear-Greed-V17.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
 Live-Werte jede Minute (einstellbar), große Verläufe stündlich. Protokoll: `data\server.log`.
-Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v15 leiten weiter).
+Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v16 leiten weiter).
 
 Beim ersten Öffnen erscheint das **Handbuch** (Knopf „Handbuch“ oben rechts, abschaltbar).
+
+## Neu in V17
+- **Kerzenmuster im Extrem** (Knopf „Muster“ neben den Signalen): Hammer, umgekehrter Hammer, bullisches Engulfing, Piercing Line, Morning Star (Long, bei Index ≤ 30) und Shooting Star, Hanging Man, bärisches Engulfing, Dark Cloud Cover, Evening Star (Short, bei ≥ 70) – nur geschlossene Tageskerzen, Index am Kerzentag oder bis 3 Tage davor im Extrem; Index wählbar (unser / offiziell / beide / einer reicht), Grenzen und Tage einstellbar, jedes Muster an/aus, Trendfilter (⚠), eigene Zeilen im Methoden-Vergleich, eigener Alarm (Browser + Telegram)
+- **Pivot-Linien genau am Docht:** 4h-, 1h- und 15m-Kerzen in € werden mit dem Euro-Kurs ihres Tages umgerechnet (vorher heutiger Kurs → Lücke zwischen Linie und Docht); Punkt an der Kerze mit dem Extrem; Beschriftung rechts wird so breit wie das längste Label (nicht mehr abgeschnitten)
+- **Ticker:** $ und € genau untereinander, Pfeile als Grafik exakt mittig, „TICK“ und „24 H“ tiefer auf einer Linie, Long/Short-Kästchen höher, Prozent größer; im Zahnrad „Ticker – Größen & Abstände“ (Pixel, leer = automatisch) und die Größe für den Doppelklick
+- **Was das jetzt heißt:** Pulsieren je Knopf an/aus (Tendenz pulsiert jetzt auch), Schriftgrößen für Abwarten-Knopf, „Tendenz:“ (größer) und Tendenz-Wert
+- **Einschätzung:** 1 Smart Money, 2 Offiziell (laut Lehrbuch), 3 Kombiniert (1 + 2), Urteile genau untereinander
+- Aktiver Reiter „Extreme der letzten 12 Monate / Die letzten 12 Tage“ gelb gefüllt, alle Knöpfe und Kästen über dem Chart gleich hoch, Divergenz-Knopf schmaler, Tabellen ohne waagerechte Bildlaufleiste
+- **Handbuch:** neuer Abschnitt Kerzenmuster (mit Rückblick-Zahlen), 50er-Linie Schritt für Schritt mit Rückblick, Pivot am Docht, Ticker-Größen, Pulsieren, Einschätzung 1/2/3
 
 ## Neu in V16
 - **Pivots korrigiert:** in der angezeigten Währung gerechnet (in € vorher erst in $ gesucht, dann umgerechnet), Standard „höchstes Hoch + tiefstes Tief im Zeitraum“, dazu „tiefstes Tief nach dem Hoch“ und „höchstes Hoch nach dem Tief“; mehrere Zeiträume gleichzeitig (▾ neben „Pivot“), Fibonacci aus wählbarem Zeitraum, Richtung wie TradingView

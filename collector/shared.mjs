@@ -144,6 +144,50 @@ export function fiftySignals(rows, o = {}) {
   return out;
 }
 
+/* ---------- V17: Kerzenmuster (Tageskerzen), nur wenn der Index im Extrem ist ---------- */
+// Bullische Muster zählen nur, wenn der Index am Tag der Kerze (oder bis „look“ Tage davor) auf/unter „lo“ war, bärische auf/über „hi“.
+// Index: o.ours / o.off = Map Datum → Wert (7-Tage-Mittel wie im Chart); o.src = 'ours' | 'off' | 'both' (beide im Extrem) | 'either' (einer reicht).
+// Nur geschlossene Kerzen (o.today = heutiges Datum, diese Kerze läuft noch) – das Signal erscheint am Kerzentag und wandert nicht mehr.
+export const CDL_TYPES = ['hammer', 'invHammer', 'engBull', 'piercing', 'morning', 'shooting', 'hanging', 'engBear', 'darkCloud', 'evening'];
+export const CDL_BULL = ['hammer', 'invHammer', 'engBull', 'piercing', 'morning'];
+export const CDL_S = { hammer: 'H', invHammer: 'iH', engBull: 'E↑', piercing: 'PL', morning: 'MS', shooting: 'SS', hanging: 'HM', engBear: 'E↓', darkCloud: 'DC', evening: 'ES' };
+export const CDL_N = {
+  de: { hammer: 'Hammer', invHammer: 'Umgekehrter Hammer', engBull: 'Bullisches Engulfing', piercing: 'Piercing Line', morning: 'Morning Star', shooting: 'Shooting Star', hanging: 'Hanging Man', engBear: 'Bärisches Engulfing', darkCloud: 'Dark Cloud Cover', evening: 'Evening Star' },
+  en: { hammer: 'Hammer', invHammer: 'Inverted hammer', engBull: 'Bullish engulfing', piercing: 'Piercing line', morning: 'Morning star', shooting: 'Shooting star', hanging: 'Hanging man', engBear: 'Bearish engulfing', darkCloud: 'Dark cloud cover', evening: 'Evening star' },
+  ar: { hammer: 'المطرقة', invHammer: 'المطرقة المقلوبة', engBull: 'الابتلاع الصاعد', piercing: 'خط الاختراق', morning: 'نجمة الصباح', shooting: 'الشهاب', hanging: 'الرجل المشنوق', engBear: 'الابتلاع الهابط', darkCloud: 'الغطاء السحابي المظلم', evening: 'نجمة المساء' } };
+const CDL_TEST = (() => {
+  const O = r => r[9], C = r => r[3], Hh = r => r[10], Ll = r => r[11];
+  const body = r => Math.abs(C(r) - O(r)), rng = r => Hh(r) - Ll(r), up = r => C(r) > O(r), dn = r => C(r) < O(r);
+  const upW = r => Hh(r) - Math.max(O(r), C(r)), loW = r => Math.min(O(r), C(r)) - Ll(r);
+  return {
+    // Hammer: kleiner Körper oben, unterer Docht mind. 2× Körper, kaum oberer Docht
+    hammer: (a, b, c) => rng(c) > 0 && loW(c) >= 2 * body(c) && upW(c) <= .35 * rng(c) && body(c) <= .35 * rng(c),
+    invHammer: (a, b, c) => rng(c) > 0 && upW(c) >= 2 * body(c) && loW(c) <= .15 * rng(c) && body(c) <= .35 * rng(c),
+    // Engulfing: Körper der neuen Kerze umschließt den Körper der Vortageskerze (Gegenfarbe)
+    engBull: (a, b, c) => dn(b) && up(c) && C(c) > O(b) && O(c) <= C(b) * 1.001 && body(c) > body(b),
+    piercing: (a, b, c) => dn(b) && up(c) && body(b) > .5 * rng(b) && C(c) > (O(b) + C(b)) / 2 && C(c) < O(b),
+    morning: (a, b, c) => dn(a) && body(a) > .5 * rng(a) && body(b) < .3 * body(a) && up(c) && C(c) > (O(a) + C(a)) / 2,
+    shooting: (a, b, c) => rng(c) > 0 && upW(c) >= 2 * body(c) && loW(c) <= .35 * rng(c) && body(c) <= .35 * rng(c),
+    hanging: (a, b, c) => rng(c) > 0 && loW(c) >= 2 * body(c) && upW(c) <= .15 * rng(c) && body(c) <= .35 * rng(c),
+    engBear: (a, b, c) => up(b) && dn(c) && C(c) < O(b) && O(c) >= C(b) * .999 && body(c) > body(b),
+    darkCloud: (a, b, c) => up(b) && dn(c) && body(b) > .5 * rng(b) && C(c) < (O(b) + C(b)) / 2 && C(c) > O(b),
+    evening: (a, b, c) => up(a) && body(a) > .5 * rng(a) && body(b) < .3 * body(a) && dn(c) && C(c) < (O(a) + C(a)) / 2 };
+})();
+export function candleSignals(H, o = {}) {
+  const lo = o.lo ?? 30, hi = o.hi ?? 70, look = o.look ?? 3, src = o.src || 'ours', A = o.ours || new Map(), B = o.off || new Map(), out = [];
+  const rows = H.filter(r => r[3] != null && r[9] != null && r[10] != null && r[11] != null && (!o.today || r[0] < o.today));
+  const hit = (M, i, bull) => { for (let k = 0; k <= look; k++) { const r = rows[i - k]; if (!r) break; const v = M.get(r[0]); if (v != null && (bull ? v <= lo : v >= hi)) return true; } return false; };
+  const zone = (i, bull) => src === 'off' ? hit(B, i, bull) : src === 'both' ? hit(A, i, bull) && hit(B, i, bull) : src === 'either' ? hit(A, i, bull) || hit(B, i, bull) : hit(A, i, bull);
+  for (let i = 2; i < rows.length; i++) {
+    const zb = zone(i, true), zs = zone(i, false); if (!zb && !zs) continue;
+    for (const type of CDL_TYPES) {
+      const bull = CDL_BULL.includes(type); if (bull ? !zb : !zs) continue;
+      if (CDL_TEST[type](rows[i - 2], rows[i - 1], rows[i])) out.push({ d: rows[i][0], i, type, up: bull, kind: 'cdl', zl: bull ? lo : hi, look, v: A.get(rows[i][0]) ?? null, vo: B.get(rows[i][0]) ?? null, h: rows[i][10], l: rows[i][11] });
+    }
+  }
+  return out;
+}
+
 /* ---------- Trendfilter (für Kauf-Signale) ---------- */
 // Je Tag: Kurs unter EMA(n), starker Abwärtstrend laut ADX(14) (ADX > adxMin und -DI > +DI), MACD auf Wochenbasis negativ und unter Signal
 export function trendInfo(H, o = {}) {
@@ -171,7 +215,7 @@ export function applyTrend(sig, info, f) {
   const out = [];
   for (const x of sig) {
     // f.sides: 'both' (Standard) / 'buy' / 'sell' – Kauf gegen Abwärtstrend, Verkauf gegen Aufwärtstrend
-    const t = info.get(x.d), sides = f.sides || 'both', buy = x.type === 'fear', sell = x.type === 'greed';
+    const t = info.get(x.d), sides = f.sides || 'both', buy = x.type === 'fear' || (x.kind === 'cdl' && x.up), sell = x.type === 'greed' || (x.kind === 'cdl' && !x.up);
     const keys = !t ? [] : buy && sides !== 'sell' ? f.basis.filter(b => t[b]) : sell && sides !== 'buy' ? f.basis.filter(b => t[b + 'Up']) : [];
     if (keys.length && f.mode === 'hide') continue;
     out.push(keys.length ? { ...x, against: keys } : x);
@@ -387,6 +431,17 @@ function f50Text(x, lang, tail, na) {
   const body = ar ? `المؤشر (متوسط 7 أيام) عند ${x.v} – تأكيد يوم ${dmyS(x.d)}.` : de ? `Index (7-Tage-Mittel) bei ${x.v} – bestätigt am ${dmyS(x.d)}.` : `Index (7-day average) at ${x.v} – confirmed on ${dmyS(x.d)}.`;
   return { title, body: body + tail + na };
 }
+function cdlText(x, lang, tail, na) {
+  const nm = (CDL_N[lang] || CDL_N.de)[x.type], up = x.up, de = lang === 'de', ar = lang === 'ar', P = n => nf(n, lang);
+  const iv = [x.v != null ? (ar ? `مؤشرنا ${x.v}` : de ? `unser Index ${x.v}` : `our index ${x.v}`) : '', x.vo != null ? (ar ? `الرسمي ${x.vo}` : de ? `offiziell ${x.vo}` : `official ${x.vo}`) : ''].filter(Boolean).join(' · ');
+  const title = `${up ? '🟢' : '🔴'} ${ar ? 'نموذج شموع' : de ? 'Kerzenmuster' : 'Candle pattern'}: ${nm} · ${ar ? (up ? 'لونغ' : 'شورت') : up ? 'Long' : 'Short'}`;
+  const zoneTxt = ar ? (up ? 'خوف شديد' : 'طمع شديد') : de ? (up ? 'Angst-Extrem' : 'Gier-Extrem') : (up ? 'extreme fear' : 'extreme greed');
+  const conf = up ? P(x.h) : P(x.l), lim = (up ? '≤ ' : '≥ ') + (x.zl ?? (up ? 30 : 70)), lk = x.look ?? 3;
+  const body = ar ? `أُغلقت الشمعة اليومية ليوم ${dmyS(x.d)}: ${nm}. المؤشر في ${zoneTxt} (${lim}) في يوم الشمعة أو حتى ${lk} أيام قبله – يوم الشمعة: ${iv}.\nالتأكيد: إغلاق الشمعة التالية ${up ? 'فوق قمة' : 'تحت قاع'} شمعة النموذج (${conf}).`
+    : de ? `Tageskerze vom ${dmyS(x.d)} geschlossen: ${nm}. Index im ${zoneTxt} (${lim}) am Kerzentag oder bis ${lk} Tage davor – am Kerzentag: ${iv}.\nBestätigung: nächste Kerze schließt ${up ? 'über dem Hoch' : 'unter dem Tief'} der Musterkerze (${conf}).`
+    : `Daily candle of ${dmyS(x.d)} closed: ${nm}. Index in ${zoneTxt} (${lim}) on the candle day or up to ${lk} days before – on the candle day: ${iv}.\nConfirmation: next candle closes ${up ? 'above the high' : 'below the low'} of the pattern candle (${conf}).`;
+  return { title, body: body + tail + na };
+}
 function pivotText(x, lang, P, tail, na) {
   const de = lang === 'de', ar = lang === 'ar', lo = x.side === 'lo', m = x.main, st = x.st, pers = x.list.map(v => PVS[lang][v.per]).join(' · ');
   const pc = v => (v > 0 ? '+' : '') + v.toFixed(1).replace('.', de ? ',' : '.') + ' %', dist = x.list[0].dist;
@@ -446,6 +501,7 @@ function alarmTextAr(kind, x) {
   }
   if (kind === 'pivot') return pivotText(x, 'ar', P, tail, na);
   if (kind === 'f50') return f50Text(x, 'ar', tail, na);
+  if (kind === 'cdl') return cdlText(x, 'ar', tail, na);
   if (kind === 'line') { const up = x.dir > 0; return { title: `🔔 تم عبور خط التنبيه ${x.id} ${up ? 'للأعلى' : 'للأسفل'}`, body: `تم عبور الخط الخاص ${P(x.p)} ${up ? 'من الأسفل' : 'من الأعلى'}.${tail}` }; }
   if (kind === 'phase' || kind === 'turn' || kind === 'exit') {
     const g = x.type === 'greed', who = x.official ? ' · المؤشر الرسمي' : '';
@@ -466,7 +522,7 @@ export function alarmText(kind, x, lang = 'de') {
   const r = alarmTextBase(kind, x, lang);
   if (x.against?.length) {
     const b = x.against.map(k => TN[k] || k).join(' + ');
-    const up = x.type === 'greed';
+    const up = x.type === 'greed' || (x.kind === 'cdl' && !x.up);
     const w = lang === 'de' ? `⚠ Gegen den Trend (${b} zeigt ${up ? 'Aufwärtstrend' : 'Abwärtstrend'}) – nur kleine Tranche, Stop setzen.` : lang === 'ar' ? `⚠ عكس الاتجاه (${b} يُظهر اتجاهاً ${up ? 'صاعداً' : 'هابطاً'}) – دفعة صغيرة فقط مع وقف خسارة.` : `⚠ Against the trend (${b} shows an ${up ? 'uptrend' : 'downtrend'}) – small tranche only, set a stop.`;
     r.title = '⚠ ' + r.title; r.body = w + '\n' + r.body;
   }
@@ -514,6 +570,7 @@ function alarmTextBase(kind, x, lang = 'de') {
   }
   if (kind === 'pivot') return pivotText(x, lang, P, tail, na);
   if (kind === 'f50') return f50Text(x, lang, tail, na);
+  if (kind === 'cdl') return cdlText(x, lang, tail, na);
   if (kind === 'line') {
     const up = x.dir > 0;
     return { title: de ? `🔔 Alarmlinie ${x.id} ${up ? 'nach oben' : 'nach unten'} gekreuzt` : `🔔 Alert line ${x.id} crossed ${up ? 'upwards' : 'downwards'}`,
