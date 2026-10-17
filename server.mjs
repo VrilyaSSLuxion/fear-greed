@@ -114,6 +114,7 @@ async function run() {
     buildSite();
     await checkAlerts(latest, history); saveState();
     lastRun = Date.now(); lastError = null;
+    await publish();
     log(`Daten aktualisiert in ${((Date.now() - t0) / 1000).toFixed(1)} s · Index ${latest.modes.binance90?.index}`);
   } catch (e) { lastError = e.message; log('Fehler beim Sammeln:', e); }
   running = false;
@@ -123,6 +124,30 @@ function buildSite() {
   fs.writeFileSync(path.join(WWW, 'index.html'), html);
   const engine = fs.readFileSync(path.join(ROOT, 'collector', 'engine.mjs'), 'utf8').replace(/^export /gm, '');
   fs.writeFileSync(path.join(WWW, 'fear-greed-v6.html'), html.replace('<!--ENGINE-->', `<script>window.FG_STANDALONE = true;</script>\n<script type="module">\n${engine}\nwindow.FG_ENGINE = { collect };\nwindow.dispatchEvent(new Event('fg-engine'));\n</script>`));
+}
+
+/* ---------- Online veröffentlichen (GitHub Pages) ---------- */
+// Nach jedem Lauf wird der Ordner www als einzelner Commit auf den Zweig gh-pages geschoben (ohne Verlauf,
+// das Repository wächst also nicht). GitHub Pages zeigt diesen Zweig unter https://<name>.github.io/<repo>/.
+const PUB = path.join(DATA, 'publish');
+let lastPublish = null, publishError = null;
+const git = (args, cwd) => new Promise((res, rej) => execFile('git', args, { cwd, timeout: 180000, windowsHide: true },
+  (e, so, se) => e ? rej(new Error(String(se || e.message).trim().split('\n').pop())) : res(so)));
+async function publish() {
+  const c = cfg();
+  if (c.publish === false) return;
+  const repo = c.publishRepo || 'https://github.com/VrilyaSSLuxion/fear-greed.git';
+  try {
+    fs.rmSync(PUB, { recursive: true, force: true });
+    fs.cpSync(WWW, PUB, { recursive: true });
+    fs.writeFileSync(path.join(PUB, '.nojekyll'), '');
+    await git(['init', '-q', '-b', 'gh-pages'], PUB);
+    await git(['add', '-A'], PUB);
+    await git(['-c', 'user.name=VrilyaSSLuxion', '-c', 'user.email=VrilyaSSLuxion@users.noreply.github.com', 'commit', '-q', '-m', 'Daten ' + new Date().toISOString()], PUB);
+    await git(['push', '-q', '-f', repo, 'gh-pages'], PUB);
+    lastPublish = Date.now(); publishError = null;
+    log('Online veröffentlicht');
+  } catch (e) { publishError = e.message; log('Veröffentlichen fehlgeschlagen:', e.message); }
 }
 
 /* ---------- Windows-Autostart ---------- */
@@ -153,7 +178,8 @@ const server = http.createServer(async (req, res) => {
     const c = cfg();
     return send(res, 200, { server: true, version: 6, autostart: autostartOn(), lastRun, lastError, everyMin: EVERY_MIN, nextRun: lastRun ? lastRun + EVERY_MIN * 60e3 : null,
       keys: { sosovalue: !!c.sosovalueApiKey, coinglass: !!c.coinglassApiKey, coinalyze: !!c.coinalyzeApiKey },
-      telegram: { enabled: c.telegram.enabled, configured: !!(c.telegram.token && c.telegram.chatId), events: c.telegram.events } });
+      telegram: { enabled: c.telegram.enabled, configured: !!(c.telegram.token && c.telegram.chatId), events: c.telegram.events },
+      publish: { enabled: c.publish !== false, last: lastPublish, error: publishError, url: c.publishUrl || 'https://vrilyassluxion.github.io/fear-greed/' } });
   }
   if (p === '/api/autostart' && req.method === 'POST') { const b = await body(req); try { return send(res, 200, { autostart: await setAutostart(!!b.enabled) }); } catch (e) { return send(res, 500, { error: e.message }); } }
   if (p === '/api/config' && req.method === 'POST') {
@@ -165,6 +191,7 @@ const server = http.createServer(async (req, res) => {
       if (Array.isArray(b.telegram.events)) c.telegram.events = b.telegram.events;
     }
     if (b.levels) c.levels = b.levels;
+    if (typeof b.publish === 'boolean') c.publish = b.publish;
     saveCfg(c); send(res, 200, { ok: true }); if (b.recollect) run(); return;
   }
   if (p === '/api/telegram/test' && req.method === 'POST') { try { await telegram('✅ Testnachricht vom Fear & Greed V6 – Alarme kommen hier an.'); return send(res, 200, { ok: true }); } catch (e) { return send(res, 400, { error: e.message }); } }

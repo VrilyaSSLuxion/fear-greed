@@ -714,6 +714,7 @@ Object.assign(T.de, {
   autostart: 'Mit Windows starten', autostartSub: 'Programm läuft unsichtbar im Hintergrund und sammelt alle 10 Minuten Daten', autoOn: 'Autostart eingeschaltet.', autoOff: 'Autostart ausgeschaltet.',
   srvStatus: 'Letzte Aktualisierung {a} · nächste {b}', keyPh: 'Key einfügen', optional: 'optional', keySave: 'Speichern', keySaved: 'Gespeichert – Daten werden neu geholt.', isSet: 'gesetzt',
   tgHelp: 'In Telegram @BotFather öffnen, /newbot schicken, Namen vergeben und den Token hier einfügen. Dann deinem Bot eine Nachricht schreiben und „Chat-ID finden“ drücken.',
+  pubSet: 'Online veröffentlichen', pubSub: 'Nach jeder Aktualisierung wird die Seite zu GitHub hochgeladen: {u}', pubLast: 'Zuletzt online veröffentlicht: {a}', pubNever: 'Noch nicht online veröffentlicht', pubOn: 'Online-Veröffentlichung eingeschaltet.', pubOff: 'Online-Veröffentlichung ausgeschaltet.',
   tgToken: 'Bot-Token', tgChatPh: 'wird automatisch gefunden', tgFind: 'Chat-ID finden', tgOn: 'Telegram-Alarme an', tgSent: 'Testnachricht gesendet – schau in Telegram.'
 });
 Object.assign(T.en, {
@@ -728,6 +729,7 @@ Object.assign(T.en, {
   autostart: 'Start with Windows', autostartSub: 'Runs invisibly in the background and collects data every 10 minutes', autoOn: 'Autostart switched on.', autoOff: 'Autostart switched off.',
   srvStatus: 'Last update {a} · next {b}', keyPh: 'paste key', optional: 'optional', keySave: 'Save', keySaved: 'Saved – fetching data again.', isSet: 'set',
   tgHelp: 'In Telegram open @BotFather, send /newbot, choose a name and paste the token here. Then send your bot a message and press "Find chat ID".',
+  pubSet: 'Publish online', pubSub: 'After every update the page is uploaded to GitHub: {u}', pubLast: 'Last published online: {a}', pubNever: 'Not published online yet', pubOn: 'Online publishing switched on.', pubOff: 'Online publishing switched off.',
   tgToken: 'Bot token', tgChatPh: 'found automatically', tgFind: 'Find chat ID', tgOn: 'Telegram alerts on', tgSent: 'Test message sent – check Telegram.'
 });
 
@@ -848,6 +850,8 @@ async function renderServerSet() {
   const ev = SRV.telegram.events || [];
   el.innerHTML = `<div class="set"><label><span>${t('autostart')}</span><small>${t('autostartSub')}</small></label><button class="sw ${SRV.autostart ? 'on' : ''}" id="swAuto" aria-label="${t('autostart')}"></button></div>
     <div class="muted" style="font-size:13px">${t('srvStatus', { a: SRV.lastRun ? new Date(SRV.lastRun).toLocaleTimeString(loc()) : '–', b: SRV.nextRun ? new Date(SRV.nextRun).toLocaleTimeString(loc()) : '–' })}${SRV.lastError ? ' · ⚠ ' + esc(SRV.lastError) : ''}</div>
+    <div class="set"><label><span>${t('pubSet')}</span><small>${t('pubSub', { u: esc(SRV.publish?.url || '') })}</small></label><button class="sw ${SRV.publish?.enabled ? 'on' : ''}" id="swPub" aria-label="${t('pubSet')}"></button></div>
+    <div class="muted" style="font-size:13px">${SRV.publish?.last ? t('pubLast', { a: new Date(SRV.publish.last).toLocaleTimeString(loc()) }) : t('pubNever')}${SRV.publish?.error ? ' · ⚠ ' + esc(SRV.publish.error) : ''}</div>
     <div class="keyrow"><span>SoSoValue</span><input type="password" id="kSoso" placeholder="${t('keyPh')}" autocomplete="off">${ok(SRV.keys.sosovalue)}</div>
     <div class="keyrow"><span>Coinalyze</span><input type="password" id="kCz" placeholder="${t('keyPh')}" autocomplete="off">${ok(SRV.keys.coinalyze)}</div>
     <div class="keyrow"><span>CoinGlass</span><input type="password" id="kCg" placeholder="${t('keyPh')} (${t('optional')})" autocomplete="off">${ok(SRV.keys.coinglass)}</div>
@@ -864,6 +868,7 @@ async function renderServerSet() {
     <div class="muted" id="srvMsg" style="font-size:13px;margin-top:6px"></div>`;
   const msg = m => $('srvMsg').textContent = m;
   $('swAuto').onclick = async e => { try { const r = await api('/api/autostart', { enabled: !SRV.autostart }); SRV.autostart = r.autostart; e.target.classList.toggle('on', r.autostart); msg(r.autostart ? t('autoOn') : t('autoOff')); } catch (x) { msg('⚠ ' + x.message); } };
+  $('swPub').onclick = async e => { try { const on = !SRV.publish.enabled; await api('/api/config', { publish: on }); SRV.publish.enabled = on; e.target.classList.toggle('on', on); msg(on ? t('pubOn') : t('pubOff')); } catch (x) { msg('⚠ ' + x.message); } };
   $('kSave').onclick = async () => { try { await api('/api/config', { sosovalueApiKey: $('kSoso').value, coinalyzeApiKey: $('kCz').value, coinglassApiKey: $('kCg').value, recollect: true }); msg(t('keySaved')); await loadServer(); renderServerSet(); } catch (x) { msg('⚠ ' + x.message); } };
   const tgBody = () => ({ telegram: { token: $('tgTok').value, chatId: $('tgChat').value, enabled: $('tgOn').checked, events: [...document.querySelectorAll('#srvSet [data-e]')].filter(x => x.checked).map(x => x.dataset.e) } });
   $('tgSave').onclick = async () => { try { await api('/api/config', tgBody()); msg(t('keySaved')); await loadServer(); renderServerSet(); } catch (x) { msg('⚠ ' + x.message); } };
