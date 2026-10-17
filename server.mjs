@@ -155,6 +155,8 @@ function buildSite() {
   const html = fs.readFileSync(path.join(ROOT, 'site', 'index.html'), 'utf8');
   fs.writeFileSync(path.join(WWW, 'index.html'), html);
   const engine = fs.readFileSync(path.join(ROOT, 'collector', 'engine.mjs'), 'utf8').replace(/^export /gm, '');
+  // alter Link (V6) leitet auf die neue Einzeldatei weiter
+  fs.writeFileSync(path.join(WWW, 'fear-greed-v6.html'), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=fear-greed-v7.html"><a href="fear-greed-v7.html">fear-greed-v7.html</a>');
   fs.writeFileSync(path.join(WWW, 'fear-greed-v7.html'), html.replace('<!--ENGINE-->', `<script>window.FG_STANDALONE = true;</script>\n<script type="module">\n${engine}\nwindow.FG_ENGINE = { collect };\nwindow.dispatchEvent(new Event('fg-engine'));\n</script>`));
 }
 
