@@ -2,7 +2,9 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" id="vp" content="width=device-width,initial-scale=1">
+<script>/* Handy: Standard "wie am PC" = Desktop-Ansicht verkleinert; "Handy-optimiert" = eigene Anordnung */
+try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.width, screen.height) < 900) document.getElementById('vp').setAttribute('content', 'width=1440'); } catch (e) { }</script>
 <title>Smart Money Fear & Greed</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%23d65ac9' stroke-width='5' stroke-dasharray='50 90' transform='rotate(-90 16 16)'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -228,7 +230,13 @@
   .hidden{display:none!important}
 
   .price .pp{display:flex;flex-direction:column;line-height:1.05}
-  .price .pp small{font-size:13px;color:#9fb5ad;font-weight:700;letter-spacing:.02em;margin-top:2px}
+  .price .pp small{font-size:inherit;color:#eef8f4;font-weight:800;letter-spacing:-.01em;margin-top:0}
+  .price .pp.div small{border-top:1px solid #2b4a42;margin-top:3px;padding-top:3px}
+  .ticker .price{font-size:26px}
+  .liqtitle{flex-direction:column;align-items:flex-start!important;justify-content:center;gap:2px}
+  .liqtitle small{font-size:11px;color:#f6c453;font-weight:700;letter-spacing:0}
+  .rothint{position:sticky;top:0;z-index:85;background:#2a1a20;border:2px solid #7a5a2c;color:#f6c453;border-radius:22px;padding:26px 36px;margin-bottom:16px;font-size:56px;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:24px}
+  .rothint button{background:none;border:0;color:#f6c453;font-size:60px;cursor:pointer}
   .chip select{background:transparent;border:0;color:var(--text);font:inherit;font-weight:800;cursor:pointer;outline:none}
   .chip select option{background:#1c0f24;color:var(--text)}
   .csum{margin-top:14px;padding:13px 16px;border:1px solid var(--line2);border-radius:14px;background:#1a0e21;font-size:15px;line-height:1.55;color:#d7cce0}
@@ -313,7 +321,7 @@
     .grid{grid-template-columns:1fr}
     .center{order:-1;margin-bottom:12px;width:260px;height:260px}
     .center .big{font-size:90px}
-    .col.left .item{justify-content:flex-start;flex-direction:row-reverse}
+    .col.left .item{justify-content:flex-end;flex-direction:row-reverse} /* bei row-reverse = linksbündig */
     .col.left .txt{text-align:left}
     .col.left h3,.col.right h3{text-align:left;padding:0}
     #wires{display:none}
@@ -338,6 +346,12 @@
     .top{padding:12px 14px}
     .hbtn{padding:9px 13px;font-size:13px}
     .ticker{grid-template-columns:minmax(0,1fr) auto}
+    .ticker .price{font-size:19px;gap:8px}
+    .liqtitle{font-size:12px}
+    .liqtitle small{font-size:10px}
+    .liq .row{gap:6px}
+    .liq .sd{font-size:15px;gap:5px}
+    .liq small{letter-spacing:.04em}
     .ticker>div{min-width:0;padding:8px 12px}
   }
 </style>
@@ -346,6 +360,7 @@
 <div class="loading" id="loading"><div class="spin"></div><div id="loadTxt">Lade Daten…</div></div>
 
 <div class="page">
+  <div class="rothint hidden" id="rotHint"><span>📱↻ <span data-t="rotTxt"></span></span><button id="rotClose" aria-label="Schliessen">✕</button></div>
   <!-- ======= Bedienleiste (beide Ansichten) ======= -->
   <div class="toolbar">
     <div class="seg" id="viewSeg" title="Ansicht"><button data-v="smc">SMC</button><button data-v="vss">VrilyaSS</button></div>
@@ -508,8 +523,8 @@
 
 <!-- ======= Ticker ======= -->
 <div class="ticker">
-  <div class="price"><span class="b">₿</span><div class="pp"><div><span id="tPrice">–</span> <span class="dir" id="tDir"></span></div><small id="tEur">–</small></div></div>
-  <div class="liqtitle" data-t="liqTitle"></div>
+  <div class="price"><span class="b">₿</span><div class="pp" id="pp"><div><span id="tPrice">–</span> <span class="dir" id="tDir"></span></div><small id="tEur">–</small></div></div>
+  <div class="liqtitle"><span data-t="liqTitle"></span><small id="heatTick"></small></div>
   <div class="liq">
     <div class="row">
       <div class="sd l"><small>LONGS</small><span id="liqL">–</span><small>USDT</small></div>
@@ -534,14 +549,19 @@
     <h2 data-t="settings"></h2>
     <div class="set"><label><span data-t="viewSet"></span><small data-t="viewSetSub"></small></label><div class="seg" id="defViewSeg"><button data-v="smc">SMC</button><button data-v="vss">VrilyaSS</button></div></div>
     <div class="set"><label><span data-t="winSet"></span><small data-t="winSetSub"></small></label><div class="seg" id="defWinSeg"><button data-v="365">365</button><button data-v="90">90</button></div></div>
+    <div class="set"><label><span data-t="mobSet"></span><small data-t="mobSub"></small></label><div class="seg" id="mobSeg"><button data-v="desktop" data-t="mobDesk"></button><button data-v="mobile" data-t="mobOpt"></button></div></div>
+    <div class="set"><label><span data-t="rotSet"></span><small data-t="rotSub"></small></label><button class="sw" id="swRot"></button></div>
+    <div class="set"><label><span data-t="tdivSet"></span></label><button class="sw" id="swTdiv"></button></div>
     <div class="set"><label><span data-t="defMode"></span><small data-t="defModeSub"></small></label><div class="seg" id="defModeSeg"><button data-v="binance">Binance</button><button data-v="multi">Multi-Source</button></div></div>
     <div class="set"><label><span data-t="language"></span></label><div class="seg" id="defLangSeg"><button data-v="de">Deutsch</button><button data-v="en">English</button></div></div>
     <div class="set"><label><span data-t="currency"></span></label><div class="seg" id="defCurSeg"><button data-v="usd">US-Dollar $</button><button data-v="eur">Euro €</button></div></div>
     <div class="set"><label><span data-t="offSrc"></span><small data-t="offSrcSub"></small></label><div class="seg" id="defOffSeg"></div></div>
-    <div class="set" id="dlRow"><label><span data-t="download"></span><small data-t="downloadSub"></small></label><a class="btn" href="fear-greed-v6.html" download data-t="downloadBtn"></a></div>
+    <div class="set" id="dlRow"><label><span data-t="download"></span><small data-t="downloadSub"></small></label><a class="btn" href="fear-greed-v7.html" download data-t="downloadBtn"></a></div>
     <div class="sethead" data-t="lvHead"></div>
     <p class="muted" style="margin-top:6px" data-t="lvSub"></p>
     <div id="lvSet"></div>
+    <div class="sethead" data-t="heatHead"></div>
+    <div id="heatSet"></div>
     <div class="sethead" data-t="alHead"></div>
     <div class="chk" id="alBrowser"></div>
     <div class="btns" style="justify-content:flex-start;margin-top:8px"><button class="btn sm" id="alTest" data-t="alTest"></button></div>
@@ -711,7 +731,7 @@ Object.assign(T.de, {
   alHead: 'Alarm im Browser (solange die Seite offen ist)', al_sound: 'Ton', al_notify: 'Windows-Meldung', al_p1: 'Extremphase Stufe 1 ({a})', al_p2: 'Extremphase Stufe 2 ({b})', al_turn: 'Wende bestätigt',
   alTest: 'Test', alTestTitle: 'Test-Alarm', alTestBody: 'So sieht ein Alarm aus.', alPhase: '{n} bestätigt (Stufe {l})', alTurn: 'Wende bestätigt nach {n}', alBody: 'Index {v} · BTC {p}',
   srvHead: 'Programm auf dem PC', srvOff: 'Diese Einstellungen gibt es nur, wenn du das Dashboard über das Programm auf deinem PC öffnest (start.bat → http://localhost:8797).',
-  autostart: 'Mit Windows starten', autostartSub: 'Programm läuft unsichtbar im Hintergrund und sammelt alle 10 Minuten Daten', autoOn: 'Autostart eingeschaltet.', autoOff: 'Autostart ausgeschaltet.',
+  autostart: 'Mit Windows starten', autostartSub: 'Programm läuft unsichtbar im Hintergrund und sammelt laufend Daten (Intervall unten unter „Aktualisierung“)', autoOn: 'Autostart eingeschaltet.', autoOff: 'Autostart ausgeschaltet.',
   srvStatus: 'Letzte Aktualisierung {a} · nächste {b}', keyPh: 'Key einfügen', optional: 'optional', keySave: 'Speichern', keySaved: 'Gespeichert – Daten werden neu geholt.', isSet: 'gesetzt',
   tgHelp: 'In Telegram @BotFather öffnen, /newbot schicken, Namen vergeben und den Token hier einfügen. Dann deinem Bot eine Nachricht schreiben und „Chat-ID finden“ drücken.',
   pubSet: 'Online veröffentlichen', pubSub: 'Nach jeder Aktualisierung wird die Seite zu GitHub hochgeladen: {u}', pubLast: 'Zuletzt online veröffentlicht: {a}', pubNever: 'Noch nicht online veröffentlicht', pubOn: 'Online-Veröffentlichung eingeschaltet.', pubOff: 'Online-Veröffentlichung ausgeschaltet.',
@@ -726,11 +746,46 @@ Object.assign(T.en, {
   alHead: 'Browser alert (while the page is open)', al_sound: 'Sound', al_notify: 'Windows notification', al_p1: 'Extreme phase level 1 ({a})', al_p2: 'Extreme phase level 2 ({b})', al_turn: 'Turn confirmed',
   alTest: 'Test', alTestTitle: 'Test alert', alTestBody: 'This is what an alert looks like.', alPhase: '{n} confirmed (level {l})', alTurn: 'Turn confirmed after {n}', alBody: 'Index {v} · BTC {p}',
   srvHead: 'Program on this PC', srvOff: 'These settings are only available when you open the dashboard through the program on your PC (start.bat → http://localhost:8797).',
-  autostart: 'Start with Windows', autostartSub: 'Runs invisibly in the background and collects data every 10 minutes', autoOn: 'Autostart switched on.', autoOff: 'Autostart switched off.',
+  autostart: 'Start with Windows', autostartSub: 'Runs invisibly in the background and collects data continuously (interval below under "Updates")', autoOn: 'Autostart switched on.', autoOff: 'Autostart switched off.',
   srvStatus: 'Last update {a} · next {b}', keyPh: 'paste key', optional: 'optional', keySave: 'Save', keySaved: 'Saved – fetching data again.', isSet: 'set',
   tgHelp: 'In Telegram open @BotFather, send /newbot, choose a name and paste the token here. Then send your bot a message and press "Find chat ID".',
   pubSet: 'Publish online', pubSub: 'After every update the page is uploaded to GitHub: {u}', pubLast: 'Last published online: {a}', pubNever: 'Not published online yet', pubOn: 'Online publishing switched on.', pubOff: 'Online publishing switched off.',
   tgToken: 'Bot token', tgChatPh: 'found automatically', tgFind: 'Find chat ID', tgOn: 'Telegram alerts on', tgSent: 'Test message sent – check Telegram.'
+});
+
+Object.assign(T.de, {
+  stand: 'Stand {t} · Tageswerte bis {d} · {iv}', ivLocal: 'Daten alle {m} Min. neu', ivOnline: 'online alle {m} Min. neu',
+  ivTip: 'Auf dem PC werden die Daten alle {a} Min. geholt. Online erscheint die Seite alle {b} Min. neu – GitHub erlaubt nur etwa 10 Aktualisierungen pro Stunde (also höchstens alle 6 Min.).',
+  ivHead: 'Aktualisierung', ivData: 'Daten holen alle', ivPub: 'Online alle', ivHist: 'Verläufe alle', ivSaved: 'Gespeichert – gilt ab dem nächsten Lauf.',
+  ivHelp: 'Live-Werte (Preis, Funding, Open Interest, Long/Short, Liquidationen, Heatmap) so oft wie eingestellt, ab 1 Minute. Online höchstens alle 6 Min. (GitHub-Grenze). Die großen Verläufe (6 Jahre) reichen stündlich – vergangene Tage ändern sich nicht.',
+  rateWarn: 'Zu viele Abfragen bei: {s} – bitte das Intervall erhöhen (z. B. 5 Min.).', keysHead: 'API-Keys',
+  pubSub: 'Die Seite wird regelmässig zu GitHub hochgeladen: {u}',
+  heatHead: 'Liquidations-Heatmap & Cluster-Alarm', hPct: 'Alarm-Abstand', hOpt_approach: 'Annäherung an Cluster', hOpt_zone: 'Zone erreicht', hOpt_poc: 'Cluster (POC) erreicht', hOpt_nearest: 'nächste Cluster anzeigen (gestrichelt)',
+  hHelp: 'Grün = stärkster Long-Cluster (unter dem Kurs), rot = stärkster Short-Cluster (über dem Kurs). Zone = Bereich um den Cluster, POC = stärkster Preis darin. Farben der Linien und Labels unter „Chart-Darstellung“.',
+  heatLine2: '<b>Liquidations-Heatmap</b> (Schätzung aus Binance-Daten der letzten {h} Tage)', hLongTop: 'Stärkster Long-Cluster', hShortTop: 'Stärkster Short-Cluster', hNear: 'nächster', hZone: 'Zone',
+  hAlarm: 'Alarm bei {p} %: Long-Cluster {lc} → ab {l} · Short-Cluster {sc} → ab {s}',
+  hA_approach: '{s}-Cluster nur noch {p} % entfernt', hA_zone: '{s}-Cluster-Zone erreicht', hA_poc: '{s}-Cluster erreicht', hA_body: 'Cluster {c} · Zone {lo} – {hi} · BTC {b}',
+  al_heat: 'Liquidations-Cluster',
+  st_heatLong: 'Long-Cluster Linie', st_heatShort: 'Short-Cluster Linie', st_heatLabelBgL: 'Long-Label Hintergrund', st_heatLabelTextL: 'Long-Label Schrift', st_heatLabelBgS: 'Short-Label Hintergrund', st_heatLabelTextS: 'Short-Label Schrift',
+  mobSet: 'Ansicht am Handy', mobSub: '„Wie am PC“ verkleinert die Desktop-Ansicht (mit zwei Fingern zoomen)', mobDesk: 'wie am PC', mobOpt: 'Handy-optimiert',
+  rotSet: 'Hinweis „Handy drehen“', rotSub: 'Im Hochformat oben einblenden', rotTxt: 'Handy quer halten für eine grössere Ansicht', tdivSet: 'Trennlinie zwischen Dollar und Euro (Ticker)'
+});
+Object.assign(T.en, {
+  stand: 'As of {t} · daily values until {d} · {iv}', ivLocal: 'data every {m} min', ivOnline: 'online every {m} min',
+  ivTip: 'On the PC data is fetched every {a} min. Online the page is refreshed every {b} min – GitHub allows only about 10 updates per hour (so at most every 6 min).',
+  ivHead: 'Updates', ivData: 'Fetch data every', ivPub: 'Online every', ivHist: 'Histories every', ivSaved: 'Saved – applies from the next run.',
+  ivHelp: 'Live values (price, funding, open interest, long/short, liquidations, heatmap) as often as set, from 1 minute. Online at most every 6 min (GitHub limit). The large histories (6 years) are fine hourly – past days do not change.',
+  rateWarn: 'Too many requests at: {s} – please increase the interval (e.g. 5 min).', keysHead: 'API keys',
+  pubSub: 'The page is uploaded to GitHub regularly: {u}',
+  heatHead: 'Liquidation heatmap & cluster alert', hPct: 'Alert distance', hOpt_approach: 'Approaching cluster', hOpt_zone: 'Zone reached', hOpt_poc: 'Cluster (POC) reached', hOpt_nearest: 'show nearest clusters (dashed)',
+  hHelp: 'Green = strongest long cluster (below price), red = strongest short cluster (above price). Zone = range around the cluster, POC = strongest price within. Line and label colours under "Chart appearance".',
+  heatLine2: '<b>Liquidation heatmap</b> (estimate from Binance data, last {h} days)', hLongTop: 'Strongest long cluster', hShortTop: 'Strongest short cluster', hNear: 'nearest', hZone: 'zone',
+  hAlarm: 'Alert at {p} %: long cluster {lc} → from {l} · short cluster {sc} → from {s}',
+  hA_approach: '{s} cluster only {p} % away', hA_zone: '{s} cluster zone reached', hA_poc: '{s} cluster reached', hA_body: 'Cluster {c} · zone {lo} – {hi} · BTC {b}',
+  al_heat: 'Liquidation clusters',
+  st_heatLong: 'Long cluster line', st_heatShort: 'Short cluster line', st_heatLabelBgL: 'Long label background', st_heatLabelTextL: 'Long label text', st_heatLabelBgS: 'Short label background', st_heatLabelTextS: 'Short label text',
+  mobSet: 'Phone view', mobSub: '"Like on PC" shrinks the desktop view (pinch to zoom)', mobDesk: 'like on PC', mobOpt: 'phone-optimised',
+  rotSet: '"Rotate phone" hint', rotSub: 'Show at the top in portrait', rotTxt: 'Turn your phone sideways for a larger view', tdivSet: 'Divider between dollar and euro (ticker)'
 });
 
 /* ================= Zustand ================= */
@@ -760,7 +815,13 @@ const jget = (k, d) => { try { return { ...d, ...JSON.parse(store.get(k, '{}')) 
 const BTN_DEF = { tg: { label: 'Telegram kostenlos', url: '', show: true }, ki: { label: 'KI-Modelle', url: '', show: true } };
 let BTNS = { tg: jget('fg6_btn_tg', BTN_DEF.tg), ki: jget('fg6_btn_ki', BTN_DEF.ki) };
 // Chart-Darstellung – in den Einstellungen änderbar
-const STYLE_DEF = { labelBg: '#f4eef8', labelText: '#160b1b', labelSize: 14, axisColor: '#9a8ea6', axisSize: 13, lineWidth: 2.8, lineMode: 'index', lineColor: '#d65ac9', offColor: '#3fd6c3', gridOpacity: 5, candleUp: '#33d39a', candleDown: '#f0566e' };
+const STYLE_DEF = { labelBg: '#f4eef8', labelText: '#160b1b', labelSize: 14, axisColor: '#9a8ea6', axisSize: 13, lineWidth: 2.8, lineMode: 'index', lineColor: '#d65ac9', offColor: '#3fd6c3', gridOpacity: 5, candleUp: '#33d39a', candleDown: '#f0566e',
+  heatLong: '#33d39a', heatShort: '#ff4d5e', heatLabelBgL: '#33d39a', heatLabelTextL: '#0b1a14', heatLabelBgS: '#ff4d5e', heatLabelTextS: '#1a0b0e' };
+// Heatmap-Cluster: Alarm-Abstand in %, Ereignisse, nächste Cluster anzeigen
+const HEAT_DEF = { pct: 1, approach: true, zone: true, poc: true, nearest: true };
+let HEAT = jget('fg6_heat', HEAT_DEF);
+// Handy: "wie am PC" (Desktop-Ansicht verkleinert) oder "Handy-optimiert"
+const MOB = store.get('fg6_mobile', 'desktop'), SMALL = Math.min(screen.width, screen.height) < 900;
 let STYLE = jget('fg6_style', STYLE_DEF);
 const style = () => STYLE;
 // Stufen: 1 = 75/25 (wie im Video), 2 = 85/15 (zusätzlich) – Werte und Farben in den Einstellungen
@@ -839,7 +900,7 @@ function renderLevelSet() {
 $('lvSet').addEventListener('input', e => { const el = e.target, k = el.dataset.l, f = el.dataset.f; if (!k || !f) return; if (f === 'hi' || f === 'lo') { const v = +el.value; if (!(v > 0 && v < 100)) return; LV[k][f] = v; } else { LV[k][f] = el.value; LV[k][f === 'cHi' ? 'dHi' : 'dLo'] = el.value; } saveLV(); RUNCACHE = {}; rerender(); });
 $('lvSet').addEventListener('click', e => { const el = e.target.closest('.sw'); if (!el) return; const k = el.dataset.l; LV[k].show = !LV[k].show; el.classList.toggle('on', LV[k].show); saveLV(); renderCharts(); });
 function renderAlertSet() {
-  $('alBrowser').innerHTML = ['sound', 'notify', 'p1', 'p2', 'turn'].map(k => `<label><input type="checkbox" data-a="${k}" ${AL[k] ? 'checked' : ''}> ${t('al_' + k, { a: LV.p1.hi + '/' + LV.p1.lo, b: LV.p2.hi + '/' + LV.p2.lo })}</label>`).join('');
+  $('alBrowser').innerHTML = ['sound', 'notify', 'p1', 'p2', 'turn', 'heat'].map(k => `<label><input type="checkbox" data-a="${k}" ${AL[k] ? 'checked' : ''}> ${t('al_' + k, { a: LV.p1.hi + '/' + LV.p1.lo, b: LV.p2.hi + '/' + LV.p2.lo })}</label>`).join('');
 }
 $('alBrowser').addEventListener('change', async e => { const k = e.target.dataset.a; if (!k) return; AL[k] = e.target.checked; store.set('fg6_alerts', JSON.stringify(AL)); if (k === 'notify' && AL.notify && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission(); });
 $('alTest').onclick = async () => { if (AL.notify && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission(); fireAlert(t('alTestTitle'), t('alTestBody')); };
@@ -852,6 +913,14 @@ async function renderServerSet() {
     <div class="muted" style="font-size:13px">${t('srvStatus', { a: SRV.lastRun ? new Date(SRV.lastRun).toLocaleTimeString(loc()) : '–', b: SRV.nextRun ? new Date(SRV.nextRun).toLocaleTimeString(loc()) : '–' })}${SRV.lastError ? ' · ⚠ ' + esc(SRV.lastError) : ''}</div>
     <div class="set"><label><span>${t('pubSet')}</span><small>${t('pubSub', { u: esc(SRV.publish?.url || '') })}</small></label><button class="sw ${SRV.publish?.enabled ? 'on' : ''}" id="swPub" aria-label="${t('pubSet')}"></button></div>
     <div class="muted" style="font-size:13px">${SRV.publish?.last ? t('pubLast', { a: new Date(SRV.publish.last).toLocaleTimeString(loc()) }) : t('pubNever')}${SRV.publish?.error ? ' · ⚠ ' + esc(SRV.publish.error) : ''}</div>
+    <div class="sethead" style="margin-top:10px">${t('ivHead')}</div>
+    <div class="keyrow"><span>${t('ivData')}</span><input type="number" id="ivData" min="1" max="60" value="${SRV.intervals?.data ?? 1}"><span class="muted">Min.</span></div>
+    <div class="keyrow"><span>${t('ivPub')}</span><input type="number" id="ivPub" min="6" max="120" value="${SRV.intervals?.publish ?? 10}"><span class="muted">Min.</span></div>
+    <div class="keyrow"><span>${t('ivHist')}</span><input type="number" id="ivHist" min="15" max="1440" value="${SRV.intervals?.hist ?? 60}"><span class="muted">Min.</span></div>
+    <p class="muted" style="font-size:12px;margin-top:6px">${t('ivHelp')}</p>
+    ${D?.rateLimited?.length ? `<div style="color:#ffb86b;font-size:13px">⚠ ${t('rateWarn', { s: esc(D.rateLimited.join(', ')) })}</div>` : ''}
+    <div class="btns" style="justify-content:flex-start"><button class="btn sm pri" id="ivSave">${t('keySave')}</button></div>
+    <div class="sethead" style="margin-top:10px">${t('keysHead')}</div>
     <div class="keyrow"><span>SoSoValue</span><input type="password" id="kSoso" placeholder="${t('keyPh')}" autocomplete="off">${ok(SRV.keys.sosovalue)}</div>
     <div class="keyrow"><span>Coinalyze</span><input type="password" id="kCz" placeholder="${t('keyPh')}" autocomplete="off">${ok(SRV.keys.coinalyze)}</div>
     <div class="keyrow"><span>CoinGlass</span><input type="password" id="kCg" placeholder="${t('keyPh')} (${t('optional')})" autocomplete="off">${ok(SRV.keys.coinglass)}</div>
@@ -863,11 +932,13 @@ async function renderServerSet() {
     <div class="chk"><label><input type="checkbox" id="tgOn" ${SRV.telegram.enabled ? 'checked' : ''}> ${t('tgOn')}</label>
       <label><input type="checkbox" data-e="p1" ${ev.includes('p1') ? 'checked' : ''}> ${t('al_p1', { a: LV.p1.hi + '/' + LV.p1.lo })}</label>
       <label><input type="checkbox" data-e="p2" ${ev.includes('p2') ? 'checked' : ''}> ${t('al_p2', { b: LV.p2.hi + '/' + LV.p2.lo })}</label>
-      <label><input type="checkbox" data-e="turn" ${ev.includes('turn') ? 'checked' : ''}> ${t('al_turn')}</label></div>
+      <label><input type="checkbox" data-e="turn" ${ev.includes('turn') ? 'checked' : ''}> ${t('al_turn')}</label>
+      <label><input type="checkbox" data-e="heat" ${ev.includes('heat') ? 'checked' : ''}> ${t('al_heat')}</label></div>
     <div class="btns" style="justify-content:flex-start"><button class="btn sm pri" id="tgSave">${t('keySave')}</button><button class="btn sm" id="tgTest">${t('alTest')}</button></div>
     <div class="muted" id="srvMsg" style="font-size:13px;margin-top:6px"></div>`;
   const msg = m => $('srvMsg').textContent = m;
   $('swAuto').onclick = async e => { try { const r = await api('/api/autostart', { enabled: !SRV.autostart }); SRV.autostart = r.autostart; e.target.classList.toggle('on', r.autostart); msg(r.autostart ? t('autoOn') : t('autoOff')); } catch (x) { msg('⚠ ' + x.message); } };
+  $('ivSave').onclick = async () => { try { await api('/api/config', { intervalMin: Math.max(1, +$('ivData').value || 1), publishMin: Math.max(6, +$('ivPub').value || 10), histMin: Math.max(15, +$('ivHist').value || 60) }); msg(t('ivSaved')); await loadServer(); renderServerSet(); } catch (x) { msg('⚠ ' + x.message); } };
   $('swPub').onclick = async e => { try { const on = !SRV.publish.enabled; await api('/api/config', { publish: on }); SRV.publish.enabled = on; e.target.classList.toggle('on', on); msg(on ? t('pubOn') : t('pubOff')); } catch (x) { msg('⚠ ' + x.message); } };
   $('kSave').onclick = async () => { try { await api('/api/config', { sosovalueApiKey: $('kSoso').value, coinalyzeApiKey: $('kCz').value, coinglassApiKey: $('kCg').value, recollect: true }); msg(t('keySaved')); await loadServer(); renderServerSet(); } catch (x) { msg('⚠ ' + x.message); } };
   const tgBody = () => ({ telegram: { token: $('tgTok').value, chatId: $('tgChat').value, enabled: $('tgOn').checked, events: [...document.querySelectorAll('#srvSet [data-e]')].filter(x => x.checked).map(x => x.dataset.e) } });
@@ -876,13 +947,38 @@ async function renderServerSet() {
   $('tgTest').onclick = async () => { try { await api('/api/config', tgBody()); await api('/api/telegram/test', {}); msg(t('tgSent')); } catch (x) { msg('⚠ ' + x.message); } };
 }
 async function loadServer() { try { SRV = await api('/api/status'); } catch { SRV = null; } }
+function renderHeatSet() {
+  $('heatSet').innerHTML = `<div class="keyrow"><span>${t('hPct')}</span><input type="number" id="hPct" min="0.1" max="10" step="0.1" value="${HEAT.pct}"><span class="muted">%</span></div>
+    <div class="chk">${['approach', 'zone', 'poc', 'nearest'].map(k => `<label><input type="checkbox" data-h="${k}" ${HEAT[k] ? 'checked' : ''}> ${t('hOpt_' + k)}</label>`).join('')}</div>
+    <p class="muted" style="font-size:12px;margin-top:6px">${t('hHelp')}</p>`;
+}
+const saveHeat = () => { store.set('fg6_heat', JSON.stringify(HEAT)); if (SRV) api('/api/config', { heat: HEAT }).catch(() => { }); renderHeatInfo(); renderTicker(); rerender(); };
+$('heatSet').addEventListener('input', e => { if (e.target.id === 'hPct') { const v = +e.target.value; if (v > 0 && v <= 10) { HEAT.pct = v; saveHeat(); } } });
+$('heatSet').addEventListener('change', e => { const k = e.target.dataset.h; if (!k) return; HEAT[k] = e.target.checked; saveHeat(); });
+seg('mobSeg', () => MOB, v => { store.set('fg6_mobile', v); location.reload(); });
+const updSw = () => { $('swRot').classList.toggle('on', store.get('fg6_rothint', '1') === '1'); $('swTdiv').classList.toggle('on', store.get('fg6_tdiv', '1') === '1'); };
+$('swRot').onclick = () => { store.set('fg6_rothint', store.get('fg6_rothint', '1') === '1' ? '0' : '1'); updSw(); showRotHint(); };
+$('swTdiv').onclick = () => { store.set('fg6_tdiv', store.get('fg6_tdiv', '1') === '1' ? '0' : '1'); updSw(); renderTicker(); };
+updSw();
+// Hinweis "Handy drehen" (nur Handy, Ansicht "wie am PC", Hochformat)
+function showRotHint() {
+  const portrait = matchMedia('(orientation: portrait)').matches;
+  let closed = false; try { closed = !!sessionStorage.getItem('fg6_rotclosed'); } catch { }
+  $('rotHint').classList.toggle('hidden', !(MOB === 'desktop' && SMALL && portrait && store.get('fg6_rothint', '1') === '1' && !closed));
+}
+$('rotClose').onclick = () => { try { sessionStorage.setItem('fg6_rotclosed', '1'); } catch { } showRotHint(); };
+window.addEventListener('orientationchange', () => setTimeout(showRotHint, 300));
+window.addEventListener('resize', () => setTimeout(showRotHint, 300));
+showRotHint();
 function renderSettings() {
+  renderHeatSet();
   renderLevelSet(); renderAlertSet(); renderServerSet();
   $('btnSet').innerHTML = ['tg', 'ki'].map(k => `<div class="brow"><b>${t('btn_' + k)}</b>
     <input data-b="${k}" data-f="label" value="${esc(BTNS[k].label)}" placeholder="${t('btnLabel')}" aria-label="${t('btnLabel')}">
     <input data-b="${k}" data-f="url" value="${esc(BTNS[k].url)}" placeholder="https://…" aria-label="Link">
     <button class="sw ${BTNS[k].show ? 'on' : ''}" data-b="${k}" title="${t('btnShow')}" aria-label="${t('btnShow')}"></button></div>`).join('');
-  const FIELDS = [['labelBg', 'color'], ['labelText', 'color'], ['labelSize', 'number', 8, 28, 1], ['axisColor', 'color'], ['axisSize', 'number', 8, 24, 1], ['lineWidth', 'number', 1, 8, 0.2], ['lineMode', 'select'], ['lineColor', 'color'], ['offColor', 'color'], ['gridOpacity', 'number', 0, 30, 1], ['candleUp', 'color'], ['candleDown', 'color']];
+  const FIELDS = [['labelBg', 'color'], ['labelText', 'color'], ['labelSize', 'number', 8, 28, 1], ['axisColor', 'color'], ['axisSize', 'number', 8, 24, 1], ['lineWidth', 'number', 1, 8, 0.2], ['lineMode', 'select'], ['lineColor', 'color'], ['offColor', 'color'], ['gridOpacity', 'number', 0, 30, 1], ['candleUp', 'color'], ['candleDown', 'color'],
+    ['heatLong', 'color'], ['heatShort', 'color'], ['heatLabelBgL', 'color'], ['heatLabelTextL', 'color'], ['heatLabelBgS', 'color'], ['heatLabelTextS', 'color']];
   $('styleSet').innerHTML = FIELDS.map(([k, type, min, max, step]) => `<label class="sfield"><span>${t('st_' + k)}</span>${type === 'select'
     ? `<select data-s="${k}"><option value="index" ${STYLE[k] === 'index' ? 'selected' : ''}>${t('st_mode_index')}</option><option value="solid" ${STYLE[k] === 'solid' ? 'selected' : ''}>${t('st_mode_solid')}</option></select>`
     : `<input type="${type}" data-s="${k}" value="${esc(STYLE[k])}" ${type === 'number' ? `min="${min}" max="${max}" step="${step}"` : ''}>`}</label>`).join('');
@@ -1047,10 +1143,15 @@ function renderRight() {
 }
 function renderFooter() {
   const up = new Date(D.updated), hm = up.toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' });
-  $('stand').textContent = STANDALONE ? t('standLocal', { t: hm }) : t('stand', { t: hm, d: dmy(D.dailyUntil) });
+  const IV = D.intervals || { data: 10, publish: 10 };
+  $('stand').textContent = STANDALONE ? t('standLocal', { t: hm }) : t('stand', { t: hm, d: dmy(D.dailyUntil), iv: SRV ? t('ivLocal', { m: IV.data }) : t('ivOnline', { m: IV.publish }) });
+  $('stand').title = t('ivTip', { a: IV.data, b: IV.publish });
   $('dlRow').classList.toggle('hidden', STANDALONE);
 }
 function renderTicker() {
+  $('pp').classList.toggle('div', store.get('fg6_tdiv', '1') === '1');
+  const HM = D.heatmap, k = v => fmt(conv(v) / 1000, 1) + 'K';
+  $('heatTick').textContent = HM && VSTYLE === 'vss' && HM.longTop && HM.shortTop ? `🔔 L ${k(HM.longTop.p * (1 + HEAT.pct / 100))} · S ${k(HM.shortTop.p * (1 - HEAT.pct / 100))}` : '';
   const p = LIVE.price ?? D.btc.price;
   $('tPrice').textContent = '$' + p.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const er = LIVE.eur || D.eurusd;
@@ -1173,8 +1274,34 @@ function renderSigStats() {
 function renderHeatInfo() {
   const HM = D?.heatmap, el = $('heatInfo');
   el.classList.toggle('hidden', !(OPT.heat && HM)); if (!(OPT.heat && HM)) return;
-  const f = x => x ? `<b>${money(x.p, 0)}</b> (≈ ${fmt(x.usd / 1e6, 0)} ${LANG === 'de' ? 'Mio. $' : 'M $'})` : '–';
-  el.innerHTML = t('heatLine', { ln: f(HM.longNear), lt: f(HM.longTop), sn: f(HM.shortNear), st: f(HM.shortTop), h: Math.round(HM.hours / 24) }) + ` · <a href="https://liquidate.fun" target="_blank" rel="noopener" style="color:#8fe3c9">liquidate.fun ${t('openSite')} ↗</a>`;
+  const f = x => x ? `<b>${money(x.p, 0)}</b> <span class="flat">(${t('hZone')} ${money(x.lo, 0)} – ${money(x.hi, 0)} · ≈ ${fmt(x.usd / 1e6, 0)} ${LANG === 'de' ? 'Mio. $' : 'M $'})</span>` : '–';
+  const lvl = (x, side) => x ? money(side === 'L' ? x.p * (1 + HEAT.pct / 100) : x.p * (1 - HEAT.pct / 100), 0) : '–';
+  el.innerHTML = t('heatLine2', { h: Math.round(HM.hours / 24) })
+    + `<br><span style="color:${STYLE.heatLong}">━</span> ${t('hLongTop')} ${f(HM.longTop)}${HEAT.nearest ? ` · <span style="color:${STYLE.heatLong}">┅</span> ${t('hNear')} ${f(HM.longNear)}` : ''}`
+    + `<br><span style="color:${STYLE.heatShort}">━</span> ${t('hShortTop')} ${f(HM.shortTop)}${HEAT.nearest ? ` · <span style="color:${STYLE.heatShort}">┅</span> ${t('hNear')} ${f(HM.shortNear)}` : ''}`
+    + `<br>🔔 ${t('hAlarm', { p: fmt(HEAT.pct, HEAT.pct % 1 ? 1 : 0), l: lvl(HM.longTop, 'L'), s: lvl(HM.shortTop, 'S'), lc: money(HM.longTop?.p, 0), sc: money(HM.shortTop?.p, 0) })} · <a href="https://liquidate.fun" target="_blank" rel="noopener" style="color:#8fe3c9">liquidate.fun ${t('openSite')} ↗</a>`;
+}
+// Cluster-Alarm: Annäherung auf X %, Zone erreicht, Cluster (POC) erreicht
+function heatEventsB(hm, price) {
+  const out = []; if (!hm || !(price > 0)) return out;
+  const list = [['longTop', 'L'], ['shortTop', 'S']]; if (HEAT.nearest) list.push(['longNear', 'L'], ['shortNear', 'S']);
+  for (const [k, side] of list) {
+    const z = hm[k]; if (!z) continue;
+    const lvl = side === 'L' ? z.p * (1 + HEAT.pct / 100) : z.p * (1 - HEAT.pct / 100);
+    if (HEAT.poc && (side === 'L' ? price <= z.p : price >= z.p)) out.push({ k, side, ev: 'poc', z });
+    else if (HEAT.zone && price >= z.lo && price <= z.hi) out.push({ k, side, ev: 'zone', z });
+    else if (HEAT.approach && (side === 'L' ? price <= lvl && price > z.p : price >= lvl && price < z.p)) out.push({ k, side, ev: 'approach', z });
+  }
+  return out;
+}
+function checkHeatBrowser() {
+  if (!D?.heatmap || !AL.heat) return;
+  const price = LIVE.price || D.btc.price, seen = JSON.parse(store.get('fg6_heatAlerted', '{}')), now = Date.now();
+  for (const e of heatEventsB(D.heatmap, price)) {
+    const key = `${e.k}:${e.ev}:${e.z.p}`; if (seen[key] && now - seen[key] < 12 * 3600e3) continue; seen[key] = now;
+    fireAlert(t('hA_' + e.ev, { s: e.side === 'L' ? 'Long' : 'Short', p: fmt(HEAT.pct, HEAT.pct % 1 ? 1 : 0) }), t('hA_body', { c: money(e.z.p, 0), lo: money(e.z.lo, 0), hi: money(e.z.hi, 0), b: money(price, 0) }));
+  }
+  store.set('fg6_heatAlerted', JSON.stringify(seen));
 }
 function renderCharts() {
   RUNCACHE = RUNCACHE.h === H.length ? RUNCACHE : { h: H.length };
@@ -1275,6 +1402,20 @@ function renderCharts() {
     g += `<text x="${X(p.i)}" y="${Y(pr) + (p.t === 'H' ? -14 : 24)}" fill="${color(vals[p.i])}" font-size="13" font-weight="800" text-anchor="middle" paint-order="stroke" stroke="#160b1b" stroke-width="3">${vals[p.i]}</text>`;
   }
   g += `</g>`;
+  if (OPT.heat && VSTYLE === 'vss' && D.heatmap) {
+    const xm = P.l + iw / 2, list = [['longTop', 'L', 0], ['shortTop', 'S', 0]], seen = new Set();
+    if (HEAT.nearest) list.push(['longNear', 'L', 1], ['shortNear', 'S', 1]);
+    for (const [k, side, dashed] of list) {
+      const z = D.heatmap[k]; if (!z || seen.has(z.p)) continue; seen.add(z.p);
+      const p = conv(z.p), lo = conv(z.lo), hi = conv(z.hi); if (p < yl || p > yh) continue;
+      const col = side === 'L' ? ST.heatLong : ST.heatShort, y = Y(p);
+      const y1 = clamp(Y(hi), 0, H1), y2 = clamp(Y(lo), 0, H1);
+      g += `<rect x="${xm}" y="${y1.toFixed(1)}" width="${(P.l + iw - xm).toFixed(1)}" height="${Math.max(2, y2 - y1).toFixed(1)}" fill="${col}" opacity="${dashed ? .07 : .13}"/>`;
+      g += `<line x1="${xm}" x2="${P.l + iw}" y1="${y}" y2="${y}" stroke="${col}" stroke-width="${dashed ? 1.5 : 2.3}" ${dashed ? 'stroke-dasharray="7 5"' : ''}/>`;
+      const bg = side === 'L' ? ST.heatLabelBgL : ST.heatLabelBgS, tx = side === 'L' ? ST.heatLabelTextL : ST.heatLabelTextS, lw = P.r - 6;
+      g += `<rect x="${P.l + iw + 2}" y="${y - 10}" width="${lw}" height="20" rx="5" fill="${bg}" opacity="${dashed ? .7 : 1}"/><text x="${P.l + iw + 2 + lw / 2}" y="${y + 4.5}" fill="${tx}" font-size="12" font-weight="800" text-anchor="middle">${moneyK(p)}</text>`;
+    }
+  }
   if (VIEW.e === all.length - 1) {
     const lp = lastLive ?? pts.at(-1).c, lx = pts.at(-1).x;
     g += `<circle cx="${lx}" cy="${Y(pts.at(-1).c)}" r="5" fill="${color(data[n - 1][col])}" stroke="#160b1b" stroke-width="2"/>`;
@@ -1407,7 +1548,7 @@ for (const id of ['priceChart', 'idxChart']) {
   sp.addEventListener('dblclick', () => { CH1 = 360; CH2 = 200; store.set('fg6_h1', CH1); store.set('fg6_h2', CH2); renderCharts(); }); }
 
 /* ================= Alarme im Browser ================= */
-const AL_DEF = { sound: true, notify: true, p1: true, p2: true, turn: true };
+const AL_DEF = { sound: true, notify: true, p1: true, p2: true, turn: true, heat: true };
 let AL = jget('fg6_alerts', AL_DEF);
 function beep() { try { const a = new (window.AudioContext || window.webkitAudioContext)(); [0, .18, .36].forEach((dt, i) => { const o = a.createOscillator(), g = a.createGain(); o.frequency.value = [880, 1175, 1568][i]; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(.18, a.currentTime + dt); g.gain.exponentialRampToValueAtTime(.001, a.currentTime + dt + .16); o.start(a.currentTime + dt); o.stop(a.currentTime + dt + .17); }); } catch { } }
 function toast(txt) { const el = $('toast'); el.innerHTML = txt; el.classList.remove('hidden'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.add('hidden'), 12000); }
@@ -1532,7 +1673,7 @@ function livePrice() {
     if (j.stream === 'eurusdt@ticker') { LIVE.eur = +m.c; return; }
     const p = +m.c;
     LIVE.dir = LIVE.price ? Math.sign(p - LIVE.price) || LIVE.dir : 0; LIVE.price = p; LIVE.ch = +m.P;
-    if (D && Date.now() - last > 1000) { last = Date.now(); renderHeader(); renderTicker(); }
+    if (D && Date.now() - last > 1000) { last = Date.now(); renderHeader(); renderTicker(); if (Date.now() - (checkHeatBrowser.t || 0) > 30000) { checkHeatBrowser.t = Date.now(); checkHeatBrowser(); } }
   };
   ws.onclose = () => setTimeout(livePrice, 5000);
 }
@@ -1576,13 +1717,14 @@ async function load(first) {
   RUNCACHE = {};
   render();
   checkBrowserAlerts();
+  checkHeatBrowser();
 }
 applyTexts();
 $('loadTxt').textContent = t('loading');
 load(true);
 livePrice();
-// Online alle 2 Minuten neue Daten holen, Einzeldatei alle 10 Minuten neu berechnen
-setInterval(() => { if (Date.now() - lastLoad > (window.FG_STANDALONE ? 600000 : 115000)) load(false); }, 30000);
+// Neue Daten holen: am PC jede Minute (Programm-Intervall), online alle 2 Minuten, Einzeldatei alle 10 Minuten neu berechnen
+setInterval(() => { if (Date.now() - lastLoad > (window.FG_STANDALONE ? 600000 : SRV ? Math.max(1, SRV.intervals?.data || 1) * 60000 - 5000 : 115000)) load(false); }, 15000);
 </script>
 </body>
 </html>

@@ -281,14 +281,18 @@ async function fetchLive(c, opt) {
     oiBin: () => src('Binance Open Interest', async () => +(await get('https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT')).openInterest),
     oiByb: () => src('Bybit Open Interest', async () => +(await get('https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT')).result.list[0].openInterest),
     oiOkx: () => src('OKX Open Interest', async () => +(await get('https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=BTC-USDT-SWAP')).data[0].oiCcy),
-    lsBin: () => src('Binance Long/Short', async () => +(await get('https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=1h&limit=1'))[0].longShortRatio),
-    lsByb: () => src('Bybit Long/Short', async () => { const x = (await get('https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=BTCUSDT&period=1h&limit=1')).result.list[0]; return +x.buyRatio / +x.sellRatio; }),
-    lsOkx: () => opt.env !== 'node' ? c.skip('OKX Long/Short', 'in der Einzeldatei nicht abrufbar (Browser-Sperre)') : src('OKX Long/Short', async () => +(await get('https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy=BTC&period=1H')).data[0][1]),
+    lsBin: () => src('Binance Long/Short', async () => +(await get('https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=5m&limit=1'))[0].longShortRatio),
+    lsByb: () => src('Bybit Long/Short', async () => { const x = (await get('https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=BTCUSDT&period=5min&limit=1')).result.list[0]; return +x.buyRatio / +x.sellRatio; }),
+    lsOkx: () => opt.env !== 'node' ? c.skip('OKX Long/Short', 'in der Einzeldatei nicht abrufbar (Browser-Sperre)') : src('OKX Long/Short', async () => +(await get('https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy=BTC&period=5m')).data[0][1]),
     pCb: () => src('Coinbase Preis', async () => +(await get('https://api.exchange.coinbase.com/products/BTC-USD/ticker')).price),
     t24: () => src('Binance 24h-Ticker', async () => { const t = await get('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT'); return { price: +t.lastPrice, ch: +t.priceChangePercent }; }),
     pOkx: () => src('OKX Preis', async () => +(await get('https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT')).data[0].last),
     pByb: () => src('Bybit Preis', async () => +(await get('https://api.bybit.com/v5/market/tickers?category=spot&symbol=BTCUSDT')).result.list[0].lastPrice),
     poly: () => src('Polymarket Preisleiter', () => polymarket(get)),
+    kToday: () => src('Binance Tageskerze (live)', async () => (await get('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=2')).map(x => ({ d: dkey(x[0]), o: +x[1], h: +x[2], l: +x[3], c: +x[4] }))),
+    vixLive: () => opt.env !== 'node' ? null : src('Yahoo VIX (live)', async () => (await get('https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?range=1d&interval=5m')).chart.result[0].meta.regularMarketPrice),
+    dxyLive: () => opt.env !== 'node' ? null : src('Yahoo DXY (live)', async () => (await get('https://query1.finance.yahoo.com/v8/finance/chart/DX-Y.NYB?range=1d&interval=5m')).chart.result[0].meta.regularMarketPrice),
+    cmcNow: () => opt.env !== 'node' ? null : src('CoinMarketCap Fear & Greed (live)', async () => { const t = Math.floor(Date.now() / 1000); const d = (await get(`https://api.coinmarketcap.com/data-api/v3/fear-greed/chart?start=${t - 3 * 86400}&end=${t}`)).data; return +(d.historicalValues?.now?.score ?? d.dataList.at(-1).score); }),
     hourly: () => src('Binance Stundenkerzen', async () => (await get('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=200')).map(x => [x[0], +x[1], +x[2], +x[3], +x[4]])),
     eurNow: () => src('Binance EUR-Kurs', async () => +(await get('https://api.binance.com/api/v3/ticker/price?symbol=EURUSDT')).price)
   };
@@ -364,8 +368,14 @@ async function liqHeatmap(get) {
   const maxL = Math.max(0, ...below.map(r => r[1])), maxS = Math.max(0, ...above.map(r => r[2]));
   const nearL = [...below].reverse().find(r => r[1] >= maxL * 0.5), nearS = above.find(r => r[2] >= maxS * 0.5);
   const topL = below.find(r => r[1] === maxL), topS = above.find(r => r[2] === maxS);
-  const pack = (r, i) => r ? { p: r[0], usd: r[i] } : null;
-  return { price, bin, rows, longNear: pack(nearL, 1), shortNear: pack(nearS, 2), longTop: pack(topL, 1), shortTop: pack(topS, 2), hours: kl.length, updated: Date.now() };
+  const zone = (list, i, peak) => {
+    if (!peak) return null;
+    const k = list.indexOf(peak), th = peak[i] * 0.4; let a = k, b = k;
+    while (a > 0 && list[a - 1][i] >= th && list[a][0] - list[a - 1][0] <= bin * 2) a--;
+    while (b < list.length - 1 && list[b + 1][i] >= th && list[b + 1][0] - list[b][0] <= bin * 2) b++;
+    return { p: peak[0], usd: peak[i], lo: list[a][0] - bin / 2, hi: list[b][0] + bin / 2, zoneUsd: list.slice(a, b + 1).reduce((s, r) => s + r[i], 0) };
+  };
+  return { price, bin, rows, longNear: zone(below, 1, nearL), shortNear: zone(above, 2, nearS), longTop: zone(below, 1, topL), shortTop: zone(above, 2, topS), hours: kl.length, updated: Date.now() };
 }
 
 /* ================= Liquidationen ================= */
@@ -439,7 +449,14 @@ async function collectLiquidations(c, state, sampleMs) {
 // opt: { env: 'node'|'browser', keys, state, wsSampleMs, liqOverride }
 export async function collect(opt = {}) {
   const c = client(), now = Date.now(), today = dkey(now), state = opt.state || {};
-  const [H, L, heat] = await Promise.all([fetchHistory(c, opt), fetchLive(c, opt), c.src('Liquidations-Heatmap (Schätzung)', () => liqHeatmap(c.get))]);
+  const cache = opt.cache, fresh = cache?.H && now - cache.t < (opt.histTtlMs ?? 3600e3) && dkey(cache.t) === today;
+  const ch = fresh ? null : client();
+  const [H, L, heat] = await Promise.all([fresh ? cache.H : fetchHistory(ch, opt), fetchLive(c, opt), c.src('Liquidations-Heatmap (Schätzung)', () => liqHeatmap(c.get))]);
+  if (cache && !fresh) Object.assign(cache, { H, t: now, status: { ...ch.status } });
+  for (const [k, v] of Object.entries(fresh ? cache.status : ch.status)) if (!c.status[k]) c.status[k] = v;
+  // heutige Tageskerze live einsetzen (RSI und Kurs von heute ohne Verzögerung)
+  const binK = H.binK ? H.binK.map(r => r) : null;
+  if (binK && L.kToday) for (const k of L.kToday) { const i = binK.findIndex(r => r.d === k.d); i >= 0 ? binK[i] = k : binK.push(k); }
   const liq24 = opt.env === 'node' ? await collectLiquidations(c, state, opt.wsSampleMs ?? 60000)
     : (opt.liqOverride || { binance: { L: 0, S: 0 }, multi: { L: 0, S: 0 }, since: now });
 
@@ -455,9 +472,9 @@ export async function collect(opt = {}) {
   const binOI = new Map(Object.entries(state.own.binOI)), binLS = new Map(Object.entries(state.own.binLS));
 
   const closes = rows => new Map((rows || []).map(r => [r.d, r.c]));
-  const cB = closes(H.binK), cY = closes(H.bybK), cC = closes(H.cbK);
+  const cB = closes(binK), cY = closes(H.bybK), cC = closes(H.cbK);
   const ind = rows => rows ? rsiAtr(rows) : new Map();
-  const iB = ind(H.binK), iY = ind(H.bybK), iC = ind(H.cbK);
+  const iB = ind(binK), iY = ind(H.bybK), iC = ind(H.cbK);
   const pick = (m, f) => new Map([...m].map(([d, v]) => [d, f(v)]));
   const prem = refs => { const m = new Map(); for (const [d, cb] of cC) { const r = mean(refs.map(x => x.get(d))); if (ok(r)) m.set(d, (cb / r - 1) * 100); } return m; };
   // ETF-Tageswerte selbst fortschreiben (SoSoValue liefert nur den letzten Monat)
@@ -466,6 +483,8 @@ export async function collect(opt = {}) {
   const etfAll = new Map(Object.entries(state.own.etf).sort((a, b) => a[0] < b[0] ? -1 : 1));
   const etf5 = etfAll.size ? rolling(etfAll, 5, a => a.reduce((s, x) => s + x, 0)) : new Map();
   const vixY = H.yVix || new Map(), dxyY = H.yDxy || new Map();
+  if (ok(L.vixLive)) vixY.live = L.vixLive;
+  if (ok(L.dxyLive)) dxyY.live = L.dxyLive;
   const dxyChY = changeOver(dxyY, 20, true), dxyChE = H.ecb ? changeOver(H.ecb, 20, true) : new Map();
   const liqShare = key => new Map(Object.entries(state.liq?.daily || {}).filter(([, v]) => v[key + 'L'] + v[key + 'S'] > 0).map(([d, v]) => [d, v[key + 'S'] / (v[key + 'L'] + v[key + 'S'])]));
 
@@ -620,7 +639,7 @@ export async function collect(opt = {}) {
     dailyUntil: addDays(today, -1),
     env: opt.env,
     btc: { price: binPrice ?? null, ch24: L.t24?.ch ?? null },
-    official: { alt: altNow, cmc: H.cmc ? lastVal(H.cmc) : null, cfgi: ok(H.cfgi) ? H.cfgi : null, coinglass: H.cgFng ? lastVal(H.cgFng) : null },
+    official: { alt: altNow, cmc: L.cmcNow ?? (H.cmc ? lastVal(H.cmc) : null), cfgi: ok(H.cfgi) ? H.cfgi : null, coinglass: H.cgFng ? lastVal(H.cgFng) : null },
     eurusd: L.eurNow ?? (H.eur ? lastVal(H.eur) : null),
     liq24,
     poly: L.poly ? { pct: polyPct, end: L.poly.end, title: L.poly.title } : null,
@@ -646,7 +665,7 @@ export async function collect(opt = {}) {
   const allDays = [...new Set([...out.modes.multi.d7.keys(), ...out.modes.binance.d7.keys()])].sort();
   const eurM = H.eur || new Map(); if (ok(L.eurNow)) eurM.set(today, L.eurNow);
   const r4 = x => ok(x) ? Math.round(x * 1e4) / 1e4 : null;
-  const ohlc = new Map((H.binK || []).map(r => [r.d, r]));
+  const ohlc = new Map((binK || []).map(r => [r.d, r]));
   const R = x => ok(x) ? Math.round(x) : null, M = out.modes;
   result.history = allDays.map(d => { const k = ohlc.get(d); return [d, M.binance.d7.get(d) ?? null, M.multi.d7.get(d) ?? null, ok(btc.get(d)) ? Math.round(btc.get(d)) : null,
     alt.get(d) ?? null, H.cmc?.get(d) ?? null, cfgiHist.get(d) ?? null, H.cgFng?.get(d) ?? null, r4(eurM.get(d)),

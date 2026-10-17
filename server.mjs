@@ -1,4 +1,4 @@
-// Fear & Greed V6 – Hintergrund-Programm
+// Fear & Greed V7 – Hintergrund-Programm
 // Läuft unsichtbar, sammelt alle 10 Minuten alle Daten (inkl. dauerhaftem Liquidations-Mitschnitt),
 // speichert den Verlauf, liefert die Seite unter http://localhost:8797 aus und verschickt Telegram-Alarme.
 import http from 'node:http';
@@ -12,13 +12,17 @@ const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DATA = path.join(ROOT, 'data'), WWW = path.join(ROOT, 'www');
 fs.mkdirSync(path.join(WWW, 'data'), { recursive: true });
 fs.mkdirSync(DATA, { recursive: true });
-const PORT = 8797, EVERY_MIN = 10;
+const PORT = +process.env.FG_PORT || 8797; // FG_PORT/FG_NOPUBLISH nur zum Testen
+// Intervalle (Minuten) – im Zahnrad einstellbar: Daten holen, online veröffentlichen (GitHub: max. ~10 Builds/Stunde), große Verläufe
+const iv = () => { const c = cfg(); return { data: Math.max(1, Math.min(60, +c.intervalMin || 1)), publish: Math.max(6, Math.min(120, +c.publishMin || 10)), hist: Math.max(15, Math.min(1440, +c.histMin || 60)) }; };
+const HCACHE = {};
 const log = (...a) => console.log(new Date().toLocaleString('de-DE'), '·', ...a);
 
 /* ---------- Konfiguration (API-Keys, Telegram) ---------- */
 const CFG_PATH = path.join(ROOT, 'config.json');
-const DEF = { sosovalueApiKey: '', coinglassApiKey: '', coinalyzeApiKey: '', telegram: { token: '', chatId: '', enabled: false, events: ['p1', 'p2', 'turn'] } };
-function cfg() { try { const c = JSON.parse(fs.readFileSync(CFG_PATH, 'utf8')); return { ...DEF, ...c, telegram: { ...DEF.telegram, ...(c.telegram || {}) } }; } catch { return structuredClone(DEF); } }
+const DEF = { sosovalueApiKey: '', coinglassApiKey: '', coinalyzeApiKey: '', intervalMin: 1, publishMin: 10, histMin: 60,
+  heat: { pct: 1, approach: true, zone: true, poc: true, nearest: true }, telegram: { token: '', chatId: '', enabled: false, events: ['p1', 'p2', 'turn', 'heat'] } };
+function cfg() { try { const c = JSON.parse(fs.readFileSync(CFG_PATH, 'utf8')); return { ...DEF, ...c, heat: { ...DEF.heat, ...(c.heat || {}) }, telegram: { ...DEF.telegram, ...(c.telegram || {}) } }; } catch { return structuredClone(DEF); } }
 function saveCfg(c) { fs.writeFileSync(CFG_PATH, JSON.stringify(c, null, 2)); }
 if (!fs.existsSync(CFG_PATH)) saveCfg(DEF);
 
@@ -95,7 +99,32 @@ async function checkAlerts(latest, history) {
   }
 }
 
-/* ---------- Sammeln alle 10 Minuten ---------- */
+function heatEvents(hm, price, h) {
+  const out = []; if (!hm || !(price > 0)) return out;
+  const list = [['longTop', 'L', 'top'], ['shortTop', 'S', 'top']];
+  if (h.nearest) list.push(['longNear', 'L', 'near'], ['shortNear', 'S', 'near']);
+  for (const [k, side, kind] of list) {
+    const z = hm[k]; if (!z) continue;
+    const f = h.pct / 100, lvl = side === 'L' ? z.p * (1 + f) : z.p * (1 - f);
+    if (h.poc && (side === 'L' ? price <= z.p : price >= z.p)) out.push({ k, side, kind, ev: 'poc', z, lvl });
+    else if (h.zone && price >= z.lo && price <= z.hi) out.push({ k, side, kind, ev: 'zone', z, lvl });
+    else if (h.approach && (side === 'L' ? price <= lvl && price > z.p : price >= lvl && price < z.p)) out.push({ k, side, kind, ev: 'approach', z, lvl });
+  }
+  return out;
+}
+async function checkHeatAlerts(latest) {
+  const c = cfg(), t = c.telegram; if (!t.enabled || !t.token || !t.chatId || !t.events.includes('heat')) return;
+  const sent = (state.alertsSent ||= {}), price = latest.btc.price, eur = n => Math.round(n).toLocaleString('de-DE') + ' $';
+  for (const e of heatEvents(latest.heatmap, price, c.heat)) {
+    const key = `heat:${e.k}:${e.ev}:${e.z.p}`; if (sent[key] && Date.now() - sent[key] < 12 * 3600e3) continue;
+    const name = (e.side === 'L' ? 'Long' : 'Short') + '-Cluster' + (e.kind === 'top' ? ' (stärkster)' : ' (nächster)');
+    const what = e.ev === 'poc' ? 'erreicht' : e.ev === 'zone' ? 'Zone erreicht' : `nur noch ${c.heat.pct} % entfernt`;
+    try { await telegram(`🎯 <b>${name} ${what}</b>\nCluster ${eur(e.z.p)} (Zone ${eur(e.z.lo)} – ${eur(e.z.hi)}, ≈ ${Math.round(e.z.usd / 1e6)} Mio. $)\nBTC ${eur(price)}`); sent[key] = Date.now(); log('Telegram Cluster-Alarm:', key); }
+    catch (x) { log('Telegram-Fehler:', x.message); }
+  }
+}
+
+/* ---------- Sammeln (Intervall einstellbar) ---------- */
 let running = false, lastRun = null, lastError = null;
 async function run() {
   if (running) return; running = true;
@@ -103,19 +132,22 @@ async function run() {
   try {
     const c = cfg();
     const keys = { sosovalue: c.sosovalueApiKey, coinglass: c.coinglassApiKey, coinalyze: c.coinalyzeApiKey, sosovalueUrl: c.sosovalueUrl || '' };
-    const { result, state: next } = await collect({ env: 'node', keys, state, wsSampleMs: 0 });
+    const I = iv();
+    const { result, state: next } = await collect({ env: 'node', keys, state, wsSampleMs: 0, cache: HCACHE, histTtlMs: I.hist * 60e3 });
     state = next; saveState();
     const { history, ...latest } = result;
     latest.server = true;
+    latest.intervals = { data: I.data, publish: I.publish, hist: I.hist };
+    latest.rateLimited = latest.status.filter(x => x.ok === false && /429|rate|too many/i.test(x.msg || '')).map(x => x.name);
     fs.writeFileSync(path.join(WWW, 'data', 'latest.json'), JSON.stringify(latest));
     fs.writeFileSync(path.join(WWW, 'data', 'history.json'), JSON.stringify(history));
     // Tagebuch: aktueller Stand je Lauf (für spätere Auswertung, ab wann ein Punkt verlässlich war)
     fs.appendFileSync(path.join(DATA, 'journal.jsonl'), JSON.stringify({ t: Date.now(), btc: latest.btc.price, idx: Object.fromEntries(Object.entries(latest.modes).map(([k, m]) => [k, [m.index, m.live]])) }) + '\n');
     buildSite();
-    await checkAlerts(latest, history); saveState();
+    await checkAlerts(latest, history); await checkHeatAlerts(latest); saveState();
     lastRun = Date.now(); lastError = null;
-    await publish();
-    log(`Daten aktualisiert in ${((Date.now() - t0) / 1000).toFixed(1)} s · Index ${latest.modes.binance90?.index}`);
+    if (!lastPublish || Date.now() - lastPublish >= I.publish * 60e3 - 5000) await publish();
+    if (!HCACHE.logged || HCACHE.logged !== HCACHE.t) { HCACHE.logged = HCACHE.t; log(`Verläufe neu geholt · Index ${latest.modes.binance90?.index}`); }
   } catch (e) { lastError = e.message; log('Fehler beim Sammeln:', e); }
   running = false;
 }
@@ -123,7 +155,7 @@ function buildSite() {
   const html = fs.readFileSync(path.join(ROOT, 'site', 'index.html'), 'utf8');
   fs.writeFileSync(path.join(WWW, 'index.html'), html);
   const engine = fs.readFileSync(path.join(ROOT, 'collector', 'engine.mjs'), 'utf8').replace(/^export /gm, '');
-  fs.writeFileSync(path.join(WWW, 'fear-greed-v6.html'), html.replace('<!--ENGINE-->', `<script>window.FG_STANDALONE = true;</script>\n<script type="module">\n${engine}\nwindow.FG_ENGINE = { collect };\nwindow.dispatchEvent(new Event('fg-engine'));\n</script>`));
+  fs.writeFileSync(path.join(WWW, 'fear-greed-v7.html'), html.replace('<!--ENGINE-->', `<script>window.FG_STANDALONE = true;</script>\n<script type="module">\n${engine}\nwindow.FG_ENGINE = { collect };\nwindow.dispatchEvent(new Event('fg-engine'));\n</script>`));
 }
 
 /* ---------- Online veröffentlichen (GitHub Pages) ---------- */
@@ -135,7 +167,7 @@ const git = (args, cwd) => new Promise((res, rej) => execFile('git', args, { cwd
   (e, so, se) => e ? rej(new Error(String(se || e.message).trim().split('\n').pop())) : res(so)));
 async function publish() {
   const c = cfg();
-  if (c.publish === false) return;
+  if (c.publish === false || process.env.FG_NOPUBLISH) return;
   const repo = c.publishRepo || 'https://github.com/VrilyaSSLuxion/fear-greed.git';
   try {
     fs.rmSync(PUB, { recursive: true, force: true });
@@ -151,13 +183,13 @@ async function publish() {
 }
 
 /* ---------- Windows-Autostart ---------- */
-const LNK = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'Fear-Greed-V6.lnk');
+const LNK = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'Fear-Greed-V7.lnk');
 const autostartOn = () => fs.existsSync(LNK);
 function setAutostart(on) {
   return new Promise((res, rej) => {
     if (!on) { try { if (fs.existsSync(LNK)) fs.unlinkSync(LNK); res(false); } catch (e) { rej(e); } return; }
     const vbs = path.join(ROOT, 'start-hidden.vbs');
-    const ps = `$s=(New-Object -ComObject WScript.Shell).CreateShortcut('${LNK.replace(/'/g, "''")}');$s.TargetPath=\"$env:WINDIR\\System32\\wscript.exe\";$s.Arguments='"${vbs.replace(/'/g, "''")}"';$s.WorkingDirectory='${ROOT.replace(/'/g, "''")}';$s.Description='Fear & Greed V6 (Hintergrund)';$s.Save()`;
+    const ps = `$s=(New-Object -ComObject WScript.Shell).CreateShortcut('${LNK.replace(/'/g, "''")}');$s.TargetPath=\"$env:WINDIR\\System32\\wscript.exe\";$s.Arguments='"${vbs.replace(/'/g, "''")}"';$s.WorkingDirectory='${ROOT.replace(/'/g, "''")}';$s.Description='Fear & Greed V7 (Hintergrund)';$s.Save()`;
     execFile('powershell.exe', ['-NoProfile', '-Command', ps], err => err ? rej(err) : res(true));
   });
 }
@@ -176,7 +208,8 @@ const server = http.createServer(async (req, res) => {
   }
   if (p === '/api/status') {
     const c = cfg();
-    return send(res, 200, { server: true, version: 6, autostart: autostartOn(), lastRun, lastError, everyMin: EVERY_MIN, nextRun: lastRun ? lastRun + EVERY_MIN * 60e3 : null,
+    const I = iv();
+    return send(res, 200, { server: true, version: 7, autostart: autostartOn(), lastRun, lastError, intervals: I, nextRun: lastRun ? lastRun + I.data * 60e3 : null, heat: c.heat,
       keys: { sosovalue: !!c.sosovalueApiKey, coinglass: !!c.coinglassApiKey, coinalyze: !!c.coinalyzeApiKey },
       telegram: { enabled: c.telegram.enabled, configured: !!(c.telegram.token && c.telegram.chatId), events: c.telegram.events },
       publish: { enabled: c.publish !== false, last: lastPublish, error: publishError, url: c.publishUrl || 'https://vrilyassluxion.github.io/fear-greed/' } });
@@ -192,9 +225,11 @@ const server = http.createServer(async (req, res) => {
     }
     if (b.levels) c.levels = b.levels;
     if (typeof b.publish === 'boolean') c.publish = b.publish;
+    for (const k of ['intervalMin', 'publishMin', 'histMin']) if (b[k] != null && isFinite(+b[k])) c[k] = +b[k];
+    if (b.heat) c.heat = { ...c.heat, ...b.heat };
     saveCfg(c); send(res, 200, { ok: true }); if (b.recollect) run(); return;
   }
-  if (p === '/api/telegram/test' && req.method === 'POST') { try { await telegram('✅ Testnachricht vom Fear & Greed V6 – Alarme kommen hier an.'); return send(res, 200, { ok: true }); } catch (e) { return send(res, 400, { error: e.message }); } }
+  if (p === '/api/telegram/test' && req.method === 'POST') { try { await telegram('✅ Testnachricht vom Fear & Greed V7 – Alarme kommen hier an.'); return send(res, 200, { ok: true }); } catch (e) { return send(res, 400, { error: e.message }); } }
   if (p === '/api/telegram/chatid' && req.method === 'POST') {
     // Chat-ID automatisch finden: Nutzer schreibt dem Bot vorher eine Nachricht
     try {
@@ -213,8 +248,9 @@ const server = http.createServer(async (req, res) => {
 });
 server.on('error', e => { if (e.code === 'EADDRINUSE') { log(`Port ${PORT} belegt – das Programm läuft schon (http://localhost:${PORT}).`); process.exit(0); } throw e; });
 server.listen(PORT, '127.0.0.1', () => {
-  log(`Fear & Greed V6 läuft: http://localhost:${PORT}`);
+  log(`Fear & Greed V7 läuft: http://localhost:${PORT}`);
   if (!fs.existsSync(path.join(WWW, 'index.html'))) buildSite();
-  run(); setInterval(run, EVERY_MIN * 60e3);
+  const loop = async () => { await run(); setTimeout(loop, iv().data * 60e3); };
+  loop();
   setInterval(saveState, 60e3);
 });
