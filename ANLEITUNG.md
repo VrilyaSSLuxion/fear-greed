@@ -1,4 +1,4 @@
-# Fear & Greed – Version 9
+# Fear & Greed – Version 10
 
 ## Starten
 
@@ -6,13 +6,22 @@
 |---|---|
 | `start.bat` | Startet das Programm (falls nicht schon aktiv) und öffnet **http://localhost:8797** |
 | `stop.bat` | Beendet das Programm |
-| `fear-greed-v9.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
+| `fear-greed-v10.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
 
-Das Programm startet automatisch mit Windows (`Fear-Greed-V9.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
+Das Programm startet automatisch mit Windows (`Fear-Greed-V10.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
 Live-Werte jede Minute (einstellbar), große Verläufe stündlich. Protokoll: `data\server.log`.
-Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6/v7/v8 leiten weiter).
+Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v9 leiten weiter).
 
 Beim ersten Öffnen erscheint das **Handbuch** (Knopf „Handbuch“ oben rechts, abschaltbar).
+
+## Neu in V10
+- **Signale als Dreiecke**: ▲ unter dem Kurs = Long, ▼ über dem Kurs = Short; hohl = Phase bestätigt, voll = Wende, voll mit weißem Rand = Zone verlassen
+- **Signal auslösen** (Zahnrad → Signale): beim Eintritt (wie bisher), beim Austritt (z. B. wieder über 30) oder beides
+- Offizielle Linie/Signale: hat die gewählte Quelle kaum Verlauf (CFGI.io), nimmt die Seite automatisch alternative.me (Hinweis in der Legende)
+- Knopf **„Cluster L/S“** (L1…/S1… an/aus), **„🔔 Eigene Linien“**, **Divergenz**-Knopf schaltet weiter: Linien + Labels → nur Linien → nur Labels → aus
+- **Chart wie MT4**: Ende des Charts vom Rand verschieben (Abstand einstellbar, Standard 15 %), Chart automatisch ans Ende scrollen; Chart lässt sich über das Ende hinaus schieben
+- Titel (VrilyaSS) mit Trennlinien: Titel | Dollar/Euro | Knöpfe
+- Labels rechts nach Wichtigkeit; weitere Cluster fallen weg, wenn kein Platz ist
 
 ## Neu in V9
 - Seite startet immer auf **Deutsch** und in der **SMC-Ansicht** (Standard im Zahnrad änderbar; oben umschalten gilt bis zum Neuladen)

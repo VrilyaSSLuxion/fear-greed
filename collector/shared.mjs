@@ -8,6 +8,7 @@ const sDay = (d, n) => new Date(Date.parse(d) + n * 864e5).toISOString().slice(0
 /* ---------- Extremphasen-Signale (ohne Repaint) ---------- */
 // rows: [[datum, wert, kurs]]. Phase bestätigt = 3. Tag in Folge jenseits der Schwelle.
 // Wende bestätigt = Wert hat sich in der Phase um "back" Punkte vom Extrem gelöst.
+// Austritt = Wert verlässt die Extremzone wieder (nach mind. 3 Tagen darin), z. B. von unter 30 wieder über 30 → sicherer, aber später.
 export function phaseSignals(rows, hi, lo, back = 5) {
   const out = []; let run = null;
   for (const [d, v] of rows) {
@@ -17,10 +18,15 @@ export function phaseSignals(rows, hi, lo, back = 5) {
       run.days++; run.ext = type === 'greed' ? Math.max(run.ext, v) : Math.min(run.ext, v);
       if (run.days === 3) out.push({ d, kind: 'phase', type, v });
       if (run.days >= 3 && !run.turned && Math.abs(v - run.ext) >= back) { run.turned = true; out.push({ d, kind: 'turn', type, v, ext: run.ext }); }
-    } else run = type ? { type, days: 1, ext: v, turned: false } : null;
+    } else {
+      if (run && run.days >= 3) out.push({ d, kind: 'exit', type: run.type, v, ext: run.ext, days: run.days });
+      run = type ? { type, days: 1, ext: v, turned: false } : null;
+    }
   }
   return out;
 }
+// Auslöser: entry = beim Eintritt (Phase am 3. Tag + Wende), exit = beim Austritt aus der Zone, both = alles
+export const trig = (sig, t = 'entry') => sig.filter(s => s.kind === 'peak' || (t === 'both') || (t === 'exit' ? s.kind === 'exit' : s.kind !== 'exit'));
 // Extremphasen (für die Punkte im Chart): mindestens 3 Tage, Spitze = extremster Wert
 export function phaseRuns(rows, hi, lo) {
   const out = []; let cur = null;
@@ -46,6 +52,7 @@ export const METHODS = ['std', 'daily', 'both', 'price', 'peak'];
 export function methodSignals(H, method, o) {
   const { col, rawCol, colA, colB, hi, lo, back = 5 } = o;
   if (method === 'peak') return peakSignals(divRows(H, col), o.peak || {});
+  const T = o.trigger || 'entry';
   let rows;
   if (method === 'daily') rows = H.filter(r => r[rawCol] != null).map(r => [r[0], r[rawCol], r[3]]);
   else if (method === 'both') rows = H.filter(r => r[colA] != null && r[colB] != null).map(r => {
@@ -54,7 +61,7 @@ export function methodSignals(H, method, o) {
     return [r[0], v, r[3]];
   });
   else rows = H.filter(r => r[col] != null).map(r => [r[0], r[col], r[3]]);
-  let sig = phaseSignals(rows, hi, lo, back);
+  let sig = trig(phaseSignals(rows, hi, lo, back), T);
   if (method === 'price') {
     const px = H.filter(r => r[3] != null), idx = new Map(px.map((r, i) => [r[0], i]));
     sig = sig.filter(s => {
@@ -240,6 +247,15 @@ export function alarmText(kind, x, lang = 'de') {
            : `3rd day in a row below ${lvl} (value ${x.v}). Per the video: buy zone, buy in tranches. The turn (▲) confirms.`)
       : (g ? `Index is ${Math.abs(x.v - x.ext)} points off the high (${x.ext}). Often the start of a cool-down.`
            : `Index is ${Math.abs(x.v - x.ext)} points off the low (${x.ext}). Often the start of a recovery.`));
+    return { title, body: body + tail + na };
+  }
+  if (kind === 'exit') {
+    const g = x.type === 'greed', who = x.official ? (de ? ' · Offizieller Index' : ' · official index') : '';
+    const title = de ? (g ? `🔻 Extreme Gier verlassen → Short-Signal${who}` : `🔺 Extreme Angst verlassen → Long-Signal${who}`) : (g ? `🔻 Left extreme greed → short signal${who}` : `🔺 Left extreme fear → long signal${who}`);
+    const body = de
+      ? (g ? `Der Index ist nach ${x.days} Tagen wieder unter ${x.hi} gefallen (jetzt ${x.v}, Hoch ${x.ext}). Bestätigt die Abkühlung – später als das Eintritts-Signal, dafür sicherer.`
+           : `Der Index ist nach ${x.days} Tagen wieder über ${x.lo} gestiegen (jetzt ${x.v}, Tief ${x.ext}). Bestätigt die Erholung – später als das Eintritts-Signal, dafür sicherer.`)
+      : `The index left the extreme zone after ${x.days} days (now ${x.v}, extreme ${x.ext}). Confirms the move – later than the entry signal, but safer.`;
     return { title, body: body + tail + na };
   }
   if (kind === 'peak') {
