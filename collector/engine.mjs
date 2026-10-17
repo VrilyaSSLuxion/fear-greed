@@ -375,7 +375,14 @@ async function liqHeatmap(get) {
     while (b < list.length - 1 && list[b + 1][i] >= th && list[b + 1][0] - list[b][0] <= bin * 2) b++;
     return { p: peak[0], usd: peak[i], lo: list[a][0] - bin / 2, hi: list[b][0] + bin / 2, zoneUsd: list.slice(a, b + 1).reduce((s, r) => s + r[i], 0) };
   };
-  return { price, bin, rows, longNear: zone(below, 1, nearL), shortNear: zone(above, 2, nearS), longTop: zone(below, 1, topL), shortTop: zone(above, 2, topS), hours: kl.length, updated: Date.now() };
+  // weitere starke Cluster je Seite (lokale Spitzen, stärkste zuerst, ohne Überschneidung)
+  const peaks = (list, i) => {
+    const mx = Math.max(0, ...list.map(r => r[i])), out = [];
+    const cand = list.filter((r, k) => r[i] >= mx * 0.15 && (k === 0 || r[i] >= list[k - 1][i]) && (k === list.length - 1 || r[i] >= list[k + 1][i])).sort((x, y) => y[i] - x[i]);
+    for (const r of cand) { const z = zone(list, i, r); if (out.some(o => z.p >= o.lo && z.p <= o.hi)) continue; out.push(z); if (out.length >= 8) break; }
+    return out;
+  };
+  return { price, bin, rows, longNear: zone(below, 1, nearL), shortNear: zone(above, 2, nearS), longTop: zone(below, 1, topL), shortTop: zone(above, 2, topS), longs: peaks(below, 1), shorts: peaks(above, 2), hours: kl.length, updated: Date.now() };
 }
 
 /* ================= Liquidationen ================= */

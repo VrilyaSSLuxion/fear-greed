@@ -44,12 +44,13 @@ fs.writeFileSync(path.join(OUT, 'data', 'history.json'), JSON.stringify(history)
 fs.writeFileSync(path.join(OUT, 'data', 'state.json'), JSON.stringify(next));
 
 // Webseite + Einzeldatei
-const html = fs.readFileSync(path.join(ROOT, 'site', 'index.html'), 'utf8');
+const shared = fs.readFileSync(path.join(ROOT, 'collector', 'shared.mjs'), 'utf8').replace(/^export /gm, '');
+const html = fs.readFileSync(path.join(ROOT, 'site', 'index.html'), 'utf8').replace('/*SHARED*/', () => shared);
 fs.writeFileSync(path.join(OUT, 'index.html'), html);
 const engine = fs.readFileSync(path.join(ROOT, 'collector', 'engine.mjs'), 'utf8').replace(/^export /gm, '');
 const standalone = html.replace('<!--ENGINE-->', `<script>window.FG_STANDALONE = true;</script>
 <script type="module">\n${engine}\nwindow.FG_ENGINE = { collect };\nwindow.dispatchEvent(new Event('fg-engine'));\n</script>`);
-fs.writeFileSync(path.join(OUT, 'fear-greed-v7.html'), standalone);
+fs.writeFileSync(path.join(OUT, 'fear-greed-v8.html'), standalone);
 fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
 
 const m = latest.modes;
