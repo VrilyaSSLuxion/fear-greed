@@ -1,4 +1,4 @@
-# Fear & Greed – Version 14
+# Fear & Greed – Version 15
 
 ## Starten
 
@@ -6,13 +6,25 @@
 |---|---|
 | `start.bat` | Startet das Programm (falls nicht schon aktiv) und öffnet **http://localhost:8797** |
 | `stop.bat` | Beendet das Programm |
-| `fear-greed-v14.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
+| `fear-greed-v15.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
 
-Das Programm startet automatisch mit Windows (`Fear-Greed-V14.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
+Das Programm startet automatisch mit Windows (`Fear-Greed-V15.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
 Live-Werte jede Minute (einstellbar), große Verläufe stündlich. Protokoll: `data\server.log`.
-Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v13 leiten weiter).
+Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v14 leiten weiter).
 
 Beim ersten Öffnen erscheint das **Handbuch** (Knopf „Handbuch“ oben rechts, abschaltbar).
+
+## Neu in V15
+- **Heatmap-Quelle wählbar** (Auswahl neben „Heatmap“): Binance (wie bisher), Bybit, OKX oder kombiniert – eigene Schätzung aus stündlichem Open Interest; gilt auch für Cluster-Linien, Ticker und Alarme. CoinGlass (API nur im Plan Professional, 699 $/Monat), CoinAnk (keine offizielle API, Bot-Schutz) und MEXC (kein OI-Verlauf) sind im Handbuch erklärt und verlinkt
+- **Kerzengröße** (Auswahl „Kerze“): Auto, 15m, 1h, 4h, 1T, 1W; Index-Chart bleibt täglich
+- **Aktuelle Kurslinie**: Standard weiß gestrichelt und dicker; Stil, Dicke, Farbe und Farbmodus grün/rot wie TradingView im Zahnrad
+- **Fibonacci-Stufen** einzeln an/aus mit eigener Farbe (38,2 rot, 50 weiß, 61,8 grün, 78,6 blau, 88,7 rot, 23,6 aus)
+- **Richtungs-Kasten** neben der Legende: Bewegung (24 h oder Kurs über/unter EMA mit Periode und Zeitrahmen), nächstes Pivot-Ziel, größter Cluster Richtung Long/Short
+- **EMA** in € glatt (aus Euro-Kursen gerechnet), Verlängerung endet am Chart-Rand (Beschriftung bleibt beim Hineinzoomen sichtbar), MA auch bei Stunden-/Minutenkerzen
+- **Chart-Überschriften** gelb und dicker umrahmt; **Bedienleiste** oben in einem Kasten mit Erklärungen beim Darüberfahren (Binance/Multi-Source, $/€)
+- **Ticker** ganz einklappbar (nur der Reiter bleibt, Hinweis beim Darüberfahren), Position unten oder oben im Zahnrad
+- **„Tendenz:“** größer und fetter, Aktions-Knopf schmaler; „(Schätzung, keine Garantie)“ mit Abstand; unten „Heatmap: eigene Schätzung aus …-Daten · Zum Vergleich: liquidate.fun“
+- **Handbuch**: neue Abschnitte „Chart: Zeitraum, Kerzen, Kurslinie, Richtung“, „Liquidations-Heatmap – so wird geschätzt“, „Andere Heatmap-Quellen“, „Weitere Funktionen“, „Für später gemerkt“
 
 ## Neu in V14
 - **Handbuch** wieder im Stil von V12 (goldener Strich, jeder Abschnitt im goldenen Kasten) und zusätzlich jede Überschrift im kleinen goldenen Rahmen. Neue Abschnitte: **Die drei Ansichten** (SMC / SMC 2 / VrilyaSS mit Vergleichstabelle), **Warum VrilyaSS?**, **Tops/Böden** (wie gezählt wird, mit Beispielen), **Pivot-Linien**, **Alarme – wo und wie**. Knopf „Handbuch“ jetzt in allen drei Ansichten

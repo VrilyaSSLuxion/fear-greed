@@ -327,15 +327,47 @@ const interp = (pts, x) => { // P(über x) aus der Preisleiter
 // verteilt auf typische Hebel. Daraus ergeben sich Liquidationspreise. Level, die der Kurs schon erreicht hat, fallen weg,
 // sinkendes Open Interest verkleinert alle offenen Level anteilig. Ergebnis: geschätzte Liquiditäts-Cluster über und unter dem Kurs.
 const LEVERAGE = [[5, 0.10], [10, 0.30], [25, 0.30], [50, 0.20], [100, 0.10]];
+const hourOf = t => Math.floor(t / 3600e3) * 3600e3;
+// V15: stündliches Open Interest von Bybit (3 Seiten à 200) und OKX (5 Seiten à 100), jeweils in BTC – alle 10 Minuten neu
+const XOI = { t: 0, bybit: null, okx: null };
+async function oiBybit(get) {
+  const out = []; let cursor = '';
+  for (let p = 0; p < 3; p++) {
+    const j = await get('https://api.bybit.com/v5/market/open-interest?category=linear&symbol=BTCUSDT&intervalTime=1h&limit=200' + (cursor ? '&cursor=' + encodeURIComponent(cursor) : ''));
+    out.push(...(j.result?.list || []).map(x => [+x.timestamp, +x.openInterest])); cursor = j.result?.nextPageCursor; if (!cursor) break;
+  }
+  return out;
+}
+async function oiOkx(get) {
+  const out = []; let end = '';
+  for (let p = 0; p < 5; p++) {
+    const j = await get('https://www.okx.com/api/v5/rubik/stat/contracts/open-interest-history?instId=BTC-USDT-SWAP&period=1H&limit=100' + (end ? '&end=' + end : ''));
+    const d = j.data || []; if (!d.length) break;
+    out.push(...d.map(x => [+x[0], +x[2]])); end = d.at(-1)[0];
+  }
+  return out;
+}
 async function liqHeatmap(get) {
   const [oi, taker, kl] = await Promise.all([
     get('https://fapi.binance.com/futures/data/openInterestHist?symbol=BTCUSDT&period=1h&limit=500'),
     get('https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=BTCUSDT&period=1h&limit=500'),
     get('https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=500')
   ]);
-  const hour = t => Math.floor(t / 3600e3) * 3600e3;
-  const oiM = new Map(oi.map(x => [hour(x.timestamp), +x.sumOpenInterest]));
-  const tkM = new Map(taker.map(x => [hour(x.timestamp), +x.buyVol / ((+x.buyVol + +x.sellVol) || 1)]));
+  if (Date.now() - XOI.t > 600e3) {
+    const [by, ox] = await Promise.all([oiBybit(get).catch(() => null), oiOkx(get).catch(() => null)]);
+    XOI.t = Date.now(); if (by?.length) XOI.bybit = by; if (ox?.length) XOI.okx = ox;
+  }
+  const tkM = new Map(taker.map(x => [hourOf(x.timestamp), +x.buyVol / ((+x.buyVol + +x.sellVol) || 1)]));
+  // Kursverlauf und Käufer-Anteil von Binance gelten für alle Börsen (BTC-Kurs ist überall fast gleich), das Open Interest kommt je Börse
+  const lv = { binance: liqLevels(new Map(oi.map(x => [hourOf(x.timestamp), +x.sumOpenInterest])), tkM, kl) };
+  for (const ex of ['bybit', 'okx']) if (XOI[ex]?.length) lv[ex] = liqLevels(new Map(XOI[ex].map(([t, v]) => [hourOf(t), v])), tkM, kl);
+  const out = { ...liqMap(lv.binance, kl), src: 'binance', alt: {} };
+  for (const ex of ['bybit', 'okx']) if (lv[ex]) out.alt[ex] = { ...liqMap(lv[ex], kl), src: ex };
+  out.alt.all = { ...liqMap(Object.values(lv).flat(), kl), src: 'all', parts: Object.keys(lv) };
+  return out;
+}
+function liqLevels(oiM, tkM, kl) {
+  const hour = hourOf;
   let active = [], prevOI = null;
   for (const k of kl) {
     const t = hour(k[0]), o = +k[1], h = +k[2], l = +k[3], c = +k[4];
@@ -355,6 +387,9 @@ async function liqHeatmap(get) {
     }
     prevOI = cur;
   }
+  return active;
+}
+function liqMap(active, kl) {
   const price = +kl.at(-1)[4], bin = Math.max(50, Math.round(price * 0.0025 / 50) * 50);
   const bins = new Map();
   for (const a of active) {
