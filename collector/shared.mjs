@@ -188,6 +188,77 @@ export function candleSignals(H, o = {}) {
   return out;
 }
 
+/* ---------- V18: SMA-20-Signale im Index (Methode 1 „Extrem“, Methode 2 „Mittelbereich“) ---------- */
+// rows: [{d, v, raw}] – v = Index-Reihe (Körper, z. B. 7-Tage-Mittel), raw = Tageswert (Docht). Nur abgeschlossene Tage übergeben (kein Repaint).
+// Signal am Tag, an dem der Index die SMA kreuzt (Schluss gestern auf der einen, heute auf der anderen Seite, optional mit Mindestabstand „dist“).
+// Vorher (bis „look“ Tage zurück) muss das Extrem erreicht sein: Short ≥ hi, Long ≤ lo – gemessen am Docht (src 'raw') oder Körper ('body').
+// mid = SMA über 50 (Short) bzw. unter 50 (Long); slope = SMA in „sd“ Tagen höchstens „sp“ Punkte gegen die Signalrichtung gelaufen.
+export const SMA_DEF = { n: 20, m1: { on: true, hi: 78.6, lo: 21.4, src: 'raw', mid: false, look: 20, slope: true, sd: 3, sp: 1, dist: 0 }, m2: { on: true, hi: 61.8, lo: 38.2, src: 'body', mid: true, look: 20, slope: true, sd: 3, sp: 1, dist: 0 } };
+export function smaSignals(rows, o = {}) {
+  const n = o.n ?? 20, V = rows.map(r => r.v), out = [];
+  const S = V.map((_, i) => { if (i < n - 1) return null; let s = 0; for (let k = i - n + 1; k <= i; k++) { if (V[k] == null) return null; s += V[k]; } return s / n; });
+  for (const mk of ['m1', 'm2']) {
+    const m = { ...SMA_DEF[mk], ...(o[mk] || {}) }; if (!m.on) continue;
+    for (let i = n + m.sd; i < rows.length; i++) {
+      if (S[i] == null || S[i - 1] == null || S[i - m.sd] == null || V[i] == null || V[i - 1] == null) continue;
+      const dn = V[i - 1] >= S[i - 1] && V[i] < S[i] - m.dist, up = V[i - 1] <= S[i - 1] && V[i] > S[i] + m.dist; if (!dn && !up) continue;
+      const X = rows.slice(Math.max(0, i - m.look), i + 1).map(r => m.src === 'body' ? r.v : (r.raw ?? r.v)).filter(x => x != null); if (!X.length) continue;
+      const slope = S[i] - S[i - m.sd], base = { d: rows[i].d, i, v: V[i], sma: Math.round(S[i] * 10) / 10, type: mk, kind: 'sma' };
+      if (dn && Math.max(...X) >= m.hi && (!m.mid || S[i] > 50) && (!m.slope || slope <= m.sp)) out.push({ ...base, up: false, lim: m.hi, ext: Math.max(...X) });
+      if (up && Math.min(...X) <= m.lo && (!m.mid || S[i] < 50) && (!m.slope || slope >= -m.sp)) out.push({ ...base, up: true, lim: m.lo, ext: Math.min(...X) });
+    }
+  }
+  return out.sort((a, b) => a.i - b.i);
+}
+
+/* ---------- V18: VWAP (volumengewichteter Durchschnittspreis) mit Anker wie bei TradingView ---------- */
+// Anker: S = Session (Tag, UTC), W = Woche (ab Montag), M = Monat, Q = Quartal, Y = Jahr. Quelle: hlc3 (Standard), hl2, ohlc4, close.
+const vwMonday = d => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7)); return x.toISOString().slice(0, 10); };
+export const VW_KEY = { S: d => d, W: vwMonday, M: d => d.slice(0, 7), Q: d => d.slice(0, 4) + 'Q' + Math.floor((+d.slice(5, 7) - 1) / 3), Y: d => d.slice(0, 4) };
+export const VW_ANCH = ['S', 'W', 'M', 'Q', 'Y'];
+export const VW_MINAGE = { S: 1, W: 3, M: 5, Q: 10, Y: 20 };   // Signale erst ab dem 3./5./10./20. Tag des Zeitraums (am Anfang startet der VWAP direkt am Kurs)
+export const vwTp = (r, src) => src === 'close' ? r.c : src === 'hl2' ? (r.h + r.l) / 2 : src === 'ohlc4' ? (r.o + r.h + r.l + r.c) / 4 : (r.h + r.l + r.c) / 3;
+// rows: [{d, o, h, l, c, v}] (d = Datum der Kerze, bei Stundenkerzen das UTC-Datum); skipFirst = ersten (evtl. unvollständigen) Zeitraum auslassen
+export function vwapCalc(rows, anchor, src = 'hlc3', skipFirst = false) {
+  const key = VW_KEY[anchor] || VW_KEY.W, w = [], sd = [], age = []; let k0 = null, first = null, pv = 0, pv2 = 0, vv = 0, a = 0;
+  for (const r of rows) {
+    const k = key(r.d); if (first == null) first = k;
+    if (k !== k0) { k0 = k; pv = pv2 = vv = 0; a = 0; }
+    const tp = vwTp(r, src), v = r.v || 0; if (v > 0 && tp > 0) { pv += tp * v; pv2 += tp * tp * v; vv += v; } a++;
+    const m = vv && !(skipFirst && k === first) ? pv / vv : null;
+    w.push(m); sd.push(m != null ? Math.sqrt(Math.max(0, pv2 / vv - m * m)) : null); age.push(a);
+  }
+  return { w, sd, age };
+}
+// Signale auf Tageskerzen (nur abgeschlossene Tage): Art 'close' = Schluss kreuzt VWAP, 'ema8' = EMA 8 kreuzt VWAP; combos = ['ema8_W', 'close_Y', …]
+// conf (nur ema8): Signal erst, wenn nach dem Kreuz ein Tagesschluss auf der Signalseite des VWAP liegt (am Kreuz-Tag oder bis confDays danach)
+// trend: { mode: 'off' | 'mark' | 'hide', n: 200, tf: '1d' | '4h' } – Long nur über, Short nur unter der EMA (4h wird aus Tageskerzen angenähert: EMA n/6 Tage)
+export function vwapSignals(rows, o = {}) {
+  const C = rows.map(r => r.c), out = [], ema = (a, n) => { const k = 2 / (n + 1), r = []; let e = a[0]; a.forEach((x, i) => { e = i ? x * k + e * (1 - k) : x; r.push(e); }); return r; };
+  const E8 = ema(C, 8), tr = o.trend || { mode: 'hide', n: 200, tf: '1d' }, TE = ema(C, Math.max(2, Math.round(tr.tf === '4h' ? (tr.n || 200) / 6 : (tr.n || 200))));
+  for (const combo of o.combos || ['ema8_W']) {
+    const [type, A] = combo.split('_'); if (!VW_KEY[A] || A === 'S') continue;
+    const { w, age } = vwapCalc(rows, A, o.src || 'hlc3'), minA = VW_MINAGE[A];
+    let pend = null;
+    for (let i = 1; i < rows.length; i++) {
+      if (w[i] == null || w[i - 1] == null || age[i] < minA || age[i - 1] < minA - 1) { pend = null; continue; }
+      let up = false, dn = false;
+      if (type === 'close') { up = C[i - 1] <= w[i - 1] && C[i] > w[i]; dn = C[i - 1] >= w[i - 1] && C[i] < w[i]; }
+      else {
+        const xu = E8[i - 1] <= w[i - 1] && E8[i] > w[i], xd = E8[i - 1] >= w[i - 1] && E8[i] < w[i];
+        if (!o.conf) { up = xu; dn = xd; }
+        else { if (xu) pend = { up: true, i }; if (xd) pend = { up: false, i }; if (pend && i - pend.i <= (o.confDays ?? 2)) { if (pend.up && C[i] > w[i] && E8[i] > w[i]) { up = true; pend = null; } else if (!pend.up && C[i] < w[i] && E8[i] < w[i]) { dn = true; pend = null; } } else if (pend && i - pend.i > (o.confDays ?? 2)) pend = null; }
+      }
+      if (!up && !dn) continue;
+      if (o.dir === 'long' && !up || o.dir === 'short' && !dn) continue;
+      const against = tr.mode !== 'off' && (up ? C[i] < TE[i] : C[i] > TE[i]);
+      if (against && tr.mode === 'hide') continue;
+      out.push({ d: rows[i].d, i, up, type: combo, vt: type, anchor: A, kind: 'vwap', vw: Math.round(w[i]), c: Math.round(C[i]), e8: Math.round(E8[i]), ...(against ? { against: ['ema'] } : {}) });
+    }
+  }
+  return out.sort((a, b) => a.i - b.i);
+}
+
 /* ---------- Trendfilter (für Kauf-Signale) ---------- */
 // Je Tag: Kurs unter EMA(n), starker Abwärtstrend laut ADX(14) (ADX > adxMin und -DI > +DI), MACD auf Wochenbasis negativ und unter Signal
 export function trendInfo(H, o = {}) {
@@ -316,14 +387,16 @@ export function majorTurns(H, pct = 20) {
 export function evalSignals(sig, H, turns, win = 14, from = null) {
   const px = new Map(H.filter(r => r[3] != null).map(r => [r[0], r[3]]));
   const fwd = (d, n) => { const a = px.get(d), b = px.get(sDay(d, n)); return a && b ? (b / a - 1) * 100 : null; };
-  const res = { n: sig.length, buy: 0, sell: 0, ok30: 0, n30: 0, avg30: 0, okB: 0, nB: 0, okS: 0, nS: 0, tops: 0, bottoms: 0, nTops: 0, nBottoms: 0 };
+  const res = { n: sig.length, buy: 0, sell: 0, ok30: 0, n30: 0, avg30: 0, n7: 0, avg7: 0, okB: 0, nB: 0, okS: 0, nS: 0, tops: 0, bottoms: 0, nTops: 0, nBottoms: 0 };
   for (const s of sig) {
     s.up ? res.buy++ : res.sell++;
+    const r7 = fwd(s.d, 7); if (r7 != null) { res.n7++; res.avg7 += s.up ? r7 : -r7; }
     const r = fwd(s.d, 30); if (r == null) continue;
     res.n30++; const g = s.up ? r : -r; res.avg30 += g; if (g > 0) res.ok30++;
     if (s.up) { res.nB++; if (g > 0) res.okB++; } else { res.nS++; if (g > 0) res.okS++; }
   }
   if (res.n30) res.avg30 /= res.n30;
+  if (res.n7) res.avg7 /= res.n7;
   const near = (a, b) => Math.abs(Date.parse(a) - Date.parse(b)) <= win * 864e5;
   for (const t of turns) {
     if (from && t.d < from) continue;                       // nur Wendepunkte, für die es schon Index-Werte gab
@@ -331,6 +404,32 @@ export function evalSignals(sig, H, turns, win = 14, from = null) {
     else { res.nBottoms++; if (sig.some(s => s.up && near(s.d, t.d))) res.bottoms++; }
   }
   return res;
+}
+
+/* ---------- V18: Heatmap aus beliebig vielen Börsen kombinieren (Stufen je Börse aufsummieren, dann Cluster wie im Programm) ---------- */
+export const HM_EX = ['binance', 'bybit', 'okx', 'gate', 'htx', 'kraken', 'bitget', 'deribit', 'hyperliquid'];
+export const hmParts = k => !k || k === 'binance' ? ['binance'] : k === 'all' ? ['binance', 'bybit', 'okx'] : String(k).split('+').filter(x => HM_EX.includes(x));
+export function liqFromRows(rows, price, bin, hours) {
+  const below = rows.filter(r => r[0] < price && r[1] > 0), above = rows.filter(r => r[0] > price && r[2] > 0);
+  const maxL = Math.max(0, ...below.map(r => r[1])), maxS = Math.max(0, ...above.map(r => r[2]));
+  const nearL = [...below].reverse().find(r => r[1] >= maxL * 0.5), nearS = above.find(r => r[2] >= maxS * 0.5);
+  const topL = below.find(r => r[1] === maxL), topS = above.find(r => r[2] === maxS);
+  const zone = (list, i, peak) => { if (!peak) return null; const k = list.indexOf(peak), th = peak[i] * 0.4; let a = k, b = k;
+    while (a > 0 && list[a - 1][i] >= th && list[a][0] - list[a - 1][0] <= bin * 2) a--;
+    while (b < list.length - 1 && list[b + 1][i] >= th && list[b + 1][0] - list[b][0] <= bin * 2) b++;
+    return { p: peak[0], usd: peak[i], lo: list[a][0] - bin / 2, hi: list[b][0] + bin / 2, zoneUsd: list.slice(a, b + 1).reduce((x, r) => x + r[i], 0) }; };
+  const peaks = (list, i) => { const mx = Math.max(0, ...list.map(r => r[i])), out = [];
+    const cand = list.filter((r, k) => r[i] >= mx * 0.15 && (k === 0 || r[i] >= list[k - 1][i]) && (k === list.length - 1 || r[i] >= list[k + 1][i])).sort((x, y) => y[i] - x[i]);
+    for (const r of cand) { const z = zone(list, i, r); if (out.some(o => z.p >= o.lo && z.p <= o.hi)) continue; out.push(z); if (out.length >= 8) break; } return out; };
+  return { price, bin, rows, longNear: zone(below, 1, nearL), shortNear: zone(above, 2, nearS), longTop: zone(below, 1, topL), shortTop: zone(above, 2, topS), longs: peaks(below, 1), shorts: peaks(above, 2), hours, updated: Date.now() };
+}
+export function liqCombine(hm, parts) {
+  if (!hm) return hm;
+  const P = (parts?.length ? parts : ['binance']).filter(p => p === 'binance' || hm.ex?.[p]?.length);
+  if (!P.length || (P.length === 1 && P[0] === 'binance')) return hm;
+  const m = new Map();
+  for (const p of P) for (const r of (p === 'binance' ? (hm.ex?.binance || hm.rows) : hm.ex[p])) { const x = m.get(r[0]) || [r[0], 0, 0]; x[1] += r[1]; x[2] += r[2]; m.set(r[0], x); }
+  return { ...liqFromRows([...m.values()].sort((a, b) => a[0] - b[0]), hm.price, hm.bin, hm.hours), src: P.join('+'), parts: P, ex: hm.ex, exState: hm.exState };
 }
 
 /* ---------- Heatmap-Cluster ---------- */
@@ -442,6 +541,24 @@ function cdlText(x, lang, tail, na) {
     : `Daily candle of ${dmyS(x.d)} closed: ${nm}. Index in ${zoneTxt} (${lim}) on the candle day or up to ${lk} days before – on the candle day: ${iv}.\nConfirmation: next candle closes ${up ? 'above the high' : 'below the low'} of the pattern candle (${conf}).`;
   return { title, body: body + tail + na };
 }
+const SMAN = { de: { m1: 'Methode 1 (Extrem)', m2: 'Methode 2 (Mittelbereich)' }, en: { m1: 'Method 1 (extreme)', m2: 'Method 2 (middle range)' }, ar: { m1: 'الطريقة 1 (القصوى)', m2: 'الطريقة 2 (النطاق الأوسط)' } };
+function smaText(x, lang, tail, na) {
+  const de = lang === 'de', ar = lang === 'ar', up = x.up, nm = (SMAN[lang] || SMAN.de)[x.type];
+  const title = `${up ? '🟢' : '🔴'} SMA 20 · ${nm} · ${ar ? (up ? 'لونغ' : 'شورت') : up ? 'Long' : 'Short'}`;
+  const body = ar ? `المؤشر (${x.v}) قطع SMA 20 (${x.sma}) ${up ? 'للأعلى' : 'للأسفل'} – إغلاق يوم ${dmyS(x.d)}. قبل ذلك وصل إلى ${up ? '≤' : '≥'} ${x.lim} (${x.ext}).`
+    : de ? `Index (${x.v}) hat die SMA 20 (${x.sma}) nach ${up ? 'oben' : 'unten'} gekreuzt – Tagesschluss ${dmyS(x.d)}. Vorher ${up ? '≤' : '≥'} ${x.lim} erreicht (${x.ext}).`
+    : `Index (${x.v}) crossed the SMA 20 (${x.sma}) ${up ? 'upwards' : 'downwards'} – daily close ${dmyS(x.d)}. Before it reached ${up ? '≤' : '≥'} ${x.lim} (${x.ext}).`;
+  return { title, body: body + tail + na };
+}
+const VWN = { de: { W: 'Wochen-VWAP', M: 'Monats-VWAP', Q: 'Quartals-VWAP', Y: 'Jahres-VWAP', close: 'Schluss kreuzt', ema8: 'EMA 8 kreuzt' }, en: { W: 'weekly VWAP', M: 'monthly VWAP', Q: 'quarterly VWAP', Y: 'yearly VWAP', close: 'close crosses', ema8: 'EMA 8 crosses' }, ar: { W: 'VWAP الأسبوعي', M: 'VWAP الشهري', Q: 'VWAP الربعي', Y: 'VWAP السنوي', close: 'الإغلاق يقطع', ema8: 'EMA 8 يقطع' } };
+function vwapText(x, lang, tail, na) {
+  const de = lang === 'de', ar = lang === 'ar', N = VWN[lang] || VWN.de, up = x.up, P = n => nf(n, lang);
+  const title = `${up ? '🟢' : '🔴'} VWAP · ${N[x.vt]} ${N[x.anchor]} · ${ar ? (up ? 'لونغ' : 'شورت') : up ? 'Long' : 'Short'}`;
+  const body = ar ? `إغلاق يوم ${dmyS(x.d)}: ${x.vt === 'ema8' ? `EMA 8 (${P(x.e8)})` : `الإغلاق (${P(x.c)})`} ${up ? 'فوق' : 'تحت'} ${N[x.anchor]} (${P(x.vw)}).`
+    : de ? `Tagesschluss ${dmyS(x.d)}: ${x.vt === 'ema8' ? `EMA 8 (${P(x.e8)})` : `Schluss (${P(x.c)})`} jetzt ${up ? 'über' : 'unter'} dem ${N[x.anchor]} (${P(x.vw)}).`
+    : `Daily close ${dmyS(x.d)}: ${x.vt === 'ema8' ? `EMA 8 (${P(x.e8)})` : `close (${P(x.c)})`} now ${up ? 'above' : 'below'} the ${N[x.anchor]} (${P(x.vw)}).`;
+  return { title, body: body + tail + na };
+}
 function pivotText(x, lang, P, tail, na) {
   const de = lang === 'de', ar = lang === 'ar', lo = x.side === 'lo', m = x.main, st = x.st, pers = x.list.map(v => PVS[lang][v.per]).join(' · ');
   const pc = v => (v > 0 ? '+' : '') + v.toFixed(1).replace('.', de ? ',' : '.') + ' %', dist = x.list[0].dist;
@@ -502,6 +619,8 @@ function alarmTextAr(kind, x) {
   if (kind === 'pivot') return pivotText(x, 'ar', P, tail, na);
   if (kind === 'f50') return f50Text(x, 'ar', tail, na);
   if (kind === 'cdl') return cdlText(x, 'ar', tail, na);
+  if (kind === 'sma') return smaText(x, 'ar', tail, na);
+  if (kind === 'vwap') return vwapText(x, 'ar', tail, na);
   if (kind === 'line') { const up = x.dir > 0; return { title: `🔔 تم عبور خط التنبيه ${x.id} ${up ? 'للأعلى' : 'للأسفل'}`, body: `تم عبور الخط الخاص ${P(x.p)} ${up ? 'من الأسفل' : 'من الأعلى'}.${tail}` }; }
   if (kind === 'phase' || kind === 'turn' || kind === 'exit') {
     const g = x.type === 'greed', who = x.official ? ' · المؤشر الرسمي' : '';
@@ -522,7 +641,7 @@ export function alarmText(kind, x, lang = 'de') {
   const r = alarmTextBase(kind, x, lang);
   if (x.against?.length) {
     const b = x.against.map(k => TN[k] || k).join(' + ');
-    const up = x.type === 'greed' || (x.kind === 'cdl' && !x.up);
+    const up = x.type === 'greed' || ((x.kind === 'cdl' || x.kind === 'vwap') && !x.up);
     const w = lang === 'de' ? `⚠ Gegen den Trend (${b} zeigt ${up ? 'Aufwärtstrend' : 'Abwärtstrend'}) – nur kleine Tranche, Stop setzen.` : lang === 'ar' ? `⚠ عكس الاتجاه (${b} يُظهر اتجاهاً ${up ? 'صاعداً' : 'هابطاً'}) – دفعة صغيرة فقط مع وقف خسارة.` : `⚠ Against the trend (${b} shows an ${up ? 'uptrend' : 'downtrend'}) – small tranche only, set a stop.`;
     r.title = '⚠ ' + r.title; r.body = w + '\n' + r.body;
   }
@@ -571,6 +690,8 @@ function alarmTextBase(kind, x, lang = 'de') {
   if (kind === 'pivot') return pivotText(x, lang, P, tail, na);
   if (kind === 'f50') return f50Text(x, lang, tail, na);
   if (kind === 'cdl') return cdlText(x, lang, tail, na);
+  if (kind === 'sma') return smaText(x, lang, tail, na);
+  if (kind === 'vwap') return vwapText(x, lang, tail, na);
   if (kind === 'line') {
     const up = x.dir > 0;
     return { title: de ? `🔔 Alarmlinie ${x.id} ${up ? 'nach oben' : 'nach unten'} gekreuzt` : `🔔 Alert line ${x.id} crossed ${up ? 'upwards' : 'downwards'}`,

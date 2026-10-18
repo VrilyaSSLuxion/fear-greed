@@ -1,4 +1,4 @@
-# Fear & Greed – Version 17
+# Fear & Greed – Version 18
 
 ## Starten
 
@@ -6,13 +6,26 @@
 |---|---|
 | `start.bat` | Startet das Programm (falls nicht schon aktiv) und öffnet **http://localhost:8797** |
 | `stop.bat` | Beendet das Programm |
-| `fear-greed-v17.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
+| `fear-greed-v18.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
 
-Das Programm startet automatisch mit Windows (`Fear-Greed-V17.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
+Das Programm startet automatisch mit Windows (`Fear-Greed-V18.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
 Live-Werte jede Minute (einstellbar), große Verläufe stündlich. Protokoll: `data\server.log`.
-Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v16 leiten weiter).
+Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v17 leiten weiter).
 
 Beim ersten Öffnen erscheint das **Handbuch** (Knopf „Handbuch“ oben rechts, abschaltbar).
+
+## Neu in V18
+- **SMA-20-Signale im Index-Chart** (Knopf „SMA-Signale“): Methode 1 „Extrem“ (78,6 / 21,4, am Tageswert) und Methode 2 „Mittelbereich“ (61,8 / 38,2 + SMA über/unter 50, am 7-Tage-Mittel); Steigungsregel, 50er-Regel, Tage zurück, Mindestabstand einstellbar; Pfeile im Index- und/oder Kurs-Chart; Alarm (Browser + Telegram)
+- **VWAP** (Kasten „VWAP“ + Menü ▾): Anker Session/Woche/Monat/Quartal/Jahr, Quelle, Bänder wie TradingView, größerer Zeitraum hinten; **VWAP-Signale** „Schluss kreuzt“ / „EMA 8 kreuzt“ (Tagesschluss, Neustart-Tage ausgelassen, Trendfilter EMA 200, optional Schluss-Bestätigung), Alarm (Browser + Telegram); Volumen jetzt im Verlauf (Spalte 18)
+- **Methoden-Vergleich:** Spalte Ø 7T, Schalter je Zeile, 3 beste/schwächste farbig, Sortieren per Klick, Klick auf Methode = verwenden
+- **Mittelung** wählbar (Kreis und Index-Chart getrennt: 7/14/21/30/100/365/1000 + frei), Schalter „alle Signale mit der Mittelung“ (auch Telegram)
+- **Zwei Chart-Fenster** (eigene Höhe, Kopplung abschaltbar), **Magnet 🧲** (aus/schwach/stark), **Schloss 🔒** für eigene Linien, Index-Docht einstellbar, 4h-Verlauf ≈ 1,4 Jahre
+- **Muster-Kasten** mit Menü (Auswahl, Richtung, je Stelle die extremsten / extremste je Phase), Maus-Info; **MA ▾** mit 10 Plätzen (5/8/13/50/200)
+- **Heatmap:** Gate.io, HTX, Kraken dazu; Bitget, Deribit, Hyperliquid werden stündlich mitgeschrieben (ab 7 Tagen wählbar); freie Kombination
+- **Einstellungs-Sets** (3 Plätze + Datei), Fenster minimieren, Anordnung A/B unten, „Aktuelle Markteinschätzung“, Tabellenwerte mittig
+- **Ticker:** Trennlinie $/€ zurück, Pfeile dicker und gleich hoch, feste Breite, 4H/1H/15M/5M (Liste/Säulen), $/€ bei Liquidationen
+- **Alarme:** eigene Töne (3 Dateien), Spalte „Abspielen“ (1×/3×/5×/3 s/10 s/bis OK), „Erinnerung 1/3“ schon bei der ersten Meldung; Überschriften im Zahnrad weiß/fett
+- **Handbuch:** neue Abschnitte SMA-20, VWAP, Methoden-Vergleich erklärt, Sets; Minimieren je Box; „Neu in …“ chronologisch unter „Weitere Funktionen“; „Für später gemerkt“ ganz unten
 
 ## Neu in V17
 - **Kerzenmuster im Extrem** (Knopf „Muster“ neben den Signalen): Hammer, umgekehrter Hammer, bullisches Engulfing, Piercing Line, Morning Star (Long, bei Index ≤ 30) und Shooting Star, Hanging Man, bärisches Engulfing, Dark Cloud Cover, Evening Star (Short, bei ≥ 70) – nur geschlossene Tageskerzen, Index am Kerzentag oder bis 3 Tage davor im Extrem; Index wählbar (unser / offiziell / beide / einer reicht), Grenzen und Tage einstellbar, jedes Muster an/aus, Trendfilter (⚠), eigene Zeilen im Methoden-Vergleich, eigener Alarm (Browser + Telegram)

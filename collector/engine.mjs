@@ -132,7 +132,7 @@ async function fetchHistory(c, opt) {
       const out = []; let start = FROM;
       for (let i = 0; i < 4; i++) {
         const d = await get(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=${start}&limit=1000`);
-        out.push(...d.map(x => ({ d: dkey(x[0]), o: +x[1], h: +x[2], l: +x[3], c: +x[4] })));
+        out.push(...d.map(x => ({ d: dkey(x[0]), o: +x[1], h: +x[2], l: +x[3], c: +x[4], v: +x[5] })));
         if (d.length < 1000) break; start = d.at(-1)[0] + DAY;
       }
       return out;
@@ -289,11 +289,11 @@ async function fetchLive(c, opt) {
     pOkx: () => src('OKX Preis', async () => +(await get('https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT')).data[0].last),
     pByb: () => src('Bybit Preis', async () => +(await get('https://api.bybit.com/v5/market/tickers?category=spot&symbol=BTCUSDT')).result.list[0].lastPrice),
     poly: () => src('Polymarket Preisleiter', () => polymarket(get)),
-    kToday: () => src('Binance Tageskerze (live)', async () => (await get('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=2')).map(x => ({ d: dkey(x[0]), o: +x[1], h: +x[2], l: +x[3], c: +x[4] }))),
+    kToday: () => src('Binance Tageskerze (live)', async () => (await get('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=2')).map(x => ({ d: dkey(x[0]), o: +x[1], h: +x[2], l: +x[3], c: +x[4], v: +x[5] }))),
     vixLive: () => opt.env !== 'node' ? null : src('Yahoo VIX (live)', async () => (await get('https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?range=1d&interval=5m')).chart.result[0].meta.regularMarketPrice),
     dxyLive: () => opt.env !== 'node' ? null : src('Yahoo DXY (live)', async () => (await get('https://query1.finance.yahoo.com/v8/finance/chart/DX-Y.NYB?range=1d&interval=5m')).chart.result[0].meta.regularMarketPrice),
     cmcNow: () => opt.env !== 'node' ? null : src('CoinMarketCap Fear & Greed (live)', async () => { const t = Math.floor(Date.now() / 1000); const d = (await get(`https://api.coinmarketcap.com/data-api/v3/fear-greed/chart?start=${t - 3 * 86400}&end=${t}`)).data; return +(d.historicalValues?.now?.score ?? d.dataList.at(-1).score); }),
-    hourly: () => src('Binance Stundenkerzen', async () => (await get('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=200')).map(x => [x[0], +x[1], +x[2], +x[3], +x[4]])),
+    hourly: () => src('Binance Stundenkerzen', async () => (await get('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=200')).map(x => [x[0], +x[1], +x[2], +x[3], +x[4], +x[5]])),
     eurNow: () => src('Binance EUR-Kurs', async () => +(await get('https://api.binance.com/api/v3/ticker/price?symbol=EURUSDT')).price)
   };
   const keys = Object.keys(tasks), vals = await Promise.all(keys.map(k => tasks[k]()));
@@ -329,7 +329,21 @@ const interp = (pts, x) => { // P(über x) aus der Preisleiter
 const LEVERAGE = [[5, 0.10], [10, 0.30], [25, 0.30], [50, 0.20], [100, 0.10]];
 const hourOf = t => Math.floor(t / 3600e3) * 3600e3;
 // V15: stündliches Open Interest von Bybit (3 Seiten à 200) und OKX (5 Seiten à 100), jeweils in BTC – alle 10 Minuten neu
-const XOI = { t: 0, bybit: null, okx: null };
+const XOI = { t: 0, bybit: null, okx: null, gate: null, htx: null, kraken: null };
+// V18: weitere Börsen – Gate.io, HTX und Kraken haben einen stündlichen OI-Verlauf (frei, ohne Key); Bitget, Deribit und Hyperliquid liefern nur den
+// aktuellen Wert → das Programm schreibt ihn stündlich mit (state.oiRec) und nutzt die Börse, sobald 7 Tage (168 Std.) zusammen sind.
+async function oiGate(get) { const j = await get('https://api.gateio.ws/api/v4/futures/usdt/contract_stats?contract=BTC_USDT&interval=1h&limit=500'); return (Array.isArray(j) ? j : []).map(x => [x.time * 1000, +x.mark_price > 0 ? +x.open_interest_usd / +x.mark_price : null]).filter(x => x[1] > 0); }
+async function oiHtx(get) { const j = await get('https://api.hbdm.com/linear-swap-api/v1/swap_his_open_interest?contract_code=BTC-USDT&period=60min&amount_type=2&size=200'); return (j?.data?.tick || []).map(x => [+x.ts, +x.volume]).filter(x => x[1] > 0); }
+async function oiKraken(get) { const since = Math.floor(Date.now() / 1000) - 500 * 3600, j = await get(`https://futures.kraken.com/api/charts/v1/analytics/PF_XBTUSD/open-interest?interval=3600&since=${since}`), r = j?.result || {}; return (r.timestamp || []).map((ts, i) => [ts * 1000, +(r.data?.[i]?.[3] ?? NaN)]).filter(x => x[1] > 0); }
+export const OI_REC = ['bitget', 'deribit', 'hyperliquid'], OI_REC_MIN = 168;
+async function oiNow(get) {
+  const tm = () => AbortSignal.timeout(15000);
+  const [bitget, deribit, hyperliquid] = await Promise.all([
+    get('https://api.bitget.com/api/v2/mix/market/open-interest?symbol=BTCUSDT&productType=USDT-FUTURES').then(j => +j?.data?.openInterestList?.[0]?.size).catch(() => null),
+    get('https://www.deribit.com/api/v2/public/get_book_summary_by_instrument?instrument_name=BTC-PERPETUAL').then(j => { const r = j?.result?.[0]; return r && +r.mark_price > 0 ? +r.open_interest / +r.mark_price : null; }).catch(() => null),
+    fetch('https://api.hyperliquid.xyz/info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'metaAndAssetCtxs' }), signal: tm() }).then(r => r.json()).then(([m, ctx]) => { const i = m?.universe?.findIndex(u => u.name === 'BTC'); return i >= 0 ? +ctx[i].openInterest : null; }).catch(() => null)]);
+  return { bitget, deribit, hyperliquid };
+}
 async function oiBybit(get) {
   const out = []; let cursor = '';
   for (let p = 0; p < 3; p++) {
@@ -347,27 +361,27 @@ async function oiOkx(get) {
   }
   return out;
 }
-async function liqHeatmap(get) {
+async function liqHeatmap(get, st = null) {
   const [oi, taker, kl] = await Promise.all([
     get('https://fapi.binance.com/futures/data/openInterestHist?symbol=BTCUSDT&period=1h&limit=500'),
     get('https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=BTCUSDT&period=1h&limit=500'),
     get('https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=500')
   ]);
   if (Date.now() - XOI.t > 600e3) {
-    const [by, ox] = await Promise.all([oiBybit(get).catch(() => null), oiOkx(get).catch(() => null)]);
-    XOI.t = Date.now(); if (by?.length) XOI.bybit = by; if (ox?.length) XOI.okx = ox;
+    const [by, ox, gt, hx, kr, now] = await Promise.all([oiBybit(get).catch(() => null), oiOkx(get).catch(() => null), oiGate(get).catch(() => null), oiHtx(get).catch(() => null), oiKraken(get).catch(() => null), st ? oiNow(get).catch(() => null) : null]);
+    XOI.t = Date.now(); if (by?.length) XOI.bybit = by; if (ox?.length) XOI.okx = ox; if (gt?.length) XOI.gate = gt; if (hx?.length) XOI.htx = hx; if (kr?.length) XOI.kraken = kr;
+    // aktueller OI (Bitget, Deribit, Hyperliquid) stündlich mitschreiben – höchstens 700 Stunden
+    if (st && now) { st.oiRec ||= {}; const hh = hourOf(Date.now()); for (const [ex, v] of Object.entries(now)) { if (!(v > 0)) continue; const a = (st.oiRec[ex] ||= []); if (a.length && a.at(-1)[0] === hh) a[a.length - 1][1] = v; else a.push([hh, v]); if (a.length > 700) a.splice(0, a.length - 700); } }
   }
   const tkM = new Map(taker.map(x => [hourOf(x.timestamp), +x.buyVol / ((+x.buyVol + +x.sellVol) || 1)]));
   // Kursverlauf und Käufer-Anteil von Binance gelten für alle Börsen (BTC-Kurs ist überall fast gleich), das Open Interest kommt je Börse
   const lv = { binance: liqLevels(new Map(oi.map(x => [hourOf(x.timestamp), +x.sumOpenInterest])), tkM, kl) };
-  for (const ex of ['bybit', 'okx']) if (XOI[ex]?.length) lv[ex] = liqLevels(new Map(XOI[ex].map(([t, v]) => [hourOf(t), v])), tkM, kl);
-  // V16: jede Kombination der Börsen (einzeln, zu zweit, alle drei = „all“)
-  const out = { ...liqMap(lv.binance, kl), src: 'binance', parts: ['binance'], alt: {} };
-  for (const c of [['bybit'], ['okx'], ['binance', 'bybit'], ['binance', 'okx'], ['bybit', 'okx'], ['binance', 'bybit', 'okx']]) {
-    if (!c.every(x => lv[x])) continue;
-    const key = c.length === 3 ? 'all' : c.join('+');
-    out.alt[key] = { ...liqMap(c.flatMap(x => lv[x]), kl), src: key, parts: c };
-  }
+  for (const ex of ['bybit', 'okx', 'gate', 'htx', 'kraken']) if (XOI[ex]?.length) lv[ex] = liqLevels(new Map(XOI[ex].map(([t, v]) => [hourOf(t), v])), tkM, kl);
+  const exState = {};
+  for (const ex of OI_REC) { const a = st?.oiRec?.[ex] || []; exState[ex] = a.length; if (a.length >= OI_REC_MIN) lv[ex] = liqLevels(new Map(a.map(([t, v]) => [hourOf(t), v])), tkM, kl); }
+  // V18: je Börse nur die Preis-Stufen (gleiches Raster) – die Seite und das Programm kombinieren beliebig (shared liqCombine)
+  const out = { ...liqMap(lv.binance, kl), src: 'binance', parts: ['binance'], ex: {}, exState };
+  for (const [ex, a] of Object.entries(lv)) out.ex[ex] = liqMap(a, kl).rows;
   return out;
 }
 function liqLevels(oiM, tkM, kl) {
@@ -497,7 +511,7 @@ export async function collect(opt = {}) {
   const c = client(), now = Date.now(), today = dkey(now), state = opt.state || {};
   const cache = opt.cache, fresh = cache?.H && now - cache.t < (opt.histTtlMs ?? 3600e3) && dkey(cache.t) === today;
   const ch = fresh ? null : client();
-  const [H, L, heat] = await Promise.all([fresh ? cache.H : fetchHistory(ch, opt), fetchLive(c, opt), c.src('Liquidations-Heatmap (Schätzung)', () => liqHeatmap(c.get))]);
+  const [H, L, heat] = await Promise.all([fresh ? cache.H : fetchHistory(ch, opt), fetchLive(c, opt), c.src('Liquidations-Heatmap (Schätzung)', () => liqHeatmap(c.get, opt.env === 'node' ? state : null))]);
   if (cache && !fresh) Object.assign(cache, { H, t: now, status: { ...ch.status } });
   for (const [k, v] of Object.entries(fresh ? cache.status : ch.status)) if (!c.status[k]) c.status[k] = v;
   // heutige Tageskerze live einsetzen (RSI und Kurs von heute ohne Verzögerung)
@@ -707,7 +721,8 @@ export async function collect(opt = {}) {
     };
   }
   // Verlauf (kompakt): [0 Datum, 1 Index7 Binance, 2 Index7 Multi, 3 BTC, 4 alternative.me, 5 CMC, 6 CFGI, 7 CoinGlass, 8 EURUSD,
-  //   9 BTC Eröffnung, 10 Hoch, 11 Tief, 12 Tageswert Binance, 13 Tageswert Multi, 14 Index7 Binance 90T, 15 Index7 Multi 90T, 16 Tageswert Binance 90T, 17 Tageswert Multi 90T]
+  //   9 BTC Eröffnung, 10 Hoch, 11 Tief, 12 Tageswert Binance, 13 Tageswert Multi, 14 Index7 Binance 90T, 15 Index7 Multi 90T, 16 Tageswert Binance 90T, 17 Tageswert Multi 90T,
+  //   18 Volumen BTC (Binance, V18 – für VWAP)]
   const allDays = [...new Set([...out.modes.multi.d7.keys(), ...out.modes.binance.d7.keys()])].sort();
   const eurM = H.eur || new Map(); if (ok(L.eurNow)) eurM.set(today, L.eurNow);
   const r4 = x => ok(x) ? Math.round(x * 1e4) / 1e4 : null;
@@ -716,8 +731,8 @@ export async function collect(opt = {}) {
   result.history = allDays.map(d => { const k = ohlc.get(d); return [d, M.binance.d7.get(d) ?? null, M.multi.d7.get(d) ?? null, ok(btc.get(d)) ? Math.round(btc.get(d)) : null,
     alt.get(d) ?? null, H.cmc?.get(d) ?? null, cfgiHist.get(d) ?? null, H.cgFng?.get(d) ?? null, r4(eurM.get(d)),
     R(k?.o), R(k?.h), R(k?.l), R(M.binance.daily.get(d)), R(M.multi.daily.get(d)),
-    M.binance90.d7.get(d) ?? null, M.multi90.d7.get(d) ?? null, R(M.binance90.daily.get(d)), R(M.multi90.daily.get(d))]; });
-  result.hourly = (L.hourly || []).map(x => [x[0], Math.round(x[1]), Math.round(x[2]), Math.round(x[3]), Math.round(x[4])]);
+    M.binance90.d7.get(d) ?? null, M.multi90.d7.get(d) ?? null, R(M.binance90.daily.get(d)), R(M.multi90.daily.get(d)), ok(k?.v) ? Math.round(k.v) : null]; });
+  result.hourly = (L.hourly || []).map(x => [x[0], Math.round(x[1]), Math.round(x[2]), Math.round(x[3]), Math.round(x[4]), Math.round(x[5] || 0)]);
   state.lastRun = now;
   if (opt.debug) result.debug = out.debug;
   return { result, state };

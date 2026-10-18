@@ -1,4 +1,4 @@
-// Fear & Greed V17 – Hintergrund-Programm
+// Fear & Greed V18 – Hintergrund-Programm
 // Läuft unsichtbar, sammelt jede Minute (einstellbar) alle Daten (inkl. dauerhaftem Liquidations-Mitschnitt),
 // speichert den Verlauf, liefert die Seite unter http://localhost:8797 aus und verschickt Telegram-Alarme.
 import http from 'node:http';
@@ -7,7 +7,7 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { collect } from './collector/engine.mjs';
-import { methodSignals, phaseSignals, trig, trendInfo, applyTrend, mean7, divergences, divRows, clusterSet, heatEvents, alarmText, touchTrack, nextCluster, pivotEvents, pivotPayload, fiftySignals, F50_TYPES, candleSignals, CDL_TYPES } from './collector/shared.mjs';
+import { methodSignals, phaseSignals, trig, trendInfo, applyTrend, mean7, divergences, divRows, clusterSet, heatEvents, alarmText, touchTrack, nextCluster, pivotEvents, pivotPayload, fiftySignals, F50_TYPES, candleSignals, CDL_TYPES, smaSignals, SMA_DEF, vwapSignals, liqCombine, hmParts } from './collector/shared.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DATA = path.join(ROOT, 'data'), WWW = path.join(ROOT, 'www');
@@ -26,10 +26,11 @@ const DEF = { sosovalueApiKey: '', coinglassApiKey: '', coinalyzeApiKey: '', int
   div: { left: 5, right: 5, minGap: 5, maxGap: 60, hidden: false, zone: true, src: '7', win: 'auto', official: false }, sig: { method: 'std', trigger: 'entry', minDays: 3, tol: 0, trend: { basis: ['ema'], mode: 'mark', emaN: 200, adxMin: 25 } },
   pivot: { per: ['30', '91', '182'], lo: true, hi: true, near: false, nearPct: 1, low: 'range' },
   f50: { types: ['bounce', 'reject', 'brkUp', 'brkDn', 'retL', 'retS', 'failUp', 'failDn'], zoneL: 3, confL: 3, zoneS: 3, confS: 3, retestDays: 20 },
-  cdl: { types: ['hammer', 'invHammer', 'engBull', 'piercing', 'morning', 'shooting', 'hanging', 'engBear', 'darkCloud', 'evening'], lo: 30, hi: 70, look: 3, src: 'ours' },
-  rep: { pivot: { iv: 120, max: 5 } },
-  telegram: { token: '', chatId: '', enabled: false, events: ['p1', 'p2', 'turn', 'heat', 'lines', 'div', 'react', 'pivot', 'f50', 'cdl'] } };
-function cfg() { try { const c = JSON.parse(fs.readFileSync(CFG_PATH, 'utf8')); return { ...DEF, ...c, heat: { ...DEF.heat, ...(c.heat || {}) }, div: { ...DEF.div, ...(c.div || {}) }, sig: { ...DEF.sig, ...(c.sig || {}) }, pivot: { ...DEF.pivot, ...(c.pivot || {}) }, f50: { ...DEF.f50, ...(c.f50 || {}) }, cdl: { ...DEF.cdl, ...(c.cdl || {}) }, rep: { ...DEF.rep, ...(c.rep || {}) }, telegram: { ...DEF.telegram, ...(c.telegram || {}) } }; } catch { return structuredClone(DEF); } }
+  cdl: { types: ['hammer', 'invHammer', 'engBull', 'piercing', 'morning', 'shooting', 'hanging', 'engBear', 'darkCloud', 'evening'], lo: 30, hi: 70, look: 3, src: 'ours', dir: 'both' },
+  rep: { pivot: { iv: 120, max: 5 } }, avg: { sig: false, n: 7 }, sma: { n: 20, dir: 'both', m1: { on: true, hi: 78.6, lo: 21.4, src: 'raw', mid: false, look: 20, slope: true, sd: 3, sp: 1, dist: 0 }, m2: { on: true, hi: 61.8, lo: 38.2, src: 'body', mid: true, look: 20, slope: true, sd: 3, sp: 1, dist: 0 } },
+  vwap: { src: 'hlc3', combos: ['ema8_W'], conf: false, confDays: 2, dir: 'both', trend: { mode: 'hide', n: 200, tf: '1d' } },
+  telegram: { token: '', chatId: '', enabled: false, events: ['p1', 'p2', 'turn', 'heat', 'lines', 'div', 'react', 'pivot', 'f50', 'cdl', 'sma', 'vwap'] } };
+function cfg() { try { const c = JSON.parse(fs.readFileSync(CFG_PATH, 'utf8')); return { ...DEF, ...c, heat: { ...DEF.heat, ...(c.heat || {}) }, div: { ...DEF.div, ...(c.div || {}) }, sig: { ...DEF.sig, ...(c.sig || {}) }, pivot: { ...DEF.pivot, ...(c.pivot || {}) }, f50: { ...DEF.f50, ...(c.f50 || {}) }, cdl: { ...DEF.cdl, ...(c.cdl || {}) }, avg: { ...DEF.avg, ...(c.avg || {}) }, sma: { ...DEF.sma, ...(c.sma || {}) }, vwap: { ...DEF.vwap, ...(c.vwap || {}) }, rep: { ...DEF.rep, ...(c.rep || {}) }, telegram: { ...DEF.telegram, ...(c.telegram || {}) } }; } catch { return structuredClone(DEF); } }
 function saveCfg(c) { fs.writeFileSync(CFG_PATH, JSON.stringify(c, null, 2)); }
 if (!fs.existsSync(CFG_PATH)) saveCfg(DEF);
 
@@ -78,14 +79,17 @@ async function send1(key, a, sent, minMs = Infinity) {
 }
 // Spalten wie auf der Seite (Standard: Binance, 90 Tage)
 const COLS = { idx: 14, raw: 16, other: 1 };
+// V18: N-Tage-Mittel des Tageswerts als eigene Spalte (wie auf der Seite), für „Signale mit gewählter Mittelung“
+function avgColS(H, raw, N) { const c = 30; let s = 0; const q = []; for (const r of H) { const v = r[raw]; if (v != null) { q.push(v); s += v; if (q.length > N) s -= q.shift(); } r[c] = v != null && q.length >= N ? Math.round(s / N) : null; } return c; }
 async function checkAlerts(latest, history) {
   const c = cfg(), t = c.telegram; if (!t.enabled || !t.token || !t.chatId) return;
   const lv = c.levels || { p1: { hi: 75, lo: 25 }, p2: { hi: 85, lo: 15 } }, sent = (state.alertsSent ||= {});
   const today = new Date().toISOString().slice(0, 10), idx = latest.modes.binance90?.index, S = { idx, zone: ZNAME(idx), price: latest.btc.price };
   const TI = trendInfo(history, c.sig.trend || {});
+  const IC = c.avg?.sig && c.avg.n !== 7 ? avgColS(history, COLS.raw, c.avg.n) : COLS.idx;
   for (const k of ['p1', 'p2']) {
     if (c.sig.method === 'peak' && k === 'p2') continue;
-    const o = { col: COLS.idx, rawCol: COLS.raw, colA: COLS.idx, colB: COLS.other, hi: lv[k].hi, lo: lv[k].lo, trigger: c.sig.trigger, minDays: c.sig.minDays, tol: c.sig.tol, trend: c.sig.trend, trendInfo: TI };
+    const o = { col: IC, rawCol: COLS.raw, colA: IC, colB: COLS.other, hi: lv[k].hi, lo: lv[k].lo, trigger: c.sig.trigger, minDays: c.sig.minDays, tol: c.sig.tol, trend: c.sig.trend, trendInfo: TI };
     for (const sg of methodSignals(history, c.sig.method, o)) {
       if (sg.d !== today) continue;
       if ((sg.kind === 'phase' || sg.kind === 'exit') && !t.events.includes(k)) continue;
@@ -103,19 +107,30 @@ async function checkAlerts(latest, history) {
   }
   // V16: Signale an der 50er-Linie des Index (Bounce, Ablehnung, Durchbruch, Retest, Fehlausbruch)
   if (t.events.includes('f50')) {
-    const rows = history.filter(r => r[COLS.idx] != null).map(r => ({ d: r[0], v: r[COLS.idx] }));
+    const rows = history.filter(r => r[IC] != null).map(r => ({ d: r[0], v: r[IC] }));
     for (const x of fiftySignals(rows, c.f50)) if (x.d === today && c.f50.types.includes(x.type)) await send1(`f50:${x.d}:${x.type}`, alarmText('f50', { ...x, ...S }), sent);
+  }
+  // V18: VWAP-Signale (Tagesschluss, Volumen aus Spalte 18)
+  if (t.events.includes('vwap')) {
+    const rows = history.filter(r => r[0] < today && r[3] != null && r[9] != null && r[10] != null && r[11] != null).map(r => ({ d: r[0], o: r[9], h: r[10], l: r[11], c: r[3], v: r[18] || 0 })), yd = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    for (const x of vwapSignals(rows, c.vwap)) if (x.d >= yd) await send1(`vwap:${x.d}:${x.type}:${x.up ? 'L' : 'S'}`, alarmText('vwap', { ...x, ...S }), sent);
+  }
+  // V18: SMA-20-Signale im Index (abgeschlossene Tage), Reihe wie die übrigen Signale (7-Tage-Mittel oder gewählte Mittelung)
+  if (t.events.includes('sma')) {
+    const rows = history.filter(r => r[IC] != null && r[0] < today).map(r => ({ d: r[0], v: r[IC], raw: r[COLS.raw] })), yd = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    for (const x of smaSignals(rows, c.sma)) if (x.d >= yd && (c.sma.dir === 'long' ? x.up : c.sma.dir === 'short' ? !x.up : true)) await send1(`sma:${x.d}:${x.type}:${x.up ? 'L' : 'S'}`, alarmText('sma', { ...x, ...S }), sent);
   }
   // V17: Kerzenmuster (Tageskerze geschlossen), wenn der Index im Extrem ist – eigener Alarm, Trendfilter wie bei den Signalen
   if (t.events.includes('cdl')) {
-    const ours = new Map(history.filter(r => r[COLS.idx] != null).map(r => [r[0], r[COLS.idx]])), off = new Map(mean7(history, 4).map(r => [r[0], r[1]]));
+    const ours = new Map(history.filter(r => r[IC] != null).map(r => [r[0], r[IC]])), off = new Map(mean7(history, 4).map(r => [r[0], r[1]]));
     const yday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
     for (const x of applyTrend(candleSignals(history, { ...c.cdl, ours, off, today }), TI, c.sig.trend))
-      if (x.d >= yday && c.cdl.types.includes(x.type)) await send1(`cdl:${x.d}:${x.type}`, alarmText('cdl', { ...x, ...S }), sent);
+      if (x.d >= yday && c.cdl.types.includes(x.type) && (c.cdl.dir === 'long' ? x.up : c.cdl.dir === 'short' ? !x.up : true)) await send1(`cdl:${x.d}:${x.type}`, alarmText('cdl', { ...x, ...S }), sent);
   }
 }
 // V15: Heatmap-Quelle wie auf der Seite gewählt (Binance / Bybit / OKX / kombiniert)
-const HMs = (latest, c) => (c.heat.src && c.heat.src !== 'binance' && latest.heatmap?.alt?.[c.heat.src]) || latest.heatmap;
+// V18: beliebige Börsen-Kombination aus den Stufen je Börse
+const HMs = (latest, c) => liqCombine(latest.heatmap, hmParts(c.heat.src));
 async function checkHeatAlerts(latest) {
   const c = cfg(), t = c.telegram; if (!t.enabled || !t.token || !t.chatId || !t.events.includes('heat')) return;
   const sent = (state.alertsSent ||= {}), price = latest.btc.price, idx = latest.modes.binance90?.index;
@@ -183,7 +198,7 @@ async function run() {
     const { result, state: next } = await collect({ env: 'node', keys, state, wsSampleMs: 0, cache: HCACHE, histTtlMs: I.hist * 60e3 });
     state = next; saveState();
     const { history, ...latest } = result;
-    latest.server = true; latest.appVersion = 17;
+    latest.server = true; latest.appVersion = 18;
     latest.intervals = { data: I.data, publish: I.publish, hist: I.hist };
     latest.rateLimited = latest.status.filter(x => x.ok === false && /429|rate|too many/i.test(x.msg || '')).map(x => x.name);
     fs.writeFileSync(path.join(WWW, 'data', 'latest.json'), JSON.stringify(latest));
@@ -205,8 +220,8 @@ function buildSite() {
   fs.writeFileSync(path.join(WWW, 'index.html'), html);
   const engine = fs.readFileSync(path.join(ROOT, 'collector', 'engine.mjs'), 'utf8').replace(/^export /gm, '');
   // alte Links (V6, V7) leiten auf die neue Einzeldatei weiter
-  for (const v of ['v6', 'v7', 'v8', 'v9', 'v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16']) fs.writeFileSync(path.join(WWW, `fear-greed-${v}.html`), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=fear-greed-v17.html"><a href="fear-greed-v17.html">fear-greed-v17.html</a>');
-  fs.writeFileSync(path.join(WWW, 'fear-greed-v17.html'), html.replace('<!--ENGINE-->', `<script>window.FG_STANDALONE = true;</script>\n<script type="module">\n${engine}\nwindow.FG_ENGINE = { collect };\nwindow.dispatchEvent(new Event('fg-engine'));\n</script>`));
+  for (const v of ['v6', 'v7', 'v8', 'v9', 'v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17']) fs.writeFileSync(path.join(WWW, `fear-greed-${v}.html`), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=fear-greed-v18.html"><a href="fear-greed-v18.html">fear-greed-v18.html</a>');
+  fs.writeFileSync(path.join(WWW, 'fear-greed-v18.html'), html.replace('<!--ENGINE-->', `<script>window.FG_STANDALONE = true;</script>\n<script type="module">\n${engine}\nwindow.FG_ENGINE = { collect };\nwindow.dispatchEvent(new Event('fg-engine'));\n</script>`));
 }
 
 /* ---------- Online veröffentlichen (GitHub Pages) ---------- */
@@ -234,13 +249,13 @@ async function publish() {
 }
 
 /* ---------- Windows-Autostart ---------- */
-const LNK = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'Fear-Greed-V17.lnk');
+const LNK = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'Fear-Greed-V18.lnk');
 const autostartOn = () => fs.existsSync(LNK);
 function setAutostart(on) {
   return new Promise((res, rej) => {
     if (!on) { try { if (fs.existsSync(LNK)) fs.unlinkSync(LNK); res(false); } catch (e) { rej(e); } return; }
     const vbs = path.join(ROOT, 'start-hidden.vbs');
-    const ps = `$s=(New-Object -ComObject WScript.Shell).CreateShortcut('${LNK.replace(/'/g, "''")}');$s.TargetPath=\"$env:WINDIR\\System32\\wscript.exe\";$s.Arguments='"${vbs.replace(/'/g, "''")}"';$s.WorkingDirectory='${ROOT.replace(/'/g, "''")}';$s.Description='Fear & Greed V17 (Hintergrund)';$s.Save()`;
+    const ps = `$s=(New-Object -ComObject WScript.Shell).CreateShortcut('${LNK.replace(/'/g, "''")}');$s.TargetPath=\"$env:WINDIR\\System32\\wscript.exe\";$s.Arguments='"${vbs.replace(/'/g, "''")}"';$s.WorkingDirectory='${ROOT.replace(/'/g, "''")}';$s.Description='Fear & Greed V18 (Hintergrund)';$s.Save()`;
     execFile('powershell.exe', ['-NoProfile', '-Command', ps], err => err ? rej(err) : res(true));
   });
 }
@@ -260,7 +275,7 @@ const server = http.createServer(async (req, res) => {
   if (p === '/api/status') {
     const c = cfg();
     const I = iv();
-    return send(res, 200, { server: true, version: 17, autostart: autostartOn(), lastRun, lastError, intervals: I, nextRun: lastRun ? lastRun + I.data * 60e3 : null, heat: c.heat, lines: c.lines, div: c.div, sig: c.sig,
+    return send(res, 200, { server: true, version: 18, autostart: autostartOn(), lastRun, lastError, intervals: I, nextRun: lastRun ? lastRun + I.data * 60e3 : null, heat: c.heat, lines: c.lines, div: c.div, sig: c.sig,
       keys: { sosovalue: !!c.sosovalueApiKey, coinglass: !!c.coinglassApiKey, coinalyze: !!c.coinalyzeApiKey },
       telegram: { enabled: c.telegram.enabled, configured: !!(c.telegram.token && c.telegram.chatId), events: c.telegram.events },
       publish: { enabled: c.publish !== false, last: lastPublish, error: publishError, url: c.publishUrl || 'https://vrilyassluxion.github.io/fear-greed/' } });
@@ -283,11 +298,15 @@ const server = http.createServer(async (req, res) => {
     if (b.sig) c.sig = { ...c.sig, ...b.sig };
     if (b.pivot) { const P = b.pivot, ok = ['7', '30', '91', '182', '365', 'all']; c.pivot = { per: Array.isArray(P.per) ? P.per.filter(k => ok.includes(k)) : [], lo: !!P.lo, hi: !!P.hi, near: !!P.near, nearPct: +P.nearPct > 0 && +P.nearPct <= 10 ? +P.nearPct : 1, low: ['range', 'after', 'afterLow'].includes(P.low) ? P.low : 'range' }; }
     if (b.f50) { const F = b.f50, n = (v, d) => +v > 0 && +v <= 20 ? +v : d; c.f50 = { types: Array.isArray(F.types) ? F.types.filter(x => F50_TYPES.includes(x)) : DEF.f50.types, zoneL: n(F.zoneL, 3), confL: n(F.confL, 3), zoneS: n(F.zoneS, 3), confS: n(F.confS, 3), retestDays: Math.min(60, Math.max(3, +F.retestDays || 20)) }; }
-    if (b.cdl) { const K = b.cdl, n = (v, d, lo, hi) => +v >= lo && +v <= hi ? +v : d; c.cdl = { types: Array.isArray(K.types) ? K.types.filter(x => CDL_TYPES.includes(x)) : DEF.cdl.types, lo: n(K.lo, 30, 1, 50), hi: n(K.hi, 70, 50, 99), look: Math.round(n(K.look, 3, 0, 14)), src: ['ours', 'off', 'both', 'either'].includes(K.src) ? K.src : 'ours' }; }
+    if (b.cdl) { const K = b.cdl, n = (v, d, lo, hi) => +v >= lo && +v <= hi ? +v : d; c.cdl = { types: Array.isArray(K.types) ? K.types.filter(x => CDL_TYPES.includes(x)) : DEF.cdl.types, lo: n(K.lo, 30, 1, 50), hi: n(K.hi, 70, 50, 99), look: Math.round(n(K.look, 3, 0, 14)), src: ['ours', 'off', 'both', 'either'].includes(K.src) ? K.src : 'ours', dir: ['both', 'long', 'short'].includes(K.dir) ? K.dir : 'both' }; }
+    if (b.sma && typeof b.sma === 'object') { const Q = b.sma, num = (v, d, lo, hi) => isFinite(+v) && +v >= lo && +v <= hi ? +v : d, M = (m, D) => ({ on: !!(m?.on ?? D.on), hi: num(m?.hi, D.hi, 50, 99), lo: num(m?.lo, D.lo, 1, 50), src: m?.src === 'body' ? 'body' : m?.src === 'raw' ? 'raw' : D.src, mid: !!(m?.mid ?? D.mid), look: Math.round(num(m?.look, D.look, 1, 120)), slope: !!(m?.slope ?? D.slope), sd: Math.round(num(m?.sd, D.sd, 1, 20)), sp: num(m?.sp, D.sp, 0, 20), dist: num(m?.dist, D.dist, 0, 20) });
+      c.sma = { n: Math.round(num(Q.n, 20, 5, 100)), dir: ['both', 'long', 'short'].includes(Q.dir) ? Q.dir : 'both', m1: M(Q.m1, DEF.sma.m1), m2: M(Q.m2, DEF.sma.m2) }; }
+    if (b.vwap && typeof b.vwap === 'object') { const Q = b.vwap, ok = /^(ema8|close)_[WMQY]$/; c.vwap = { src: ['hlc3', 'hl2', 'ohlc4', 'close'].includes(Q.src) ? Q.src : 'hlc3', combos: Array.isArray(Q.combos) ? Q.combos.filter(x => ok.test(x)) : DEF.vwap.combos, conf: !!Q.conf, confDays: Math.min(10, Math.max(0, Math.round(+Q.confDays || 0))), dir: ['both', 'long', 'short'].includes(Q.dir) ? Q.dir : 'both', trend: { mode: ['off', 'mark', 'hide'].includes(Q.trend?.mode) ? Q.trend.mode : 'hide', n: Math.min(400, Math.max(5, Math.round(+Q.trend?.n || 200))), tf: Q.trend?.tf === '4h' ? '4h' : '1d' } }; }
+    if (b.avg) c.avg = { sig: !!b.avg.sig, n: Math.min(2000, Math.max(2, Math.round(+b.avg.n) || 7)) };
     if (b.rep && typeof b.rep === 'object') { c.rep = {}; for (const [k, v] of Object.entries(b.rep)) c.rep[k] = { iv: Math.min(1440, Math.max(0, +v.iv || 0)), max: Math.min(20, Math.max(1, +v.max || 1)) }; }
     saveCfg(c); send(res, 200, { ok: true }); if (b.recollect) run(); return;
   }
-  if (p === '/api/telegram/test' && req.method === 'POST') { try { await telegram('✅ Testnachricht vom Fear & Greed V17 – Alarme kommen hier an.'); return send(res, 200, { ok: true }); } catch (e) { return send(res, 400, { error: e.message }); } }
+  if (p === '/api/telegram/test' && req.method === 'POST') { try { await telegram('✅ Testnachricht vom Fear & Greed V18 – Alarme kommen hier an.'); return send(res, 200, { ok: true }); } catch (e) { return send(res, 400, { error: e.message }); } }
   if (p === '/api/telegram/chatid' && req.method === 'POST') {
     // Chat-ID automatisch finden: Nutzer schreibt dem Bot vorher eine Nachricht
     try {
@@ -306,7 +325,7 @@ const server = http.createServer(async (req, res) => {
 });
 server.on('error', e => { if (e.code === 'EADDRINUSE') { log(`Port ${PORT} belegt – das Programm läuft schon (http://localhost:${PORT}).`); process.exit(0); } throw e; });
 server.listen(PORT, '127.0.0.1', () => {
-  log(`Fear & Greed V17 läuft: http://localhost:${PORT}`);
+  log(`Fear & Greed V18 läuft: http://localhost:${PORT}`);
   buildSite();
   const loop = async () => { await run(); setTimeout(loop, iv().data * 60e3); };
   loop();
