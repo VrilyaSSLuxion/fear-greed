@@ -375,7 +375,9 @@ async function oiOkx(get) {
   }
   return out;
 }
-async function liqHeatmap(get, st = null) {
+// V20: Mitschnitt-Schwelle einstellbar (recMin Stunden), Zeiträume 12 Std. … 2 Wochen (nur Positionen, die im Zeitraum eröffnet wurden)
+const HM_PER_E = { '12h': 12, '1d': 24, '3d': 72, '1w': 168, '2w': 336 };
+async function liqHeatmap(get, st = null, recMin = OI_REC_MIN) {
   const [oi, taker, kl] = await Promise.all([
     get('https://fapi.binance.com/futures/data/openInterestHist?symbol=BTCUSDT&period=1h&limit=500'),
     get('https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=BTCUSDT&period=1h&limit=500'),
@@ -389,16 +391,19 @@ async function liqHeatmap(get, st = null) {
   }
   const tkM = new Map(taker.map(x => [hourOf(x.timestamp), +x.buyVol / ((+x.buyVol + +x.sellVol) || 1)]));
   // Kursverlauf und Käufer-Anteil von Binance gelten für alle Börsen (BTC-Kurs ist überall fast gleich), das Open Interest kommt je Börse
-  const lv = { binance: liqLevels(new Map(oi.map(x => [hourOf(x.timestamp), +x.sumOpenInterest])), tkM, kl) };
-  for (const ex of ['bybit', 'okx', 'gate', 'htx', 'kraken']) if (XOI[ex]?.length) lv[ex] = liqLevels(new Map(XOI[ex].map(([t, v]) => [hourOf(t), v])), tkM, kl);
+  const OIM = { binance: new Map(oi.map(x => [hourOf(x.timestamp), +x.sumOpenInterest])) }, rm = Math.max(1, Math.round(recMin || OI_REC_MIN));
+  for (const ex of ['bybit', 'okx', 'gate', 'htx', 'kraken']) if (XOI[ex]?.length) OIM[ex] = new Map(XOI[ex].map(([t, v]) => [hourOf(t), v]));
   const exState = {};
-  for (const ex of OI_REC) { const a = st?.oiRec?.[ex] || []; exState[ex] = a.length; if (a.length >= OI_REC_MIN) lv[ex] = liqLevels(new Map(a.map(([t, v]) => [hourOf(t), v])), tkM, kl); }
+  for (const ex of OI_REC) { const a = st?.oiRec?.[ex] || []; exState[ex] = a.length; if (a.length >= rm) OIM[ex] = new Map(a.map(([t, v]) => [hourOf(t), v])); }
+  const lv = Object.fromEntries(Object.entries(OIM).map(([ex, m]) => [ex, liqLevels(m, tkM, kl)]));
   // V18: je Börse nur die Preis-Stufen (gleiches Raster) – die Seite und das Programm kombinieren beliebig (shared liqCombine)
-  const out = { ...liqMap(lv.binance, kl), src: 'binance', parts: ['binance'], ex: {}, exState };
+  const out = { ...liqMap(lv.binance, kl), src: 'binance', parts: ['binance'], ex: {}, exState, recMin: rm, exP: {} };
   for (const [ex, a] of Object.entries(lv)) out.ex[ex] = liqMap(a, kl).rows;
+  const hNow = hourOf(Date.now());
+  for (const [per, h] of Object.entries(HM_PER_E)) { out.exP[per] = {}; for (const [ex, m] of Object.entries(OIM)) out.exP[per][ex] = liqMap(liqLevels(m, tkM, kl, hNow - h * 3600e3), kl).rows; }
   return out;
 }
-function liqLevels(oiM, tkM, kl) {
+function liqLevels(oiM, tkM, kl, fromT = 0) {
   const hour = hourOf;
   let active = [], prevOI = null;
   for (const k of kl) {
@@ -409,7 +414,7 @@ function liqLevels(oiM, tkM, kl) {
     if (prevOI != null) {
       const d = cur - prevOI;
       if (d < 0) { const f = cur / prevOI; for (const a of active) a.usd *= f; }       // Positionen geschlossen
-      else if (d > 0) {                                                               // neue Positionen
+      else if (d > 0 && t >= fromT) {                                                 // neue Positionen (V20: nur ab fromT)
         const usd = d * c, lsh = tkM.get(t) ?? 0.5, entry = (h + l + c) / 3;
         for (const [lev, w] of LEVERAGE) {
           active.push({ side: 'L', p: entry * (1 - 1 / lev + 0.004), usd: usd * lsh * w });
@@ -525,7 +530,7 @@ export async function collect(opt = {}) {
   const c = client(), now = Date.now(), today = dkey(now), state = opt.state || {};
   const cache = opt.cache, fresh = cache?.H && now - cache.t < (opt.histTtlMs ?? 3600e3) && dkey(cache.t) === today;
   const ch = fresh ? null : client();
-  const [H, L, heat] = await Promise.all([fresh ? cache.H : fetchHistory(ch, opt), fetchLive(c, opt), c.src('Liquidations-Heatmap (Schätzung)', () => liqHeatmap(c.get, opt.env === 'node' ? state : null))]);
+  const [H, L, heat] = await Promise.all([fresh ? cache.H : fetchHistory(ch, opt), fetchLive(c, opt), c.src('Liquidations-Heatmap (Schätzung)', () => liqHeatmap(c.get, opt.env === 'node' ? state : null, opt.oiRecMin))]);
   if (cache && !fresh) Object.assign(cache, { H, t: now, status: { ...ch.status } });
   for (const [k, v] of Object.entries(fresh ? cache.status : ch.status)) if (!c.status[k]) c.status[k] = v;
   // heutige Tageskerze live einsetzen (RSI und Kurs von heute ohne Verzögerung)

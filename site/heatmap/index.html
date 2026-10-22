@@ -8,6 +8,8 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<!-- V20: Reiter zwischen Fear & Greed und Heatmap -->
+<nav class="apptabs"><a href="../">Fear &amp; Greed</a><span class="on">Liquidation Heatmap</span><a class="fgchip" id="fgChip" href="../" title="Fear &amp; Greed Index (VrilyaSS)">F&amp;G –</a></nav>
 <header class="top">
   <div class="coin">
     <div class="coin-icon" id="coinIcon">₿</div>
@@ -20,7 +22,7 @@
     <div class="muted small">Open Interest <span id="oiSource">alle Börsen</span></div>
     <div class="oi-val" id="oiAll">–</div>
   </div>
-  <a class="back" href="../">← Fear &amp; Greed</a>
+  <span class="back"></span>
   <div class="seg" id="rangeSeg">
     <button data-range="1440">24 Std.</button>
     <button data-range="4320" class="on">3 Tage</button>
@@ -163,5 +165,16 @@
 <script src="alerts.js"></script>
 <script src="local.js"></script>
 <script src="app.js"></script>
+<script>
+// V20: aktueller Fear-&-Greed-Wert aus den Daten der Hauptseite (alle 10 Minuten neu)
+(() => {
+  const Z = [[75, 'Extreme Gier', '#22d3a6'], [55, 'Gier', '#7fe0a0'], [45, 'Neutral', '#ffd36b'], [25, 'Angst', '#ff9a5a'], [0, 'Extreme Angst', '#ff4d6d']];
+  const load = () => fetch('../data/latest.json', { cache: 'no-store' }).then(r => r.json()).then(j => {
+    const m = j.modes?.binance; if (m?.index == null) return; const z = Z.find(x => m.index >= x[0]);
+    const el = document.getElementById('fgChip'); el.innerHTML = `F&amp;G <b style="color:${z[2]}">${m.index}</b> · ${z[1]}`;
+  }).catch(() => { });
+  load(); setInterval(load, 600000);
+})();
+</script>
 </body>
 </html>

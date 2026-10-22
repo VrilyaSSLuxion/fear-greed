@@ -1,4 +1,4 @@
-// Fear & Greed V19 – Hintergrund-Programm
+// Fear & Greed V20 – Hintergrund-Programm
 // Läuft unsichtbar, sammelt jede Minute (einstellbar) alle Daten (inkl. dauerhaftem Liquidations-Mitschnitt),
 // speichert den Verlauf, liefert die Seite unter http://localhost:8797 aus und verschickt Telegram-Alarme.
 import http from 'node:http';
@@ -8,7 +8,7 @@ import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { collect, vkey, BASE_VARIANTS, SRCS, WINS } from './collector/engine.mjs';
 import { methodSignals, phaseSignals, trig, trendInfo, applyTrend, mean7, divergences, divRows, clusterSet, heatEvents, alarmText, touchTrack, nextCluster, pivotEvents, pivotPayload, fiftySignals, F50_TYPES, candleSignals, CDL_TYPES, smaSignals, SMA_DEF, vwapSignals, liqCombine, hmParts,
-  avgMap, OFF_COL, fractals, fracBreaks, fracIdxFilter, fracNear, FRAC_DEF, maCrossEvents, maLine, lineName } from './collector/shared.mjs';
+  avgMap, OFF_COL, fractals, fracBreaks, fracIdxFilter, fracNear, FRAC_DEF, maCrossEvents, maLine, lineName, offExitSignals, offFracSignals, seriesCross, HM_PER, vwapCalc } from './collector/shared.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DATA = path.join(ROOT, 'data'), WWW = path.join(ROOT, 'www');
@@ -26,6 +26,8 @@ const CFG_PATH = path.join(ROOT, 'config.json');
 const FRAC_SIDE = { on: false, ...FRAC_DEF, brk: false, idxF: { on: false, lo: 30, hi: 70, look: 2 }, near: { on: false, days: 3 } };
 const DEF = { sosovalueApiKey: '', coinglassApiKey: '', coinalyzeApiKey: '', cryptorankApiKey: '', crEvery: 60, intervalMin: 1, publishMin: 7, histMin: 60,
   idx: { src: 'binance', win: '90' }, off: { src: 'alt', avg: true },
+  // V20: offizielle Signale mit eigenen Grenzen (Austritt aus 13 / 70), Fraktal dazu, Stufen-Signale wie bisher (aus), Kreuz mit Index-Linien; Mitschnitt-Schwelle
+  offSig: { lo: 13, hi: 70, ext: true, frac: true, before: 5, after: 0, lv: false, x: [] }, oiRecMin: 168,
   frac: { price: { ...FRAC_SIDE }, idx: { ...FRAC_SIDE, minMove: 0 }, al: { conf: true, brk: true } }, maAl: [],
   heat: { src: 'binance', pct: 1, approach: true, zone: true, poc: true, nearest: true, extra: 2, alarmExtra: false, cool: 720, far: true, farPct: 50, farRange: 20, reactOn: true, react: 1, brk: 1, reactH: 24 }, lines: [],
   div: { left: 5, right: 5, minGap: 5, maxGap: 60, hidden: false, zone: true, src: '7', win: 'auto', official: false }, sig: { method: 'std', trigger: 'entry', minDays: 3, tol: 0, trend: { basis: ['ema'], mode: 'mark', emaN: 200, adxMin: 25 } },
@@ -39,7 +41,7 @@ const DEF = { sosovalueApiKey: '', coinglassApiKey: '', coinalyzeApiKey: '', cry
 function cfg() { try { const c = JSON.parse(fs.readFileSync(CFG_PATH, 'utf8')); return { ...DEF, ...c, heat: { ...DEF.heat, ...(c.heat || {}) }, div: { ...DEF.div, ...(c.div || {}) }, sig: { ...DEF.sig, ...(c.sig || {}) }, pivot: { ...DEF.pivot, ...(c.pivot || {}) }, f50: { ...DEF.f50, ...(c.f50 || {}) }, cdl: { ...DEF.cdl, ...(c.cdl || {}) }, avg: { ...DEF.avg, ...(c.avg || {}) },
   sma: { ...DEF.sma, ...(c.sma || {}), m1: { ...DEF.sma.m1, ...(c.sma?.m1 || {}) }, m2: { ...DEF.sma.m2, ...(c.sma?.m2 || {}) }, m3: { ...DEF.sma.m3, ...(c.sma?.m3 || {}) } },
   vwap: { ...DEF.vwap, ...(c.vwap || {}) }, rep: { ...DEF.rep, ...(c.rep || {}) }, telegram: { ...DEF.telegram, ...(c.telegram || {}) },
-  idx: { ...DEF.idx, ...(c.idx || {}) }, off: { ...DEF.off, ...(c.off || {}) }, frac: { price: { ...DEF.frac.price, ...(c.frac?.price || {}) }, idx: { ...DEF.frac.idx, ...(c.frac?.idx || {}) }, al: { ...DEF.frac.al, ...(c.frac?.al || {}) } } }; } catch { return structuredClone(DEF); } }
+  idx: { ...DEF.idx, ...(c.idx || {}) }, off: { ...DEF.off, ...(c.off || {}) }, offSig: { ...DEF.offSig, ...(c.offSig || {}) }, frac: { price: { ...DEF.frac.price, ...(c.frac?.price || {}) }, idx: { ...DEF.frac.idx, ...(c.frac?.idx || {}) }, al: { ...DEF.frac.al, ...(c.frac?.al || {}) } } }; } catch { return structuredClone(DEF); } }
 function saveCfg(c) { fs.writeFileSync(CFG_PATH, JSON.stringify(c, null, 2)); }
 if (!fs.existsSync(CFG_PATH)) saveCfg(DEF);
 
@@ -69,7 +71,10 @@ function stream(name, url, sub, onMsg) {
   };
   connect();
 }
-stream('Binance Liquidationen', 'wss://fstream.binance.com/market/stream?streams=!forceOrder@arr', null, m => { const o = m.data?.o; if (o) addLiq('b', o.S === 'SELL', +o.z * +o.ap, o.T); });
+// V20: große Einzelmeldungen (ab 5 Mio. $) mit Symbol ins Protokoll – am 22.10.2026 kamen in 10 Minuten 807 Mio. $ „Long“ bei kaum Kursbewegung
+stream('Binance Liquidationen', 'wss://fstream.binance.com/market/stream?streams=!forceOrder@arr', null, m => { const o = m.data?.o; if (!o) return; const usd = +o.z * +o.ap;
+  if (usd >= 5e6) log(`Große Liquidation Binance: ${o.s} ${o.S === 'SELL' ? 'Long' : 'Short'} ${o.z} × ${o.ap} = ${(usd / 1e6).toFixed(1)} Mio. $`);
+  addLiq('b', o.S === 'SELL', usd, o.T); });
 stream('Bybit Liquidationen', 'wss://stream.bybit.com/v5/public/linear',
   { op: 'subscribe', args: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'BNBUSDT', 'ADAUSDT', 'SUIUSDT', 'LINKUSDT', 'AVAXUSDT'].map(s => 'allLiquidation.' + s) },
   m => { for (const x of m.data || []) addLiq('y', x.S === 'Buy', +x.v * +x.p, +x.T); });
@@ -114,10 +119,33 @@ async function checkAlerts(latest, history) {
       if ((sg.kind === 'turn' || sg.kind === 'peak') && !t.events.includes('turn')) continue;
       await send1(`${sg.d}:${k}:${sg.kind}:${sg.type}:${c.sig.method}:${c.sig.trigger}`, alarmText(sg.kind, { ...sg, ...S, hi: lv[k].hi, lo: lv[k].lo }), sent);
     }
-    if (t.events.includes('off')) for (const sg of applyTrend(trig(phaseSignals(history.filter(r => OFF[0].has(r[0])).map(r => [r[0], OFF[0].get(r[0]), r[3]]), lv[k].hi, lv[k].lo, 5, { minDays: c.sig.minDays, tol: c.sig.tol }), c.sig.trigger), TI, c.sig.trend)) {
+    if (t.events.includes('off') && c.offSig.lv) for (const sg of applyTrend(trig(phaseSignals(history.filter(r => OFF[0].has(r[0])).map(r => [r[0], OFF[0].get(r[0]), r[3]]), lv[k].hi, lv[k].lo, 5, { minDays: c.sig.minDays, tol: c.sig.tol }), c.sig.trigger), TI, c.sig.trend)) {
       if (sg.d !== today) continue;
       await send1(`off:${sg.d}:${k}:${sg.kind}:${sg.type}`, alarmText(sg.kind, { ...sg, ...S, official: true, hi: lv[k].hi, lo: lv[k].lo }), sent);
     }
+  }
+  // V20: offizieller Index mit eigenen Grenzen – Austritt aus 13 / 70, Fraktal im Kurs dazu, Kreuz der offiziellen Linie mit einer Index-Linie
+  if (t.events.includes('off')) {
+    // wie auf der Seite: die offizielle Linie mit der Mittelung des Index-Charts (wenn „mitmitteln“ an), Index-Linien auf der Reihe des Index-Charts
+    const O = c.offSig, yd = new Date(Date.now() - 864e5).toISOString().slice(0, 10), NC = c.off.avg ? (c.avg?.n || 7) : 7, OC = avgMap(history, OFF_COL[OFF_COL[c.off.src] ? c.off.src : 'alt'], NC), orows = [...OC].sort((a, b) => a[0] < b[0] ? -1 : 1);
+    const ICc = c.avg?.n && c.avg.n !== 7 ? avgColS(history, COLS.raw, c.avg.n) : COLS.idx;
+    const ex = offExitSignals(orows, O.lo, O.hi);
+    if (O.ext) for (const x of ex) if (x.d >= yd) await send1(`offx:${x.d}:${x.up ? 'L' : 'S'}`, alarmText('offx', { ...x, ...S }), sent);
+    if (O.frac) {
+      const pk = history.filter(r => r[0] < today && r[3] != null).map(r => ({ d: r[0], h: r[10] ?? r[3], l: r[11] ?? r[3], c: r[3] }));
+      for (const x of offFracSignals(ex, pk, fractals(pk, c.frac.price), O.before, O.after)) if (x.c >= yd) await send1(`offf:${x.from}:${x.up ? 'L' : 'S'}`, alarmText('offx', { ...x, ...S }), sent);
+    }
+    if (O.x?.length) {
+      const rows = history.filter(r => r[ICc] != null && r[0] < today).map(r => ({ d: r[0], v: r[ICc] })), V = rows.map(r => r.v), A = rows.map(r => OC.get(r.d) ?? null);
+      for (const id of O.x) { const ln = (c.sma.lines || []).find(l => l.id === id); if (!ln) continue;
+        for (const x of seriesCross(rows, A, maLine(V, ln.type, ln.n))) if (x.d >= yd) await send1(`offc:${id}:${x.d}:${x.up ? 'L' : 'S'}`, alarmText('offx', { ...x, type: 'cross', name: lineName(ln), ...S }), sent); }
+    }
+  }
+  // V20: Kreuz zweier Index-Linien (z. B. EMA 8 × SMA 20) – Ereignis „SMA-Signale“
+  if (t.events.includes('sma') && c.sma.cross?.length) {
+    const rows = history.filter(r => r[IC] != null && r[0] < today).map(r => ({ d: r[0], v: r[IC] })), V = rows.map(r => r.v), yd = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    for (const pr of c.sma.cross) { const a = (c.sma.lines || []).find(l => l.id === pr.slice(0, 2)), b = (c.sma.lines || []).find(l => l.id === pr.slice(2)); if (!a || !b) continue;
+      for (const x of seriesCross(rows, maLine(V, a.type, a.n), maLine(V, b.type, b.n))) if (x.d >= yd) await send1(`ilx:${pr}:${x.d}:${x.up ? 'L' : 'S'}`, alarmText('ilx', { ...x, na: lineName(a), nb: lineName(b), ...S }), sent); }
   }
   if (t.events.includes('div')) {
     const d = c.div, w = d.win === 'auto' ? null : d.win, vc = w ? (latest.vcols?.[vkey(c.idx.src, w)] || { d7: w === '90' ? 14 : 1, raw: w === '90' ? 16 : 12 }) : { d7: COLS.idx, raw: COLS.raw }, col = d.src === 'd' ? vc.raw : vc.d7;
@@ -174,6 +202,19 @@ async function checkAlerts(latest, history) {
   }
 }
 // V19: MA berührt (live): Kurs wechselt die Seite der Linie (Tageslinie mit dem aktuellen Kurs als heutigem Schluss) – je Linie höchstens einmal am Tag
+// V20: Kurs berührt den VWAP (live) – Woche/Monat/Quartal/Jahr nach Wahl; heutiger VWAP mit der laufenden Tageskerze, je Anker höchstens 1× am Tag
+async function checkVwTouch(latest, history) {
+  const c = cfg(), t = c.telegram, price = latest.btc.price, A = c.vwap.touch || []; if (!(price > 0) || !A.length) return;
+  const today = new Date().toISOString().slice(0, 10), rows = history.filter(r => r[3] != null && r[9] != null && r[10] != null && r[11] != null).map(r => ({ d: r[0], o: r[9], h: r[10], l: r[11], c: r[0] === today ? price : r[3], v: r[18] || 0 }));
+  const side = (state.vwSide ||= {});
+  for (const an of A) {
+    const vw = vwapCalc(rows, an, c.vwap.src).w.at(-1); if (!(vw > 0)) continue;
+    const now = Math.sign(price - vw), prev = side[an]; if (now) side[an] = now;
+    if (!prev || !now || prev === now || !t.enabled || !t.token || !t.chatId || !t.events.includes('vwap')) continue;
+    const idx = curIdx(latest);
+    await send1(`vwt:${an}:${today}`, alarmText('vwap', { vt: 'touch', anchor: an, up: now > 0, vw, price, idx, zone: ZNAME(idx) }), state.alertsSent ||= {});
+  }
+}
 async function checkMaTouch(latest, history) {
   const c = cfg(), t = c.telegram, price = latest.btc.price; if (!(price > 0)) return;
   const list = (c.maAl || []).filter(m => m.al?.mode === 'touch'); if (!list.length) return;
@@ -189,7 +230,7 @@ async function checkMaTouch(latest, history) {
 }
 // V15: Heatmap-Quelle wie auf der Seite gewählt (Binance / Bybit / OKX / kombiniert)
 // V18: beliebige Börsen-Kombination aus den Stufen je Börse
-const HMs = (latest, c) => liqCombine(latest.heatmap, hmParts(c.heat.src));
+const HMs = (latest, c) => liqCombine(latest.heatmap, hmParts(c.heat.src), c.heat.per);
 async function checkHeatAlerts(latest) {
   const c = cfg(), t = c.telegram; if (!t.enabled || !t.token || !t.chatId || !t.events.includes('heat')) return;
   const sent = (state.alertsSent ||= {}), price = latest.btc.price, idx = curIdx(latest);
@@ -254,10 +295,10 @@ async function run() {
     const c = cfg();
     const keys = { sosovalue: c.sosovalueApiKey, coinglass: c.coinglassApiKey, coinalyze: c.coinalyzeApiKey, sosovalueUrl: c.sosovalueUrl || '' };
     const I = iv();
-    const { result, state: next } = await collect({ env: 'node', keys, state, wsSampleMs: 0, cache: HCACHE, histTtlMs: I.hist * 60e3, cr: { key: c.cryptorankApiKey, every: Math.max(30, +c.crEvery || 60) } });
+    const { result, state: next } = await collect({ env: 'node', keys, state, wsSampleMs: 0, cache: HCACHE, histTtlMs: I.hist * 60e3, cr: { key: c.cryptorankApiKey, every: Math.max(30, +c.crEvery || 60) }, oiRecMin: Math.min(168, Math.max(24, +c.oiRecMin || 168)) });
     state = next; saveState();
     const { history, ...latest } = result;
-    latest.server = true; latest.appVersion = 19;
+    latest.server = true; latest.appVersion = 20;
     latest.intervals = { data: I.data, publish: I.publish, hist: I.hist, cr: Math.max(30, +c.crEvery || 60) };
     latest.rateLimited = latest.status.filter(x => x.ok === false && /429|rate|too many/i.test(x.msg || '')).map(x => x.name);
     // V19: Live-Index stündlich (alle Varianten) – für die 4-Stunden-Mittelung im Kreis
@@ -267,7 +308,7 @@ async function run() {
     // Tagebuch: aktueller Stand je Lauf (für spätere Auswertung, ab wann ein Punkt verlässlich war) – V19: nur die vier bisherigen Varianten (die übrigen stehen stündlich in idxrec.json)
     fs.appendFileSync(path.join(DATA, 'journal.jsonl'), JSON.stringify({ t: Date.now(), btc: latest.btc.price, idx: Object.fromEntries(BASE_VARIANTS.map(({ key: k }) => [k, [latest.modes[k]?.index, latest.modes[k]?.live]])) }) + '\n');
     buildSite();
-    await checkAlerts(latest, history); await checkHeatAlerts(latest); await checkLineAlerts(latest); await checkReactAlerts(latest); await checkPivotAlerts(latest, history); await checkMaTouch(latest, history); saveState();
+    await checkAlerts(latest, history); await checkHeatAlerts(latest); await checkLineAlerts(latest); await checkReactAlerts(latest); await checkPivotAlerts(latest, history); await checkMaTouch(latest, history); await checkVwTouch(latest, history); saveState();
     lastRun = Date.now(); lastError = null;
     if (!lastPublish || Date.now() - lastPublish >= I.publish * 60e3 - 5000) await publish();
     if (!HCACHE.logged || HCACHE.logged !== HCACHE.t) { HCACHE.logged = HCACHE.t; log(`Verläufe neu geholt · Index ${curIdx(latest)} (${Date.now() - t0} ms)`); }
@@ -305,8 +346,8 @@ function buildSite() {
   try { fs.cpSync(path.join(ROOT, 'site', 'heatmap'), path.join(WWW, 'heatmap'), { recursive: true }); } catch (e) { log('Heatmap nicht kopiert:', e.message); }
   const engine = fs.readFileSync(path.join(ROOT, 'collector', 'engine.mjs'), 'utf8').replace(/^export /gm, '');
   // alte Links (V6, V7) leiten auf die neue Einzeldatei weiter
-  for (const v of ['v6', 'v7', 'v8', 'v9', 'v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18']) fs.writeFileSync(path.join(WWW, `fear-greed-${v}.html`), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=fear-greed-v19.html"><a href="fear-greed-v19.html">fear-greed-v19.html</a>');
-  fs.writeFileSync(path.join(WWW, 'fear-greed-v19.html'), html.replace('<!--ENGINE-->', `<script>window.FG_STANDALONE = true;</script>\n<script type="module">\n${engine}\nwindow.FG_ENGINE = { collect };\nwindow.dispatchEvent(new Event('fg-engine'));\n</script>`));
+  for (const v of ['v6', 'v7', 'v8', 'v9', 'v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19']) fs.writeFileSync(path.join(WWW, `fear-greed-${v}.html`), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=fear-greed-v20.html"><a href="fear-greed-v20.html">fear-greed-v20.html</a>');
+  fs.writeFileSync(path.join(WWW, 'fear-greed-v20.html'), html.replace('<!--ENGINE-->', `<script>window.FG_STANDALONE = true;</script>\n<script type="module">\n${engine}\nwindow.FG_ENGINE = { collect };\nwindow.dispatchEvent(new Event('fg-engine'));\n</script>`));
 }
 
 /* ---------- Online veröffentlichen (GitHub Pages) ---------- */
@@ -334,13 +375,13 @@ async function publish() {
 }
 
 /* ---------- Windows-Autostart ---------- */
-const LNK = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'Fear-Greed-V19.lnk');
+const LNK = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'Fear-Greed-V20.lnk');
 const autostartOn = () => fs.existsSync(LNK);
 function setAutostart(on) {
   return new Promise((res, rej) => {
     if (!on) { try { if (fs.existsSync(LNK)) fs.unlinkSync(LNK); res(false); } catch (e) { rej(e); } return; }
     const vbs = path.join(ROOT, 'start-hidden.vbs');
-    const ps = `$s=(New-Object -ComObject WScript.Shell).CreateShortcut('${LNK.replace(/'/g, "''")}');$s.TargetPath=\"$env:WINDIR\\System32\\wscript.exe\";$s.Arguments='"${vbs.replace(/'/g, "''")}"';$s.WorkingDirectory='${ROOT.replace(/'/g, "''")}';$s.Description='Fear & Greed V19 (Hintergrund)';$s.Save()`;
+    const ps = `$s=(New-Object -ComObject WScript.Shell).CreateShortcut('${LNK.replace(/'/g, "''")}');$s.TargetPath=\"$env:WINDIR\\System32\\wscript.exe\";$s.Arguments='"${vbs.replace(/'/g, "''")}"';$s.WorkingDirectory='${ROOT.replace(/'/g, "''")}';$s.Description='Fear & Greed V20 (Hintergrund)';$s.Save()`;
     execFile('powershell.exe', ['-NoProfile', '-Command', ps], err => err ? rej(err) : res(true));
   });
 }
@@ -360,7 +401,7 @@ const server = http.createServer(async (req, res) => {
   if (p === '/api/status') {
     const c = cfg();
     const I = iv();
-    return send(res, 200, { server: true, version: 19, autostart: autostartOn(), lastRun, lastError, intervals: I, nextRun: lastRun ? lastRun + I.data * 60e3 : null, heat: c.heat, lines: c.lines, div: c.div, sig: c.sig, crEvery: c.crEvery,
+    return send(res, 200, { server: true, version: 20, oiRecMin: c.oiRecMin, autostart: autostartOn(), lastRun, lastError, intervals: I, nextRun: lastRun ? lastRun + I.data * 60e3 : null, heat: c.heat, lines: c.lines, div: c.div, sig: c.sig, crEvery: c.crEvery,
       keys: { sosovalue: !!c.sosovalueApiKey, coinglass: !!c.coinglassApiKey, coinalyze: !!c.coinalyzeApiKey, cryptorank: !!c.cryptorankApiKey },
       telegram: { enabled: c.telegram.enabled, configured: !!(c.telegram.token && c.telegram.chatId), events: c.telegram.events },
       publish: { enabled: c.publish !== false, last: lastPublish, error: publishError, url: c.publishUrl || 'https://vrilyassluxion.github.io/fear-greed/' } });
@@ -401,13 +442,18 @@ const server = http.createServer(async (req, res) => {
       const M3 = (m, D) => ({ on: !!(m?.on ?? D.on), hi: num(m?.hi, D.hi, 50, 99), lo: num(m?.lo, D.lo, 1, 50), src: m?.src === 'raw' ? 'raw' : 'body', look: Math.round(num(m?.look, D.look, 1, 120)), off: !!(m?.off ?? D.off),
         offMode: ['A', 'B', 'C'].includes(m?.offMode) ? m.offMode : 'A', offHi: num(m?.offHi, D.offHi, 50, 99), offLo: num(m?.offLo, D.offLo, 1, 50), once: !!(m?.once ?? D.once) });
       const lines = Array.isArray(Q.lines) ? Q.lines.filter(l => l && /^i[1-3]$/.test(l.id) && ['sma', 'ema'].includes(l.type) && +l.n >= 2 && +l.n <= 1000).map(l => ({ id: l.id, type: l.type, n: Math.round(+l.n), sig: !!l.sig, ms: Array.isArray(l.ms) ? l.ms.filter(x => ['m1', 'm2', 'm3'].includes(x)) : ['m1', 'm2', 'm3'] })) : DEF.sma.lines;
-      c.sma = { n: Math.round(num(Q.n, 20, 5, 100)), dir: ['both', 'long', 'short'].includes(Q.dir) ? Q.dir : 'both', m1: M(Q.m1, DEF.sma.m1), m2: M(Q.m2, DEF.sma.m2), m3: M3(Q.m3, DEF.sma.m3), lines }; }
-    if (b.vwap && typeof b.vwap === 'object') { const Q = b.vwap, ok = /^(ema8|close)_[WMQY]$/; c.vwap = { src: ['hlc3', 'hl2', 'ohlc4', 'close'].includes(Q.src) ? Q.src : 'hlc3', combos: Array.isArray(Q.combos) ? Q.combos.filter(x => ok.test(x)) : DEF.vwap.combos, conf: !!Q.conf, confDays: Math.min(10, Math.max(0, Math.round(+Q.confDays || 0))), dir: ['both', 'long', 'short'].includes(Q.dir) ? Q.dir : 'both', trend: { mode: ['off', 'mark', 'hide'].includes(Q.trend?.mode) ? Q.trend.mode : 'hide', n: Math.min(400, Math.max(5, Math.round(+Q.trend?.n || 200))), tf: Q.trend?.tf === '4h' ? '4h' : '1d' } }; }
+      c.sma = { n: Math.round(num(Q.n, 20, 5, 100)), dir: ['both', 'long', 'short'].includes(Q.dir) ? Q.dir : 'both', m1: M(Q.m1, DEF.sma.m1), m2: M(Q.m2, DEF.sma.m2), m3: M3(Q.m3, DEF.sma.m3), lines, cross: Array.isArray(Q.cross) ? Q.cross.filter(x => /^i[1-3]i[1-3]$/.test(x) && x.slice(0, 2) !== x.slice(2)) : [] }; }
+    // V20: offizielle Signale, Mitschnitt-Schwelle, Heatmap-Zeitraum
+    if (b.offSig && typeof b.offSig === 'object') { const Q = b.offSig, num = (v, d, lo, hi) => isFinite(+v) && +v >= lo && +v <= hi ? +v : d;
+      c.offSig = { lo: num(Q.lo, 13, 1, 50), hi: num(Q.hi, 70, 50, 99), ext: Q.ext !== false, frac: Q.frac !== false, before: Math.round(num(Q.before, 5, 0, 30)), after: Math.round(num(Q.after, 0, 0, 30)), lv: !!Q.lv, x: Array.isArray(Q.x) ? Q.x.filter(x => /^i[1-3]$/.test(x)) : [] }; }
+    if (b.oiRecMin != null && isFinite(+b.oiRecMin)) c.oiRecMin = Math.min(168, Math.max(24, Math.round(+b.oiRecMin)));
+    if (b.heat && b.heat.per != null && !['all', ...Object.keys(HM_PER)].includes(b.heat.per)) b.heat.per = 'all';
+    if (b.vwap && typeof b.vwap === 'object') { const Q = b.vwap, ok = /^(ema8|close)_[WMQY]$/; c.vwap = { src: ['hlc3', 'hl2', 'ohlc4', 'close'].includes(Q.src) ? Q.src : 'hlc3', combos: Array.isArray(Q.combos) ? Q.combos.filter(x => ok.test(x)) : DEF.vwap.combos, conf: !!Q.conf, confDays: Math.min(10, Math.max(0, Math.round(+Q.confDays || 0))), dir: ['both', 'long', 'short'].includes(Q.dir) ? Q.dir : 'both', trend: { mode: ['off', 'mark', 'hide'].includes(Q.trend?.mode) ? Q.trend.mode : 'hide', n: Math.min(400, Math.max(5, Math.round(+Q.trend?.n || 200))), tf: Q.trend?.tf === '4h' ? '4h' : '1d' }, touch: Array.isArray(Q.touch) ? Q.touch.filter(a => ['W', 'M', 'Q', 'Y'].includes(a)) : [] }; }
     if (b.avg) c.avg = { sig: !!b.avg.sig, n: Math.min(2000, Math.max(1, Math.round(+b.avg.n) || 7)) };
     if (b.rep && typeof b.rep === 'object') { c.rep = {}; for (const [k, v] of Object.entries(b.rep)) c.rep[k] = { iv: Math.min(1440, Math.max(0, +v.iv || 0)), max: Math.min(20, Math.max(1, +v.max || 1)) }; }
     saveCfg(c); send(res, 200, { ok: true }); if (b.recollect) run(); return;
   }
-  if (p === '/api/telegram/test' && req.method === 'POST') { try { await telegram('✅ Testnachricht vom Fear & Greed V19 – Alarme kommen hier an.'); return send(res, 200, { ok: true }); } catch (e) { return send(res, 400, { error: e.message }); } }
+  if (p === '/api/telegram/test' && req.method === 'POST') { try { await telegram('✅ Testnachricht vom Fear & Greed V20 – Alarme kommen hier an.'); return send(res, 200, { ok: true }); } catch (e) { return send(res, 400, { error: e.message }); } }
   if (p === '/api/telegram/chatid' && req.method === 'POST') {
     // Chat-ID automatisch finden: Nutzer schreibt dem Bot vorher eine Nachricht
     try {
@@ -427,7 +473,7 @@ const server = http.createServer(async (req, res) => {
 });
 server.on('error', e => { if (e.code === 'EADDRINUSE') { log(`Port ${PORT} belegt – das Programm läuft schon (http://localhost:${PORT}).`); process.exit(0); } throw e; });
 server.listen(PORT, '127.0.0.1', () => {
-  log(`Fear & Greed V19 läuft: http://localhost:${PORT}`);
+  log(`Fear & Greed V20 läuft: http://localhost:${PORT}`);
   buildSite();
   const loop = async () => { await run(); setTimeout(loop, iv().data * 60e3); };
   loop();

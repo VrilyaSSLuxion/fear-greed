@@ -128,6 +128,13 @@ button, select, input { font: inherit; color: inherit; }
 .back { color: var(--muted); text-decoration: none; font-size: 13px; margin-left: auto; }
 .back:hover { color: var(--gold2); }
 .back + .seg { margin-left: 0; }
+/* V20: Reiter Fear & Greed | Liquidation Heatmap (wie auf der Hauptseite) */
+.apptabs { display: flex; align-items: center; gap: 4px; margin: 8px 18px 0; padding: 4px; border: 1px solid var(--line); border-radius: 12px; background: #140a18; width: max-content; max-width: calc(100% - 36px); }
+.apptabs > * { padding: 6px 16px; border-radius: 9px; font-weight: 800; font-size: 14px; color: #cbb8d8; text-decoration: none; letter-spacing: .02em; white-space: nowrap; }
+.apptabs > .on { background: #f6c453; color: #160b1b; }
+.apptabs > a:hover { background: #2a1a33; color: #fff; }
+.apptabs > .fgchip { font-weight: 700; color: var(--muted); border-left: 1px solid var(--line); border-radius: 0 9px 9px 0; margin-left: 6px; }
+.layout { height: calc(100vh - 66px - 64px - 44px); }
 .tg { margin-top: 12px; font-size: 12px; }
 .tg summary { cursor: pointer; color: var(--muted); }
 .tg label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); margin: 8px 0; }

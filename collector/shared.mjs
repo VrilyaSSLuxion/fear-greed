@@ -533,13 +533,55 @@ export function liqFromRows(rows, price, bin, hours) {
     for (const r of cand) { const z = zone(list, i, r); if (out.some(o => z.p >= o.lo && z.p <= o.hi)) continue; out.push(z); if (out.length >= 8) break; } return out; };
   return { price, bin, rows, longNear: zone(below, 1, nearL), shortNear: zone(above, 2, nearS), longTop: zone(below, 1, topL), shortTop: zone(above, 2, topS), longs: peaks(below, 1), shorts: peaks(above, 2), hours, updated: Date.now() };
 }
-export function liqCombine(hm, parts) {
+// V20: Heatmap-Zeitraum – nur Positionen, die in den letzten 12 Std. / 1 Tag / … eröffnet wurden (hm.exP[per][ex]); 'all' = alles (≈ 3 Wochen)
+export const HM_PER = { '12h': 12, '1d': 24, '3d': 72, '1w': 168, '2w': 336 };
+export function liqCombine(hm, parts, per) {
   if (!hm) return hm;
-  const P = (parts?.length ? parts : ['binance']).filter(p => p === 'binance' || hm.ex?.[p]?.length);
-  if (!P.length || (P.length === 1 && P[0] === 'binance')) return hm;
+  const EX = per && per !== 'all' && hm.exP?.[per] ? hm.exP[per] : null, src = EX || hm.ex || {};
+  const P = (parts?.length ? parts : ['binance']).filter(p => p === 'binance' || src[p]?.length);
+  if (!EX && (!P.length || (P.length === 1 && P[0] === 'binance'))) return hm;
   const m = new Map();
-  for (const p of P) for (const r of (p === 'binance' ? (hm.ex?.binance || hm.rows) : hm.ex[p])) { const x = m.get(r[0]) || [r[0], 0, 0]; x[1] += r[1]; x[2] += r[2]; m.set(r[0], x); }
-  return { ...liqFromRows([...m.values()].sort((a, b) => a[0] - b[0]), hm.price, hm.bin, hm.hours), src: P.join('+'), parts: P, ex: hm.ex, exState: hm.exState };
+  for (const p of P.length ? P : ['binance']) for (const r of (p === 'binance' ? (src.binance || (EX ? [] : hm.rows)) : src[p] || [])) { const x = m.get(r[0]) || [r[0], 0, 0]; x[1] += r[1]; x[2] += r[2]; m.set(r[0], x); }
+  return { ...liqFromRows([...m.values()].sort((a, b) => a[0] - b[0]), hm.price, hm.bin, EX ? HM_PER[per] : hm.hours), src: (P.length ? P : ['binance']).join('+'), parts: P.length ? P : ['binance'], ex: hm.ex, exP: hm.exP, exState: hm.exState, recMin: hm.recMin, per: EX ? per : 'all' };
+}
+/* ---------- V20: offizieller Index – eigene Grenzen (z. B. 13 / 70) ---------- */
+// Long: die offizielle Linie war auf/unter lo und geht wieder darüber → Signal am Tag des Austritts (ext = tiefster Wert, extDay = dessen Tag);
+// Short spiegelbildlich mit hi. rows: [[datum, wert], …] (Reihe wie im Chart, z. B. 7-Tage-Mittel).
+export function offExitSignals(rows, lo = 13, hi = 70) {
+  const out = []; let run = null;
+  for (const [d, v] of rows) {
+    if (v == null) continue;
+    const zone = v <= lo ? 'L' : v >= hi ? 'S' : null;
+    if (zone && run?.z === zone) { if (zone === 'L' ? v < run.ext : v > run.ext) { run.ext = v; run.extDay = d; } continue; }
+    if (run && !zone) out.push({ d, up: run.z === 'L', v, ext: run.ext, extDay: run.extDay, from: run.from, lim: run.z === 'L' ? lo : hi, kind: 'offx', type: 'exit' });
+    run = zone ? { z: zone, ext: v, extDay: d, from: d } : null;
+  }
+  return out;
+}
+// Zum offiziellen Signal das Fraktal im Kurs: Tief-Fraktal (Long) bzw. Hoch-Fraktal (Short) von „before“ Kerzen vor bis „after“ Kerzen nach dem Signal-Tag,
+// das extremste gewinnt; ohne Fraktal (fb = true) das tiefste Tief / höchste Hoch im Fenster. pr = Kurs-Kerzen [{d,h,l,c}], fr = fractals(pr, …).
+export function offFracSignals(sig, pr, fr, before = 5, after = 0) {
+  const ix = new Map(pr.map((r, i) => [r.d, i])), out = [];
+  for (const s of sig) {
+    const i = ix.get(s.d); if (i == null) continue;
+    const a = Math.max(0, i - before), b = Math.min(pr.length - 1, i + after), t = s.up ? 'lo' : 'hi';
+    const cand = fr.filter(f => f.t === t && f.i >= a && f.i <= b);
+    let best = cand.reduce((m, f) => !m || (s.up ? f.p < m.p : f.p > m.p) ? f : m, null), fb = false;
+    if (!best) { let k = a; for (let j = a; j <= b; j++) if (s.up ? pr[j].l < pr[k].l : pr[j].h > pr[k].h) k = j; best = { i: k, d: pr[k].d, c: pr[Math.min(pr.length - 1, k + after)].d, p: s.up ? pr[k].l : pr[k].h }; fb = true; }
+    out.push({ d: best.d, c: best.c || s.d, up: s.up, p: best.p, from: s.d, fb, kind: 'offf', type: 'frac' });
+  }
+  return out;
+}
+/* ---------- V20: zwei Linien kreuzen sich (z. B. Index-Linie EMA 8 × SMA 20, offizieller Index × Index-Linie) ---------- */
+// A und B: Reihen gleicher Länge (null = kein Wert); rows[i].d = Datum. up = A geht über B.
+export function seriesCross(rows, A, B) {
+  const out = [];
+  for (let i = 1; i < rows.length; i++) {
+    if (A[i] == null || A[i - 1] == null || B[i] == null || B[i - 1] == null) continue;
+    if (A[i - 1] <= B[i - 1] && A[i] > B[i]) out.push({ d: rows[i].d, i, up: true, a: A[i], b: B[i] });
+    else if (A[i - 1] >= B[i - 1] && A[i] < B[i]) out.push({ d: rows[i].d, i, up: false, a: A[i], b: B[i] });
+  }
+  return out;
 }
 
 /* ---------- Heatmap-Cluster ---------- */
@@ -677,6 +719,26 @@ function fracText(x, lang, tail, na) {
     : de ? `${up ? 'Tief' : 'Hoch'} vom ${dmyS(x.d)} bei ${P(x.p)} – bestätigt, nachdem die rechten Kerzen geschlossen haben (${dmyS(x.c)}).` : `${up ? 'Low' : 'High'} of ${dmyS(x.d)} at ${P(x.p)} – confirmed after the right candles closed (${dmyS(x.c)}).`;
   return { title, body: body + tail + na };
 }
+// V20: offizieller Index 13/70 (Austritt), Fraktal dazu, Kreuz offizieller Index × Index-Linie, Kreuz zweier Index-Linien, Fibonacci
+function offxText(x, lang, tail, na) {
+  const de = lang === 'de', ar = lang === 'ar', up = x.up, P = n => nf(n, lang), side = ar ? (up ? 'لونغ' : 'شورت') : up ? 'Long' : 'Short';
+  if (x.type === 'frac') return { title: `${up ? '🔺' : '🔻'} ${ar ? 'فركتل للمؤشر الرسمي' : de ? 'Fraktal zum offiziellen Signal' : 'Fractal for the official signal'} · ${side}`,
+    body: (ar ? `${up ? 'قاع' : 'قمة'} ${x.fb ? 'السعر' : 'فركتل'} ${dmyS(x.d)} عند ${P(x.p)} – إشارة المؤشر الرسمي ${dmyS(x.from)}.` : de ? `${x.fb ? (up ? 'Tiefster Kurs' : 'Höchster Kurs') : (up ? 'Tief-Fraktal' : 'Hoch-Fraktal')} am ${dmyS(x.d)} bei ${P(x.p)} – zum offiziellen Signal vom ${dmyS(x.from)}.` : `${x.fb ? (up ? 'Lowest price' : 'Highest price') : (up ? 'Low fractal' : 'High fractal')} on ${dmyS(x.d)} at ${P(x.p)} – for the official signal of ${dmyS(x.from)}.`) + tail + na };
+  if (x.type === 'cross') return { title: `${up ? '🟢' : '🔴'} ${ar ? 'المؤشر الرسمي يقطع' : de ? 'Offizieller Index kreuzt' : 'Official index crosses'} ${x.name} · ${side}`,
+    body: (ar ? `الخط الرسمي (${x.a}) قطع ${x.name} (${Math.round(x.b * 10) / 10}) ${up ? 'للأعلى' : 'للأسفل'} – ${dmyS(x.d)}.` : de ? `Die offizielle Linie (${x.a}) hat die ${x.name} (${Math.round(x.b * 10) / 10}) nach ${up ? 'oben' : 'unten'} gekreuzt – ${dmyS(x.d)}.` : `The official line (${x.a}) crossed the ${x.name} (${Math.round(x.b * 10) / 10}) ${up ? 'upwards' : 'downwards'} – ${dmyS(x.d)}.`) + tail + na };
+  return { title: `${up ? '🟢' : '🔴'} ${ar ? 'المؤشر الرسمي' : de ? 'Offizieller Index' : 'Official index'} ${up ? '↑ ' + x.lim : '↓ ' + x.lim} · ${side}`,
+    body: (ar ? `الخط الرسمي كان ${up ? '≤' : '≥'} ${x.lim} (الأقصى ${x.ext} في ${dmyS(x.extDay)}) وعاد الآن ${up ? 'فوق' : 'تحت'} ${x.lim} (${x.v}) – ${dmyS(x.d)}.` : de ? `Die offizielle Linie war ${up ? '≤' : '≥'} ${x.lim} (Extrem ${x.ext} am ${dmyS(x.extDay)}) und ist jetzt wieder ${up ? 'über' : 'unter'} ${x.lim} (${x.v}) – ${dmyS(x.d)}.` : `The official line was ${up ? '≤' : '≥'} ${x.lim} (extreme ${x.ext} on ${dmyS(x.extDay)}) and is now back ${up ? 'above' : 'below'} ${x.lim} (${x.v}) – ${dmyS(x.d)}.`) + tail + na };
+}
+function ilxText(x, lang, tail, na) {
+  const de = lang === 'de', ar = lang === 'ar', up = x.up;
+  return { title: `${up ? '🟢' : '🔴'} ${x.na} × ${x.nb} (${ar ? 'المؤشر' : 'Index'}) · ${ar ? (up ? 'لونغ' : 'شورت') : up ? 'Long' : 'Short'}`,
+    body: (ar ? `${x.na} (${Math.round(x.a * 10) / 10}) قطع ${x.nb} (${Math.round(x.b * 10) / 10}) في رسم المؤشر ${up ? 'للأعلى' : 'للأسفل'} – إغلاق يوم ${dmyS(x.d)}.` : de ? `${x.na} (${Math.round(x.a * 10) / 10}) hat im Index-Chart die ${x.nb} (${Math.round(x.b * 10) / 10}) nach ${up ? 'oben' : 'unten'} gekreuzt – Tagesschluss ${dmyS(x.d)}.` : `${x.na} (${Math.round(x.a * 10) / 10}) crossed the ${x.nb} (${Math.round(x.b * 10) / 10}) in the index chart ${up ? 'upwards' : 'downwards'} – daily close ${dmyS(x.d)}.`) + tail + na };
+}
+function fibText(x, lang, tail, na) {
+  const de = lang === 'de', ar = lang === 'ar', up = x.up, P = n => nf(n, lang);
+  return { title: `${up ? '🟢' : '🔴'} Fibonacci ${x.v} % · ${ar ? (up ? 'للأعلى' : 'للأسفل') : de ? (up ? 'nach oben' : 'nach unten') : (up ? 'upwards' : 'downwards')}`,
+    body: (ar ? `السعر عبر مستوى فيبوناتشي ${x.v} % (${P(x.p)}) ${up ? 'للأعلى' : 'للأسفل'}.` : de ? `Der Kurs hat die Fibonacci-Stufe ${x.v} % (${P(x.p)}) nach ${up ? 'oben' : 'unten'} gekreuzt.` : `Price crossed the Fibonacci level ${x.v} % (${P(x.p)}) ${up ? 'upwards' : 'downwards'}.`) + tail + na };
+}
 function maText(x, lang, tail, na) {
   const de = lang === 'de', ar = lang === 'ar', P = n => nf(n, lang), up = x.up, a = x.name || x.id, b = x.nameX || x.x;
   const title = `${up ? '🟢' : '🔴'} ${x.mode === 'cross' ? `${a} × ${b}` : a} · ${x.mode === 'touch' ? (ar ? 'لمس' : de ? 'berührt' : 'touched') : ar ? (up ? 'للأعلى' : 'للأسفل') : de ? (up ? 'nach oben' : 'nach unten') : (up ? 'upwards' : 'downwards')}`;
@@ -688,6 +750,8 @@ function maText(x, lang, tail, na) {
 const VWN = { de: { W: 'Wochen-VWAP', M: 'Monats-VWAP', Q: 'Quartals-VWAP', Y: 'Jahres-VWAP', close: 'Schluss kreuzt', ema8: 'EMA 8 kreuzt' }, en: { W: 'weekly VWAP', M: 'monthly VWAP', Q: 'quarterly VWAP', Y: 'yearly VWAP', close: 'close crosses', ema8: 'EMA 8 crosses' }, ar: { W: 'VWAP الأسبوعي', M: 'VWAP الشهري', Q: 'VWAP الربعي', Y: 'VWAP السنوي', close: 'الإغلاق يقطع', ema8: 'EMA 8 يقطع' } };
 function vwapText(x, lang, tail, na) {
   const de = lang === 'de', ar = lang === 'ar', N = VWN[lang] || VWN.de, up = x.up, P = n => nf(n, lang);
+  // V20: Kurs berührt den VWAP live
+  if (x.vt === 'touch') return { title: `${up ? '🟢' : '🔴'} VWAP · ${N[x.anchor]} · ${ar ? 'لمس' : de ? 'berührt' : 'touched'}`, body: (ar ? `السعر (${P(x.price)}) يلمس ${N[x.anchor]} (${P(x.vw)}) الآن – ${up ? 'من الأسفل' : 'من الأعلى'}.` : de ? `Der Kurs (${P(x.price)}) berührt gerade den ${N[x.anchor]} (${P(x.vw)}) – ${up ? 'von unten' : 'von oben'}.` : `Price (${P(x.price)}) is touching the ${N[x.anchor]} (${P(x.vw)}) now – ${up ? 'from below' : 'from above'}.`) + tail + na };
   const title = `${up ? '🟢' : '🔴'} VWAP · ${N[x.vt]} ${N[x.anchor]} · ${ar ? (up ? 'لونغ' : 'شورت') : up ? 'Long' : 'Short'}`;
   const body = ar ? `إغلاق يوم ${dmyS(x.d)}: ${x.vt === 'ema8' ? `EMA 8 (${P(x.e8)})` : `الإغلاق (${P(x.c)})`} ${up ? 'فوق' : 'تحت'} ${N[x.anchor]} (${P(x.vw)}).`
     : de ? `Tagesschluss ${dmyS(x.d)}: ${x.vt === 'ema8' ? `EMA 8 (${P(x.e8)})` : `Schluss (${P(x.c)})`} jetzt ${up ? 'über' : 'unter'} dem ${N[x.anchor]} (${P(x.vw)}).`
@@ -758,6 +822,9 @@ function alarmTextAr(kind, x) {
   if (kind === 'vwap') return vwapText(x, 'ar', tail, na);
   if (kind === 'frac') return fracText(x, 'ar', tail, na);
   if (kind === 'ma') return maText(x, 'ar', tail, na);
+  if (kind === 'offx') return offxText(x, 'ar', tail, na);
+  if (kind === 'ilx') return ilxText(x, 'ar', tail, na);
+  if (kind === 'fib') return fibText(x, 'ar', tail, na);
   if (kind === 'line') { const up = x.dir > 0; return { title: `🔔 تم عبور خط التنبيه ${x.id} ${up ? 'للأعلى' : 'للأسفل'}`, body: `تم عبور الخط الخاص ${P(x.p)} ${up ? 'من الأسفل' : 'من الأعلى'}.${tail}` }; }
   if (kind === 'phase' || kind === 'turn' || kind === 'exit') {
     const g = x.type === 'greed', who = x.official ? ' · المؤشر الرسمي' : '';
@@ -831,6 +898,9 @@ function alarmTextBase(kind, x, lang = 'de') {
   if (kind === 'vwap') return vwapText(x, lang, tail, na);
   if (kind === 'frac') return fracText(x, lang, tail, na);
   if (kind === 'ma') return maText(x, lang, tail, na);
+  if (kind === 'offx') return offxText(x, lang, tail, na);
+  if (kind === 'ilx') return ilxText(x, lang, tail, na);
+  if (kind === 'fib') return fibText(x, lang, tail, na);
   if (kind === 'line') {
     const up = x.dir > 0;
     return { title: de ? `🔔 Alarmlinie ${x.id} ${up ? 'nach oben' : 'nach unten'} gekreuzt` : `🔔 Alert line ${x.id} crossed ${up ? 'upwards' : 'downwards'}`,

@@ -1,4 +1,4 @@
-# Fear & Greed – Version 19
+# Fear & Greed – Version 20
 
 ## Starten
 
@@ -6,13 +6,31 @@
 |---|---|
 | `start.bat` | Startet das Programm (falls nicht schon aktiv) und öffnet **http://localhost:8797** |
 | `stop.bat` | Beendet das Programm |
-| `fear-greed-v19.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
+| `fear-greed-v20.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
 
-Das Programm startet automatisch mit Windows (`Fear-Greed-V19.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
+Das Programm startet automatisch mit Windows (`Fear-Greed-V20.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
 Live-Werte jede Minute (einstellbar), große Verläufe stündlich. Protokoll: `data\server.log`.
-Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 7 Minuten neu, die alten Links auf v6–v18 leiten weiter).
+Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 7 Minuten neu, die alten Links auf v6–v19 leiten weiter; Heatmap-Seite: **…/fear-greed/heatmap/**).
 
 Beim ersten Öffnen erscheint das **Handbuch** (Knopf „Handbuch“ oben rechts, abschaltbar).
+
+## Neu in V20
+- **Reiter „Fear & Greed | Liquidation Heatmap“** ganz oben; die Heatmap-Seite ist online unter …/fear-greed/heatmap/ und zeigt den aktuellen Index-Wert
+- **Heatmap:** Zeitraum 12 Std. / 1 Tag / 3 Tage / 1 Woche / 2 Wochen / Alles (≈ 3 Wochen); ab wie vielen Stunden Mitschnitt Bitget/Deribit/Hyperliquid zählen (24–168, Standard 168)
+- **Offizielle Index-Signale mit eigenen Grenzen** (Standard 13/70): Zone verlassen → Marke im Index-Chart am Tag des Verlassens, im Kurs-Chart am selben Tag plus Fraktal-Signal (Suchfenster Kerzen davor/danach); Kreuz offizielle Linie × Index-Linie; Menü ▾ für die Signalarten; Stufen-Signale getrennt schaltbar
+- **Kreuz zweier Index-Linien** (z. B. EMA 8 × SMA 20) mit Alarm (Telegram „SMA“) und Zeile im Methoden-Vergleich
+- **Stufen 68/32 und 61,8/38,2:** Linie und Signale getrennt; **Fraktale** im Index-Chart mit eigenem Menü ▾
+- **Neue Alarme:** VWAP berührt (live, je Anker 1× am Tag, auch Telegram), Fibonacci-Stufe gekreuzt (nur Browser)
+- **Menüs ▾ an „Alarmlinien“ und „Eigene Linien“**, Rechtsklick auf eine eigene Linie (ausschalten/löschen), eigener Ton je Linie
+- **Zeitraum wie TradingView:** 1T, 5T, 1M, 3M, 6M, YTD, 1J, Alle, von–bis; Erklärung beim Drüberfahren
+- **Minuten-Kerzen:** Zeitraum passt sich beim Wählen der Kerze an, deutlicher Hinweis, wenn der Verlauf nicht reicht
+- **Knopfleiste springt nicht mehr** (Zahlen mit fester Breite)
+- **Kurs-Chart:** eigene Zeitleiste unten; Zeitleiste und rechte Skala in beiden Charts ziehbar; Trennlinien wie TradingView; Skalenwerte mittig, Stufen-Werte nicht mehr versetzt; Kurszahlen „81,234 K“ (Zahnrad: 81.234 oder 81,2K); Countdown deckend
+- **Mittelung:** am Kreis 4 und 12 Std., sonst 1, 3, 7, 10, 14, 21, 30, 90, 180, 365, 1000 Tage
+- **Minimiertes Index-Fenster** zeigt jetzt seinen Titel (V19-Fehler)
+- **Ticker:** Trennstriche von oben bis unten, LONGS │ … │ USDT vs. … │ USDT │ SHORTS, „LIQUIDATIONEN“ unterstrichen, ₿ und TICK-Pfeil größer, 4H/1H/15M/5M füllen die Höhe; neu im Zahnrad: Größe ₿, TICK-Pfeil, Abstand links/rechts am Preis, Schrift der 4H-Liste
+- **Protokoll:** einzelne Binance-Liquidationen ab 5 Mio. $ stehen mit Symbol in `data\server.log` (Prüfung der auffälligen 24-h-Summe vom 22.10.2026)
+- **Handbuch:** neue Abschnitte „Offizieller Index: eigene Grenzen, Fraktal, Kreuze“ und „Daten im Aufbau / verzögert“; Ergänzungen zu Chart, Alarmen, Heatmap; Changelog V20
 
 ## Neu in V19
 - **Datenquelle ▾** (Multi / Binance / Bybit / OKX), **Vergleichszeitraum ▾** (7, 14, 30, 90, 100, 180, 365, 1000 Tage), **Währung ▾** ($ Standard, €, £, CHF, ¥, ₺, AED, SAR) – oben in der Leiste und im Zahnrad
