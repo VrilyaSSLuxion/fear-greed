@@ -1,4 +1,4 @@
-' Startet das Fear & Greed V18 Programm unsichtbar im Hintergrund (auch vom Windows-Autostart benutzt).
+' Startet das Fear & Greed V19 Programm unsichtbar im Hintergrund (auch vom Windows-Autostart benutzt).
 Set fso = CreateObject("Scripting.FileSystemObject")
 dir = fso.GetParentFolderName(WScript.ScriptFullName)
 If Not fso.FolderExists(dir & "\data") Then fso.CreateFolder(dir & "\data")

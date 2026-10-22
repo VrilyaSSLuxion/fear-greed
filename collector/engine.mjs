@@ -9,7 +9,9 @@ const ok = x => x != null && Number.isFinite(x);
 const mean = a => { const f = a.filter(ok); return f.length ? f.reduce((s, x) => s + x, 0) / f.length : null; };
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const addDays = (d, n) => dkey(Date.parse(d) + n * DAY);
+// V19: Datumsrechnung zwischengespeichert (bei 32 Varianten sonst sehr viele gleiche Umrechnungen)
+const AD = new Map();
+const addDays = (d, n) => { const k = d + '|' + n; let v = AD.get(k); if (v === undefined) { v = dkey(Date.parse(d) + n * DAY); if (AD.size > 400000) AD.clear(); AD.set(k, v); } return v; };
 
 /* ================= Bausteine ================= */
 export const COMPONENTS = [
@@ -25,6 +27,13 @@ export const COMPONENTS = [
   { id: 'dxy', side: 'right', dir: -1 }
 ];
 export const ZONES = [[75, 'xgreed'], [55, 'greed'], [45, 'neutral'], [25, 'fear'], [0, 'xfear']];
+// V19: Datenquellen × Vergleichszeiträume (Perzentil-Fenster). Schlüssel wie bisher: binance/multi = 365 Tage, sonst Quelle + Tage (z. B. binance90, bybit30)
+export const SRCS = ['multi', 'binance', 'bybit', 'okx'], WINS = [7, 14, 30, 90, 100, 180, 365, 1000];
+export const vkey = (src, W) => (src === 'binance' || src === 'multi') && +W === 365 ? src : src + W;
+export const BASE_VARIANTS = [{ key: 'binance', src: 'binance', W: 365 }, { key: 'multi', src: 'multi', W: 365 }, { key: 'binance90', src: 'binance', W: 90 }, { key: 'multi90', src: 'multi', W: 90 }];
+export const ALL_VARIANTS = [...BASE_VARIANTS, ...SRCS.flatMap(src => WINS.map(W => ({ key: vkey(src, W), src, W }))).filter(v => !BASE_VARIANTS.some(b => b.key === v.key))];
+// V19: feste Wechselkurse (an den US-Dollar gekoppelt): VAE-Dirham, Saudi-Riyal
+export const FX_PEG = { AED: 3.6725, SAR: 3.75 };
 export const zoneOf = v => ZONES.find(([t]) => v >= t)[1];
 
 /* ================= HTTP mit Warteschlange, Wiederholung und Status ================= */
@@ -208,8 +217,13 @@ async function fetchHistory(c, opt) {
       return m;
     }),
     ecb: () => src('EZB-Wechselkurse (DXY berechnet)', async () => {
-      const r = (await get('https://api.frankfurter.app/2019-06-01..?from=USD&to=EUR,JPY,GBP,CAD,SEK,CHF')).rates, m = new Map();
-      for (const [d, x] of Object.entries(r)) m.set(d, 50.14348112 * (1 / x.EUR) ** -0.576 * x.JPY ** 0.136 * (1 / x.GBP) ** -0.119 * x.CAD ** 0.091 * x.SEK ** 0.042 * x.CHF ** 0.036);
+      const r = (await get('https://api.frankfurter.app/2019-06-01..?from=USD&to=EUR,JPY,GBP,CAD,SEK,CHF,TRY')).rates, m = new Map();
+      // V19: Kurse je 1 US-Dollar auch für die Anzeigewährung (Pfund, Franken, Yen, Lira)
+      m.fx = { GBP: new Map(), CHF: new Map(), JPY: new Map(), TRY: new Map() };
+      for (const [d, x] of Object.entries(r)) {
+        m.set(d, 50.14348112 * (1 / x.EUR) ** -0.576 * x.JPY ** 0.136 * (1 / x.GBP) ** -0.119 * x.CAD ** 0.091 * x.SEK ** 0.042 * x.CHF ** 0.036);
+        for (const k of Object.keys(m.fx)) if (ok(x[k])) m.fx[k].set(d, x[k]);
+      }
       return m;
     }),
     cmc: () => src('CoinMarketCap Fear & Greed', async () => {
@@ -529,6 +543,19 @@ export async function collect(opt = {}) {
   state.own.cfgi ||= {};
   if (ok(H.cfgi)) state.own.cfgi[today] = H.cfgi;
   const cfgiHist = new Map(Object.entries(state.own.cfgi));
+  // V19: CryptoRank Fear & Greed – eigener (kostenloser) Key, sparsam abfragen (Standard stündlich, 1 Credit je Abfrage)
+  state.own.cr ||= {}; state.own.crAlt ||= {};
+  const CRN = 'CryptoRank Fear & Greed';
+  if (opt.env !== 'node') c.skip(CRN, 'in der Einzeldatei nicht abrufbar');
+  else if (!opt.cr?.key) c.skip(CRN, 'kein API-Key (optional, kostenlos)');
+  else if (now - (state.own.crAt || 0) >= (opt.cr.every || 60) * 60e3 - 30e3) {
+    state.own.crAt = now;
+    const j = await c.src(CRN, () => c.get('https://api.cryptorank.io/v2/global', { headers: { 'X-Api-Key': opt.cr.key } }));
+    const v = +j?.data?.fearGreed, a = +j?.data?.altcoinIndex;
+    if (ok(v)) { state.own.cr[today] = v; if (ok(a)) state.own.crAlt[today] = a; state.own.crOk = { ok: true }; }
+    else state.own.crOk = c.status[CRN] || { ok: false, msg: 'kein Wert' };
+  } else c.status[CRN] = { ...(state.own.crOk || { ok: true }), msg: `nächste Abfrage in ${Math.max(1, Math.round(((opt.cr.every || 60) * 60e3 - (now - state.own.crAt)) / 60e3))} Min.` };
+  const crHist = new Map(Object.entries(state.own.cr).sort((a, b) => a[0] < b[0] ? -1 : 1)), crAltHist = new Map(Object.entries(state.own.crAlt).sort((a, b) => a[0] < b[0] ? -1 : 1));
   const binOI = new Map(Object.entries(state.own.binOI)), binLS = new Map(Object.entries(state.own.binLS));
 
   const closes = rows => new Map((rows || []).map(r => [r.d, r.c]));
@@ -585,6 +612,11 @@ export async function collect(opt = {}) {
     vix: meanMaps([vixY, H.cboe]),
     dxy: meanMaps([dxyChY, dxyChE, fredCh])
   };
+  // V19: einzelne Börsen – nur Funding, Open Interest, Long/Short, RSI und Coinbase-Prämie hängen an der Börse; wo eine Börse keinen
+  // Verlauf liefert (OKX: Funding und Kerzen, kurze OI-/L/S-Verläufe), füllt der Multi-Wert die Lücke. Der Rest ist für alle Quellen gleich.
+  S.bybit = { ...S.multi, funding: fillFrom(H.bybFunding || new Map(), S.multi.funding), oi: fillFrom(H.bybOI ? changeOver(H.bybOI, 7) : new Map(), oiMulti),
+    ls: fillFrom(H.bybLS || new Map(), lsMulti), rsi: fillFrom(pick(iY, x => x.rsi), S.multi.rsi), atr: fillFrom(pick(iY, x => x.atr), S.multi.atr), cbp: fillFrom(rolling(prem([cY]), 5, mean), S.multi.cbp) };
+  S.okx = { ...S.multi, oi: fillFrom(H.okxOI ? changeOver(H.okxOI, 7) : new Map(), oiMulti), ls: fillFrom(H.okxLS || new Map(), lsMulti) };
 
   // Live-Werte für heute
   const premLive = refs => { const r = mean(refs); return ok(L.pCb) && ok(r) ? (L.pCb / r - 1) * 100 : null; };
@@ -609,15 +641,23 @@ export async function collect(opt = {}) {
       vix: [vixY.live ?? lastVal(vixY), lastVal(H.cboe)], dxy: [dxyLiveY, lastVal(dxyChE), fredCh ? lastVal(fredCh) : null]
     }
   };
+  LIVE.bybit = { ...LIVE.multi, funding: [L.fByb], oi: [oiCh(L.oiByb, H.bybOI)], ls: [L.lsByb], rsi: [iY.get(today)?.rsi], atr: [iY.get(today)?.atr],
+    cbp: [mean([premLive([L.pByb]), ...prev4(prem([cY]), today)])] };
+  LIVE.okx = { ...LIVE.multi, funding: [L.fOkx], oi: [oiCh(L.oiOkx, H.okxOI)], ls: [L.lsOkx], cbp: [mean([premLive([L.pOkx]), ...prev4(prem([cB, cY]), today)])] };
   const SRC_NAMES = {
     binance: { funding: ['Binance'], oi: ['Binance'], ls: ['Binance'], liq: ['Binance'], rsi: ['Binance'], etf: ['SoSoValue / CoinGlass'], stable: ['DefiLlama'], cbp: ['Coinbase vs Binance'], vix: ['Yahoo Finance'], dxy: [H.fred ? 'FRED (breiter Dollar-Index)' : 'Yahoo Finance'] },
     multi: { funding: ['Binance', 'Bybit', 'OKX', 'Bitget', 'Hyperliquid', 'Deribit'], oi: ['Binance', 'Bybit', 'OKX'], ls: ['Binance', 'Bybit', 'OKX'], liq: ['Binance, Bybit, OKX'], rsi: ['Binance', 'Bybit', 'Coinbase'], etf: ['SoSoValue / CoinGlass'], stable: ['DefiLlama', 'CoinGecko'], cbp: ['Coinbase vs Binance/OKX/Bybit'], vix: ['Yahoo Finance', 'CBOE'], dxy: ['Yahoo Finance', 'EZB-Kurse (berechnet)', 'FRED (breiter Dollar-Index)'] }
   };
+  SRC_NAMES.bybit = { ...SRC_NAMES.multi, funding: ['Bybit'], oi: ['Bybit'], ls: ['Bybit'], rsi: ['Bybit'], cbp: ['Coinbase vs Bybit'] };
+  SRC_NAMES.okx = { ...SRC_NAMES.multi, funding: ['OKX'], oi: ['OKX'], ls: ['OKX'], cbp: ['Coinbase vs OKX'] };
 
   // Punkte (Perzentile) für jeden Tag und für heute
   const btc = new Map(cB); if (ok(binPrice)) btc.set(today, binPrice);
   const out = { modes: {} };
-  const VARIANTS = [{ key: 'binance', src: 'binance', W: 365 }, { key: 'multi', src: 'multi', W: 365 }, { key: 'binance90', src: 'binance', W: 90 }, { key: 'multi90', src: 'multi', W: 90 }];
+  // V19: alle Quellen × Fenster (im Browser nur die vier bisherigen); Tageswerte vergangener Tage bleiben im Speicher, bis die Verläufe neu geholt werden
+  const VARIANTS = opt.env === 'node' ? ALL_VARIANTS : BASE_VARIANTS;
+  const VC = opt.cache ? (opt.cache.vc ||= {}) : {}, vstamp = (opt.cache?.t || 0) + '|' + today;
+  if (VC.stamp !== vstamp) { VC.stamp = vstamp; VC.m = {}; }
   for (const V of VARIANTS) {
     const mode = V.src, s = S[mode], live = LIVE[mode];
     const scoreAt = (id, d, val) => {
@@ -632,18 +672,23 @@ export async function collect(opt = {}) {
       return percentile(s[id], d, val, dir, V.W);
     };
     // Verlauf
-    const days = [...btc.keys()].filter(d => d >= '2019-09-01' && d < today).sort();
-    const daily = new Map(), compHist = {};
-    for (const d of days) {
-      const sc = [];
-      for (const cp of COMPONENTS) {
-        const v = cp.id === 'rsi' ? { rsi: s.rsi.get(d), atr: s.atr.get(d) } : s[cp.id].get(d);
-        const p = scoreAt(cp.id, d, v);
-        (compHist[cp.id] ||= new Map()).set(d, p);
-        if (ok(p)) sc.push(p);
+    let VH = VC.m[V.key];
+    if (!VH) {
+      const days = [...btc.keys()].filter(d => d >= '2019-09-01' && d < today).sort();
+      const daily0 = new Map(), compHist0 = {};
+      for (const d of days) {
+        const sc = [];
+        for (const cp of COMPONENTS) {
+          const v = cp.id === 'rsi' ? { rsi: s.rsi.get(d), atr: s.atr.get(d) } : s[cp.id].get(d);
+          const p = scoreAt(cp.id, d, v);
+          (compHist0[cp.id] ||= new Map()).set(d, p);
+          if (ok(p)) sc.push(p);
+        }
+        if (sc.length >= 3) daily0.set(d, mean(sc));
       }
-      if (sc.length >= 3) daily.set(d, mean(sc));
+      VH = VC.m[V.key] = { daily: daily0, compHist: compHist0 };
     }
+    const daily = new Map(VH.daily), compHist = VH.compHist;
     // heute
     const comps = [];
     for (const cp of COMPONENTS) {
@@ -670,6 +715,7 @@ export async function collect(opt = {}) {
   const alt = H.alt || new Map(), alt7 = new Map();
   for (const d of [...alt.keys()].sort()) { const w = []; for (let i = 0; i < 7; i++) { const v = alt.get(addDays(d, -i)); if (ok(v)) w.push(v); } if (w.length >= 4) alt7.set(d, Math.round(mean(w))); }
   const altNow = lastVal(alt);
+  const fxM = H.ecb?.fx || { GBP: new Map(), CHF: new Map(), JPY: new Map(), TRY: new Map() };
 
   // Backtest: 30 Tage und 24 Stunden je Zone
   const backtest = (d7, zone, horizon) => {
@@ -699,8 +745,11 @@ export async function collect(opt = {}) {
     dailyUntil: addDays(today, -1),
     env: opt.env,
     btc: { price: binPrice ?? null, ch24: L.t24?.ch ?? null },
-    official: { alt: altNow, cmc: L.cmcNow ?? (H.cmc ? lastVal(H.cmc) : null), cfgi: ok(H.cfgi) ? H.cfgi : null, coinglass: H.cgFng ? lastVal(H.cgFng) : null },
+    official: { alt: altNow, cmc: L.cmcNow ?? (H.cmc ? lastVal(H.cmc) : null), cfgi: ok(H.cfgi) ? H.cfgi : null, coinglass: H.cgFng ? lastVal(H.cgFng) : null, cr: crHist.size ? lastVal(crHist) : null },
+    crAlt: crAltHist.size ? lastVal(crAltHist) : null,
     eurusd: L.eurNow ?? (H.eur ? lastVal(H.eur) : null),
+    fx: { ...Object.fromEntries(Object.entries(fxM).map(([k, m]) => [k, m.size ? lastVal(m) : null])), ...FX_PEG },
+    variants: VARIANTS.map(({ key, src, W }) => ({ key, src, W })),
     liq24,
     poly: L.poly ? { pct: polyPct, end: L.poly.end, title: L.poly.title } : null,
     heatmap: heat,
@@ -728,10 +777,17 @@ export async function collect(opt = {}) {
   const r4 = x => ok(x) ? Math.round(x * 1e4) / 1e4 : null;
   const ohlc = new Map((binK || []).map(r => [r.d, r]));
   const R = x => ok(x) ? Math.round(x) : null, M = out.modes;
+  //   V19: 19 CryptoRank, 20 GBP, 21 CHF, 22 JPY, 23 TRY (je 1 US-Dollar, EZB, Wochenende vom Vortag), ab 24 je weitere Variante [7-Tage-Mittel, Tageswert] (result.vcols)
+  const NEWV = VARIANTS.filter(v => !BASE_VARIANTS.some(b => b.key === v.key));
+  result.vcols = { binance: { d7: 1, raw: 12 }, multi: { d7: 2, raw: 13 }, binance90: { d7: 14, raw: 16 }, multi90: { d7: 15, raw: 17 } };
+  NEWV.forEach((v, i) => result.vcols[v.key] = { d7: 24 + i * 2, raw: 25 + i * 2 });
+  const fxLast = {}, fxAt = (k, d) => { const v = fxM[k].get(d); if (ok(v)) fxLast[k] = v; return ok(fxLast[k]) ? Math.round(fxLast[k] * 1e4) / 1e4 : null; };
   result.history = allDays.map(d => { const k = ohlc.get(d); return [d, M.binance.d7.get(d) ?? null, M.multi.d7.get(d) ?? null, ok(btc.get(d)) ? Math.round(btc.get(d)) : null,
     alt.get(d) ?? null, H.cmc?.get(d) ?? null, cfgiHist.get(d) ?? null, H.cgFng?.get(d) ?? null, r4(eurM.get(d)),
     R(k?.o), R(k?.h), R(k?.l), R(M.binance.daily.get(d)), R(M.multi.daily.get(d)),
-    M.binance90.d7.get(d) ?? null, M.multi90.d7.get(d) ?? null, R(M.binance90.daily.get(d)), R(M.multi90.daily.get(d)), ok(k?.v) ? Math.round(k.v) : null]; });
+    M.binance90.d7.get(d) ?? null, M.multi90.d7.get(d) ?? null, R(M.binance90.daily.get(d)), R(M.multi90.daily.get(d)), ok(k?.v) ? Math.round(k.v) : null,
+    crHist.get(d) ?? null, fxAt('GBP', d), fxAt('CHF', d), fxAt('JPY', d), fxAt('TRY', d),
+    ...NEWV.flatMap(v => [M[v.key].d7.get(d) ?? null, R(M[v.key].daily.get(d))])]; });
   result.hourly = (L.hourly || []).map(x => [x[0], Math.round(x[1]), Math.round(x[2]), Math.round(x[3]), Math.round(x[4]), Math.round(x[5] || 0)]);
   state.lastRun = now;
   if (opt.debug) result.debug = out.debug;

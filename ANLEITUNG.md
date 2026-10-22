@@ -1,4 +1,4 @@
-# Fear & Greed – Version 18
+# Fear & Greed – Version 19
 
 ## Starten
 
@@ -6,13 +6,27 @@
 |---|---|
 | `start.bat` | Startet das Programm (falls nicht schon aktiv) und öffnet **http://localhost:8797** |
 | `stop.bat` | Beendet das Programm |
-| `fear-greed-v18.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
+| `fear-greed-v19.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
 
-Das Programm startet automatisch mit Windows (`Fear-Greed-V18.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
+Das Programm startet automatisch mit Windows (`Fear-Greed-V19.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
 Live-Werte jede Minute (einstellbar), große Verläufe stündlich. Protokoll: `data\server.log`.
-Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 10 Minuten neu, die alten Links auf v6–v17 leiten weiter).
+Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 7 Minuten neu, die alten Links auf v6–v18 leiten weiter).
 
 Beim ersten Öffnen erscheint das **Handbuch** (Knopf „Handbuch“ oben rechts, abschaltbar).
+
+## Neu in V19
+- **Datenquelle ▾** (Multi / Binance / Bybit / OKX), **Vergleichszeitraum ▾** (7, 14, 30, 90, 100, 180, 365, 1000 Tage), **Währung ▾** ($ Standard, €, £, CHF, ¥, ₺, AED, SAR) – oben in der Leiste und im Zahnrad
+- **CryptoRank** als weiterer offizieller Index (eigener kostenloser Key nur in `config.json`, Abfrage stündlich, einstellbar; Verlauf schreibt das Programm ab V19 selbst mit)
+- **Mittelung:** „1 Tag“ (Tageswert) dazu, am Kreis „4-Std-Mittel“ (aus dem Live-Index, seit 17.10.2026 mitgeschrieben); **offiziellen Index mitmitteln** (Kreis, offizielle Linie, Signale, Methode 3) – Standard an
+- **Index-Chart:** Knopfleiste „Linie | Signale“ (50er, SMA 20, Linie 2, Linie 3, Offizieller Index), Menü ▾ für Art/Länge/Farbe/Methoden je Linie, zwei weitere Linien (Standard EMA 100 / EMA 200) mit eigenen Signalen, **Methode 3 „Extrem + Kreuz“** (unser + offizieller Index im Extrem, dann Schluss über/unter der Linie, ein Signal je Extrem; offizieller Index A/B/C), **graue verworfene Kreuze** mit Grund, offizielle Signale auch hier, Linien bis an den rechten Rand mit Wert, minimiert mit Titel
+- **Fraktale** im Kurs- und Index-Chart (links/rechts, Docht/Schluss, nur extremste, Mindestabstand/-bewegung, Index-Filter, Kombination, Ausbruch-Signal, Alarm)
+- **MA-Alarme** je Linie im Menü „MA ▾“ (Schluss kreuzt, berührt live, Linie × Linie), Knopf „Signale“ zeigt die Kreuze; VWAP und 50er: Linie und Signale getrennt
+- **Tops/Böden** am Schlusskurs (wie bisher) oder am Docht
+- **Kerzen** 1/3/5/15/30 Min., 1/4 Std., Tag, Woche, Monat, Jahr; **Zeitraum** 1 Tag und 3 Tage; **Countdown** bis Kerzenschluss am Kurs-Label
+- **Ticker:** „nächster“ Cluster, Auswahl fernster/stärkster/nächster und Schriftgröße im Zahnrad, „stärkster + nächster“ in einer Zeile; Trennlinien zwischen 4H/1H/15M/5M; TICK und 24H auf einer Höhe, Pfeil mittig, gleicher Abstand oben/unten
+- **Telegram:** neue Ereignisse „Fraktale“ und „MA-Alarme“; Alarme mit der auf der Seite gewählten Datenquelle, dem Zeitraum und dem offiziellen Index
+- **Online alle 7 Minuten** (vorher 10)
+- **Handbuch:** neue Abschnitte Methode 3, Fraktale, MA-Alarme, Datenquelle/Zeitraum/Währung/CryptoRank, Mittelung & offizieller Index; Ergänzungen zu Tops/Böden, Chart, Alarmen; vollständiger Changelog V1–V19
 
 ## Neu in V18
 - **SMA-20-Signale im Index-Chart** (Knopf „SMA-Signale“): Methode 1 „Extrem“ (78,6 / 21,4, am Tageswert) und Methode 2 „Mittelbereich“ (61,8 / 38,2 + SMA über/unter 50, am 7-Tage-Mittel); Steigungsregel, 50er-Regel, Tage zurück, Mindestabstand einstellbar; Pfeile im Index- und/oder Kurs-Chart; Alarm (Browser + Telegram)

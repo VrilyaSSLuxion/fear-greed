@@ -45,6 +45,16 @@ export function mean7(H, col) {
   return rows.map((r, i) => { const w = []; for (let j = Math.max(0, i - 6); j <= i; j++) w.push(rows[j][col]); return [r[0], w.length >= 3 ? Math.round(w.reduce((a, b) => a + b) / w.length) : null, r[3]]; });
 }
 
+// V19: Spalte gemittelt wie der eigene Index (für den offiziellen Index „mitmitteln“): 1 = Tageswert, 7 = wie bisher (mean7), sonst N Werte (erst ab N Werten)
+export function avgMap(H, col, N = 7) {
+  if (N === 7) return new Map(mean7(H, col).filter(r => r[1] != null).map(r => [r[0], r[1]]));
+  const out = new Map(), q = []; let s = 0;
+  for (const r of H) { const v = r[col]; if (v == null) continue; if (N <= 1) { out.set(r[0], v); continue; } q.push(v); s += v; if (q.length > N) s -= q.shift(); if (q.length >= N) out.set(r[0], Math.round(s / N)); }
+  return out;
+}
+// V19: offizielle Indizes – Spalte im Verlauf (CryptoRank ab V19 mitgeschrieben)
+export const OFF_COL = { alt: 4, cmc: 5, cfgi: 6, coinglass: 7, cr: 19 };
+
 /* ---------- Pivots: höchstes Hoch und tiefstes Tief (danach oder im ganzen Zeitraum) ---------- */
 // Zeiträume in Tagen (Schlüssel wie im Chart-Knopf): 7T, 1M, 3M, 6M, 12M, gesamt
 export const PV_DAYS = { '7': 7, '30': 30, '91': 91, '182': 182, '365': 365, all: 99999 };
@@ -188,27 +198,59 @@ export function candleSignals(H, o = {}) {
   return out;
 }
 
+/* ---------- V19: gleitende Linie (wie maCalc auf der Seite: leere Tage werden übersprungen) ---------- */
+export function maLine(V, type = 'sma', n = 20) {
+  const out = new Array(V.length).fill(null);
+  if (type === 'ema') { const k = 2 / (n + 1); let e = null, c = 0; V.forEach((v, i) => { if (v == null) return; e = e == null ? v : v * k + e * (1 - k); if (++c >= n) out[i] = e; }); }
+  else { const q = []; let s = 0; V.forEach((v, i) => { if (v == null) return; q.push(v); s += v; if (q.length > n) s -= q.shift(); if (q.length === n) out[i] = s / n; }); }
+  return out;
+}
 /* ---------- V18: SMA-20-Signale im Index (Methode 1 „Extrem“, Methode 2 „Mittelbereich“) ---------- */
+// V19: die Linie ist frei wählbar (o.line = {type: 'sma'|'ema', n}, Standard SMA 20) – Methode 3 „Extrem + Kreuz“ dazu; o.rejects = verworfene Kreuze mit Grund
+// Methode 3: unser Index (Körper = Reihe v, oder Docht) war in den letzten „look“ Tagen ≤ lo (Long) bzw. ≥ hi (Short), optional auch der offizielle Index
+// (offMode A = der gewählte, B = mindestens einer, C = alle mit Wert; rows[i].offs = [gewählter, weitere …]); danach schließt die Kerze über/unter der Linie.
+// „once“: je Extrem nur ein Signal – neu scharf erst, wenn der Index die Grenze wieder erreicht.
 // rows: [{d, v, raw}] – v = Index-Reihe (Körper, z. B. 7-Tage-Mittel), raw = Tageswert (Docht). Nur abgeschlossene Tage übergeben (kein Repaint).
 // Signal am Tag, an dem der Index die SMA kreuzt (Schluss gestern auf der einen, heute auf der anderen Seite, optional mit Mindestabstand „dist“).
 // Vorher (bis „look“ Tage zurück) muss das Extrem erreicht sein: Short ≥ hi, Long ≤ lo – gemessen am Docht (src 'raw') oder Körper ('body').
 // mid = SMA über 50 (Short) bzw. unter 50 (Long); slope = SMA in „sd“ Tagen höchstens „sp“ Punkte gegen die Signalrichtung gelaufen.
-export const SMA_DEF = { n: 20, m1: { on: true, hi: 78.6, lo: 21.4, src: 'raw', mid: false, look: 20, slope: true, sd: 3, sp: 1, dist: 0 }, m2: { on: true, hi: 61.8, lo: 38.2, src: 'body', mid: true, look: 20, slope: true, sd: 3, sp: 1, dist: 0 } };
+export const SMA_DEF = { n: 20, m1: { on: true, hi: 78.6, lo: 21.4, src: 'raw', mid: false, look: 20, slope: true, sd: 3, sp: 1, dist: 0 }, m2: { on: true, hi: 61.8, lo: 38.2, src: 'body', mid: true, look: 20, slope: true, sd: 3, sp: 1, dist: 0 },
+  m3: { on: true, hi: 61.8, lo: 38.2, src: 'body', look: 20, off: true, offMode: 'A', offHi: 61.8, offLo: 38.2, once: true } };
+export const SMA_M = ['m1', 'm2', 'm3'];
 export function smaSignals(rows, o = {}) {
-  const n = o.n ?? 20, V = rows.map(r => r.v), out = [];
-  const S = V.map((_, i) => { if (i < n - 1) return null; let s = 0; for (let k = i - n + 1; k <= i; k++) { if (V[k] == null) return null; s += V[k]; } return s / n; });
-  for (const mk of ['m1', 'm2']) {
-    const m = { ...SMA_DEF[mk], ...(o[mk] || {}) }; if (!m.on) continue;
-    for (let i = n + m.sd; i < rows.length; i++) {
-      if (S[i] == null || S[i - 1] == null || S[i - m.sd] == null || V[i] == null || V[i - 1] == null) continue;
-      const dn = V[i - 1] >= S[i - 1] && V[i] < S[i] - m.dist, up = V[i - 1] <= S[i - 1] && V[i] > S[i] + m.dist; if (!dn && !up) continue;
+  const line = o.line || { type: 'sma', n: o.n ?? 20 }, V = rows.map(r => r.v), out = [], rej = [];
+  const S = maLine(V, line.type, line.n), r1 = x => Math.round(x * 10) / 10;
+  const MS = SMA_M.map(k => ({ k, m: { ...SMA_DEF[k], ...(o[k] || {}) } })).filter(x => x.m.on);
+  const m3 = MS.find(x => x.k === 'm3')?.m, arm = { L: false, S: false };
+  const offOk = (r, test, mode) => { const xs = (r.offs || []).filter(x => x != null), a = r.offs?.[0];
+    return mode === 'B' ? xs.some(test) : mode === 'C' ? xs.length > 0 && xs.every(test) : a != null && test(a); };
+  for (let i = 1; i < rows.length; i++) {
+    if (m3 && V[i] != null) { const e = m3.src === 'raw' ? (rows[i].raw ?? V[i]) : V[i]; if (e <= m3.lo) arm.L = true; if (e >= m3.hi) arm.S = true; }
+    if (S[i] == null || S[i - 1] == null || V[i] == null || V[i - 1] == null) continue;
+    const up = V[i - 1] <= S[i - 1] && V[i] > S[i], dn = V[i - 1] >= S[i - 1] && V[i] < S[i]; if (!up && !dn) continue;
+    const base = { d: rows[i].d, i, v: V[i], sma: r1(S[i]), kind: 'sma', up, line }, why = []; let fired = false;
+    for (const { k, m } of MS) {
       const X = rows.slice(Math.max(0, i - m.look), i + 1).map(r => m.src === 'body' ? r.v : (r.raw ?? r.v)).filter(x => x != null); if (!X.length) continue;
-      const slope = S[i] - S[i - m.sd], base = { d: rows[i].d, i, v: V[i], sma: Math.round(S[i] * 10) / 10, type: mk, kind: 'sma' };
-      if (dn && Math.max(...X) >= m.hi && (!m.mid || S[i] > 50) && (!m.slope || slope <= m.sp)) out.push({ ...base, up: false, lim: m.hi, ext: Math.max(...X) });
-      if (up && Math.min(...X) <= m.lo && (!m.mid || S[i] < 50) && (!m.slope || slope >= -m.sp)) out.push({ ...base, up: true, lim: m.lo, ext: Math.min(...X) });
+      const ext = up ? Math.min(...X) : Math.max(...X), lim = up ? m.lo : m.hi, extOk = up ? ext <= m.lo : ext >= m.hi;
+      if (k === 'm3') {
+        const w = rows.slice(Math.max(0, i - m.look), i + 1), oLim = up ? m.offLo : m.offHi;
+        const offHit = !m.off || w.some(r => offOk(r, x => up ? x <= m.offLo : x >= m.offHi, m.offMode));
+        const armed = !m.once || (up ? arm.L : arm.S);
+        if (!extOk) why.push({ m: k, r: 'ext', ext, lim }); else if (!offHit) why.push({ m: k, r: 'off', lim: oLim, mode: m.offMode }); else if (!armed) why.push({ m: k, r: 'once' });
+        else { out.push({ ...base, type: k, lim, ext, offLim: m.off ? oLim : null }); fired = true; if (up) arm.L = false; else arm.S = false; }
+        continue;
+      }
+      if (i < m.sd || S[i - m.sd] == null) continue;
+      const slope = S[i] - S[i - m.sd], midOk = !m.mid || (up ? S[i] < 50 : S[i] > 50), slopeOk = !m.slope || (up ? slope >= -m.sp : slope <= m.sp), distOk = up ? V[i] > S[i] + m.dist : V[i] < S[i] - m.dist;
+      if (!extOk) why.push({ m: k, r: 'ext', ext, lim }); else if (!midOk) why.push({ m: k, r: 'mid', sma: r1(S[i]) }); else if (!slopeOk) why.push({ m: k, r: 'slope', s: r1(slope), sp: m.sp, sd: m.sd });
+      else if (!distOk) why.push({ m: k, r: 'dist', gap: r1(Math.abs(V[i] - S[i])), dist: m.dist });
+      else { out.push({ ...base, type: k, lim, ext }); fired = true; }
     }
+    if (!fired && o.rejects) rej.push({ ...base, rej: true, why });
   }
-  return out.sort((a, b) => a.i - b.i);
+  const res = out.sort((a, b) => a.i - b.i);
+  if (o.rejects) res.rejects = rej;
+  return res;
 }
 
 /* ---------- V18: VWAP (volumengewichteter Durchschnittspreis) mit Anker wie bei TradingView ---------- */
@@ -372,16 +414,84 @@ export function divRows(H, col) { return H.filter(r => r[col] != null && r[3] !=
 
 /* ---------- Große Wendepunkte und Auswertung ---------- */
 // Zickzack auf dem Tageskurs: Hoch/Tief, sobald der Kurs um "pct" % dreht
-export function majorTurns(H, pct = 20) {
+// V19: basis 'close' = wie bisher (Schlusskurs), 'wick' = der Punkt sitzt am höchsten Hoch / tiefsten Tief (Docht) des Schwungs; die Wende selbst zählt weiter am Schlusskurs
+export function majorTurns(H, pct = 20, basis = 'close') {
   const px = H.filter(r => r[3] != null), out = []; if (px.length < 3) return out;
-  let dir = 0, hi = 0, lo = 0;
+  const W = basis === 'wick', hv = r => W ? (r[10] ?? r[3]) : r[3], lv = r => W ? (r[11] ?? r[3]) : r[3];
+  let dir = 0, hi = 0, lo = 0, hiW = 0, loW = 0;
   for (let i = 1; i < px.length; i++) {
     const p = px[i][3];
     if (p >= px[hi][3]) hi = i; if (p <= px[lo][3]) lo = i;
-    if (dir >= 0 && p <= px[hi][3] * (1 - pct / 100)) { if (dir === 1 || !out.length) out.push({ d: px[hi][0], t: 'top', p: px[hi][3] }); dir = -1; lo = i; }
-    else if (dir <= 0 && p >= px[lo][3] * (1 + pct / 100)) { if (dir === -1 || !out.length) out.push({ d: px[lo][0], t: 'bottom', p: px[lo][3] }); dir = 1; hi = i; }
+    if (hv(px[i]) >= hv(px[hiW])) hiW = i; if (lv(px[i]) <= lv(px[loW])) loW = i;
+    if (dir >= 0 && p <= px[hi][3] * (1 - pct / 100)) { if (dir === 1 || !out.length) out.push({ d: px[hiW][0], t: 'top', p: hv(px[hiW]) }); dir = -1; lo = i; loW = i; }
+    else if (dir <= 0 && p >= px[lo][3] * (1 + pct / 100)) { if (dir === -1 || !out.length) out.push({ d: px[loW][0], t: 'bottom', p: lv(px[loW]) }); dir = 1; hi = i; hiW = i; }
   }
   return out;
+}
+/* ---------- V19: Fraktale (wie „Williams Fractals“ bei TradingView) ---------- */
+// Hoch-Fraktal = Kerze, deren Hoch höher ist als die „left“ Kerzen davor und die „right“ Kerzen danach (Tief entsprechend). Erst sicher, wenn die rechten
+// Kerzen geschlossen sind (Bestätigungstag c) – kein Nachmalen. rows: [{d, h, l, c}] nur abgeschlossene Kerzen.
+// Filter: filt 'alt' = nur die extremsten (Hoch und Tief wechseln sich ab, gleiche hintereinander → nur das extremste), 'all' = alle;
+// minGap = Mindestabstand in Kerzen, minMove = Mindestbewegung seit dem letzten Gegen-Fraktal (% beim Kurs, Punkte wenn o.pts).
+export const FRAC_DEF = { left: 2, right: 2, basis: 'wick', filt: 'alt', minGap: 0, minMove: 0 };
+export function fractals(rows, o = {}) {
+  const L = Math.max(1, o.left ?? 2), R = Math.max(1, o.right ?? 2), W = (o.basis ?? 'wick') === 'wick', hv = r => W ? r.h : r.c, lv = r => W ? r.l : r.c, raw = [];
+  for (let i = L; i < rows.length - R; i++) {
+    const h = hv(rows[i]), l = lv(rows[i]); let isH = h != null, isL = l != null;
+    for (let k = i - L; k <= i + R && (isH || isL); k++) {
+      if (k === i) continue; const a = hv(rows[k]), b = lv(rows[k]);
+      if (isH && (a == null || a >= h)) isH = false;
+      if (isL && (b == null || b <= l)) isL = false;
+    }
+    if (isH) raw.push({ i, d: rows[i].d, c: rows[i + R].d, ci: i + R, t: 'hi', p: h });
+    if (isL) raw.push({ i, d: rows[i].d, c: rows[i + R].d, ci: i + R, t: 'lo', p: l });
+  }
+  const out = [], gap = +o.minGap || 0, mm = +o.minMove || 0, more = (a, b) => a.t === 'hi' ? a.p > b.p : a.p < b.p;
+  for (const f of raw) {
+    const last = out.at(-1), lastT = [...out].reverse().find(x => x.t === f.t);
+    if (o.filt !== 'all' && last && last.t === f.t) { if (more(f, last)) out[out.length - 1] = f; continue; }
+    if (gap && lastT && f.i - lastT.i < gap) { if (more(f, lastT)) out[out.lastIndexOf(lastT)] = f; continue; }
+    if (mm && last && last.t !== f.t) { const mv = o.pts ? Math.abs(f.p - last.p) : Math.abs(f.p / last.p - 1) * 100; if (mv < mm) continue; }
+    out.push(f);
+  }
+  return out;
+}
+// Ausbruch: Schlusskurs über dem letzten noch nicht gebrochenen Hoch-Fraktal (Long) bzw. unter dem letzten Tief-Fraktal (Short) – erst nach dessen Bestätigung
+export function fracBreaks(rows, fr) {
+  const out = [], byC = new Map(); for (const f of fr) (byC.get(f.ci) || byC.set(f.ci, []).get(f.ci)).push(f);
+  let hi = null, lo = null;
+  for (let i = 0; i < rows.length; i++) {
+    const c = rows[i].c;
+    if (c != null && hi && c > hi.p) { out.push({ d: rows[i].d, i, up: true, p: hi.p, from: hi.d, c, kind: 'frac', type: 'brk' }); hi = null; }
+    if (c != null && lo && c < lo.p) { out.push({ d: rows[i].d, i, up: false, p: lo.p, from: lo.d, c, kind: 'frac', type: 'brk' }); lo = null; }
+    for (const f of byC.get(i) || []) f.t === 'hi' ? hi = f : lo = f;
+  }
+  return out;
+}
+// Kurs-Fraktal nur, wenn der Index am Fraktal-Tag (± look Tage) im Extrem war (Tief ≤ lo, Hoch ≥ hi); idx = Map Datum → Index
+export function fracIdxFilter(fr, idx, o = {}) {
+  const look = o.look ?? 2, ok = (d, t) => { for (let k = -look; k <= look; k++) { const v = idx.get(sDay(d, k)); if (v != null && (t === 'lo' ? v <= o.lo : v >= o.hi)) return true; } return false; };
+  return fr.filter(f => ok(f.d, f.t));
+}
+// Kurs- und Index-Fraktal zusammen: gleiche Art innerhalb von ± days Tagen
+export function fracNear(a, b, days = 3) { return a.filter(f => b.some(g => g.t === f.t && Math.abs(Date.parse(g.d) - Date.parse(f.d)) <= days * 864e5)); }
+/* ---------- V19: Kurs kreuzt MA / MA kreuzt MA (Tagesschluss) ---------- */
+// rows: [{d, c}] abgeschlossene Tage; m: [{id, type, n, al: {mode: 'close'|'cross', dir: 'both'|'up'|'down', x: id der zweiten Linie}}]
+export function maCrossEvents(rows, mas) {
+  const C = rows.map(r => r.c), line = new Map(mas.map(m => [m.id, maLine(C, m.type, m.n)])), out = [];
+  for (const m of mas) {
+    const a = line.get(m.id), al = m.al || {}; if (!al.mode || al.mode === 'off' || al.mode === 'touch') continue;
+    const b = al.mode === 'cross' ? line.get(al.x) : C; if (!b || (al.mode === 'cross' && al.x === m.id)) continue;
+    for (let i = 1; i < rows.length; i++) {
+      if (a[i] == null || a[i - 1] == null || b[i] == null || b[i - 1] == null) continue;
+      // close: Kurs (b) kreuzt die Linie (a); cross: Linie a kreuzt Linie b
+      const [p0, p1, q0, q1] = al.mode === 'cross' ? [a[i - 1], a[i], b[i - 1], b[i]] : [b[i - 1], b[i], a[i - 1], a[i]];
+      const up = p0 <= q0 && p1 > q1, dn = p0 >= q0 && p1 < q1; if (!up && !dn) continue;
+      if ((al.dir === 'up' && !up) || (al.dir === 'down' && !dn)) continue;
+      out.push({ d: rows[i].d, i, id: m.id, up, mode: al.mode, x: al.x, ma: a[i], mb: al.mode === 'cross' ? b[i] : null, c: C[i], kind: 'ma', type: al.mode });
+    }
+  }
+  return out.sort((p, q) => p.i - q.i);
 }
 // sig: [{d, up: true = Kauf-Signal (Kurs sollte steigen)}]
 export function evalSignals(sig, H, turns, win = 14, from = null) {
@@ -541,13 +651,38 @@ function cdlText(x, lang, tail, na) {
     : `Daily candle of ${dmyS(x.d)} closed: ${nm}. Index in ${zoneTxt} (${lim}) on the candle day or up to ${lk} days before – on the candle day: ${iv}.\nConfirmation: next candle closes ${up ? 'above the high' : 'below the low'} of the pattern candle (${conf}).`;
   return { title, body: body + tail + na };
 }
-const SMAN = { de: { m1: 'Methode 1 (Extrem)', m2: 'Methode 2 (Mittelbereich)' }, en: { m1: 'Method 1 (extreme)', m2: 'Method 2 (middle range)' }, ar: { m1: 'الطريقة 1 (القصوى)', m2: 'الطريقة 2 (النطاق الأوسط)' } };
+const SMAN = { de: { m1: 'Methode 1 (Extrem)', m2: 'Methode 2 (Mittelbereich)', m3: 'Methode 3 (Extrem + Kreuz)' }, en: { m1: 'Method 1 (extreme)', m2: 'Method 2 (middle range)', m3: 'Method 3 (extreme + cross)' }, ar: { m1: 'الطريقة 1 (القصوى)', m2: 'الطريقة 2 (النطاق الأوسط)', m3: 'الطريقة 3 (القصوى + التقاطع)' } };
+export const lineName = l => `${(l?.type || 'sma').toUpperCase()} ${l?.n ?? 20}`;
 function smaText(x, lang, tail, na) {
-  const de = lang === 'de', ar = lang === 'ar', up = x.up, nm = (SMAN[lang] || SMAN.de)[x.type];
-  const title = `${up ? '🟢' : '🔴'} SMA 20 · ${nm} · ${ar ? (up ? 'لونغ' : 'شورت') : up ? 'Long' : 'Short'}`;
-  const body = ar ? `المؤشر (${x.v}) قطع SMA 20 (${x.sma}) ${up ? 'للأعلى' : 'للأسفل'} – إغلاق يوم ${dmyS(x.d)}. قبل ذلك وصل إلى ${up ? '≤' : '≥'} ${x.lim} (${x.ext}).`
-    : de ? `Index (${x.v}) hat die SMA 20 (${x.sma}) nach ${up ? 'oben' : 'unten'} gekreuzt – Tagesschluss ${dmyS(x.d)}. Vorher ${up ? '≤' : '≥'} ${x.lim} erreicht (${x.ext}).`
-    : `Index (${x.v}) crossed the SMA 20 (${x.sma}) ${up ? 'upwards' : 'downwards'} – daily close ${dmyS(x.d)}. Before it reached ${up ? '≤' : '≥'} ${x.lim} (${x.ext}).`;
+  const de = lang === 'de', ar = lang === 'ar', up = x.up, nm = (SMAN[lang] || SMAN.de)[x.type], ln = lineName(x.line);
+  const title = `${up ? '🟢' : '🔴'} ${ln} · ${nm} · ${ar ? (up ? 'لونغ' : 'شورت') : up ? 'Long' : 'Short'}`;
+  const off = x.offLim != null ? (ar ? ` والمؤشر الرسمي أيضاً ${up ? '≤' : '≥'} ${x.offLim}` : de ? `, offizieller Index ebenfalls ${up ? '≤' : '≥'} ${x.offLim}` : `, official index also ${up ? '≤' : '≥'} ${x.offLim}`) : '';
+  const body = ar ? `المؤشر (${x.v}) قطع ${ln} (${x.sma}) ${up ? 'للأعلى' : 'للأسفل'} – إغلاق يوم ${dmyS(x.d)}. قبل ذلك وصل إلى ${up ? '≤' : '≥'} ${x.lim} (${x.ext})${off}.`
+    : de ? `Index (${x.v}) hat die ${ln} (${x.sma}) nach ${up ? 'oben' : 'unten'} gekreuzt – Tagesschluss ${dmyS(x.d)}. Vorher ${up ? '≤' : '≥'} ${x.lim} erreicht (${x.ext})${off}.`
+    : `Index (${x.v}) crossed the ${ln} (${x.sma}) ${up ? 'upwards' : 'downwards'} – daily close ${dmyS(x.d)}. Before it reached ${up ? '≤' : '≥'} ${x.lim} (${x.ext})${off}.`;
+  return { title, body: body + tail + na };
+}
+// V19: Fraktal-Alarme (neues Fraktal bestätigt / Ausbruch über bzw. unter das letzte Fraktal) und MA-Alarme
+function fracText(x, lang, tail, na) {
+  const de = lang === 'de', ar = lang === 'ar', P = n => x.where === 'idx' ? String(Math.round(n)) : nf(n, lang), up = x.type === 'brk' ? x.up : x.t === 'lo';
+  const where = x.where === 'idx' ? (ar ? 'المؤشر' : 'Index') : (ar ? 'السعر' : de ? 'Kurs' : 'Price');
+  if (x.type === 'brk') {
+    const title = `${up ? '🟢' : '🔴'} ${ar ? 'كسر الفركتال' : de ? 'Fraktal-Ausbruch' : 'Fractal breakout'} · ${where} · ${ar ? (up ? 'لونغ' : 'شورت') : up ? 'Long' : 'Short'}`;
+    const body = ar ? `إغلاق يوم ${dmyS(x.d)} ${up ? 'فوق قمة' : 'تحت قاع'} الفركتال من ${dmyS(x.from)} (${P(x.p)}).`
+      : de ? `Schluss ${dmyS(x.d)} ${up ? 'über dem Hoch' : 'unter dem Tief'}-Fraktal vom ${dmyS(x.from)} (${P(x.p)}).` : `Close ${dmyS(x.d)} ${up ? 'above the high' : 'below the low'} fractal of ${dmyS(x.from)} (${P(x.p)}).`;
+    return { title, body: body + tail + na };
+  }
+  const title = `${up ? '🔺' : '🔻'} ${ar ? (up ? 'فركتال قاع' : 'فركتال قمة') : de ? (up ? 'Tief-Fraktal' : 'Hoch-Fraktal') : (up ? 'Low fractal' : 'High fractal')} · ${where}`;
+  const body = ar ? `${up ? 'قاع' : 'قمة'} ${dmyS(x.d)} عند ${P(x.p)} – مؤكد بعد إغلاق الشموع اليمنى (${dmyS(x.c)}).`
+    : de ? `${up ? 'Tief' : 'Hoch'} vom ${dmyS(x.d)} bei ${P(x.p)} – bestätigt, nachdem die rechten Kerzen geschlossen haben (${dmyS(x.c)}).` : `${up ? 'Low' : 'High'} of ${dmyS(x.d)} at ${P(x.p)} – confirmed after the right candles closed (${dmyS(x.c)}).`;
+  return { title, body: body + tail + na };
+}
+function maText(x, lang, tail, na) {
+  const de = lang === 'de', ar = lang === 'ar', P = n => nf(n, lang), up = x.up, a = x.name || x.id, b = x.nameX || x.x;
+  const title = `${up ? '🟢' : '🔴'} ${x.mode === 'cross' ? `${a} × ${b}` : a} · ${x.mode === 'touch' ? (ar ? 'لمس' : de ? 'berührt' : 'touched') : ar ? (up ? 'للأعلى' : 'للأسفل') : de ? (up ? 'nach oben' : 'nach unten') : (up ? 'upwards' : 'downwards')}`;
+  const body = x.mode === 'cross' ? (ar ? `${a} (${P(x.ma)}) قطع ${b} (${P(x.mb)}) ${up ? 'للأعلى' : 'للأسفل'} – إغلاق يوم ${dmyS(x.d)}.` : de ? `${a} (${P(x.ma)}) hat ${b} (${P(x.mb)}) nach ${up ? 'oben' : 'unten'} gekreuzt – Tagesschluss ${dmyS(x.d)}.` : `${a} (${P(x.ma)}) crossed ${b} (${P(x.mb)}) ${up ? 'upwards' : 'downwards'} – daily close ${dmyS(x.d)}.`)
+    : x.mode === 'touch' ? (ar ? `السعر لمس ${a} (${P(x.ma)}) الآن.` : de ? `Der Kurs berührt gerade die ${a} (${P(x.ma)}).` : `Price is touching the ${a} (${P(x.ma)}) now.`)
+    : (ar ? `الإغلاق (${P(x.c)}) ${up ? 'فوق' : 'تحت'} ${a} (${P(x.ma)}) – يوم ${dmyS(x.d)}.` : de ? `Tagesschluss ${dmyS(x.d)} (${P(x.c)}) jetzt ${up ? 'über' : 'unter'} der ${a} (${P(x.ma)}).` : `Daily close ${dmyS(x.d)} (${P(x.c)}) now ${up ? 'above' : 'below'} the ${a} (${P(x.ma)}).`);
   return { title, body: body + tail + na };
 }
 const VWN = { de: { W: 'Wochen-VWAP', M: 'Monats-VWAP', Q: 'Quartals-VWAP', Y: 'Jahres-VWAP', close: 'Schluss kreuzt', ema8: 'EMA 8 kreuzt' }, en: { W: 'weekly VWAP', M: 'monthly VWAP', Q: 'quarterly VWAP', Y: 'yearly VWAP', close: 'close crosses', ema8: 'EMA 8 crosses' }, ar: { W: 'VWAP الأسبوعي', M: 'VWAP الشهري', Q: 'VWAP الربعي', Y: 'VWAP السنوي', close: 'الإغلاق يقطع', ema8: 'EMA 8 يقطع' } };
@@ -621,6 +756,8 @@ function alarmTextAr(kind, x) {
   if (kind === 'cdl') return cdlText(x, 'ar', tail, na);
   if (kind === 'sma') return smaText(x, 'ar', tail, na);
   if (kind === 'vwap') return vwapText(x, 'ar', tail, na);
+  if (kind === 'frac') return fracText(x, 'ar', tail, na);
+  if (kind === 'ma') return maText(x, 'ar', tail, na);
   if (kind === 'line') { const up = x.dir > 0; return { title: `🔔 تم عبور خط التنبيه ${x.id} ${up ? 'للأعلى' : 'للأسفل'}`, body: `تم عبور الخط الخاص ${P(x.p)} ${up ? 'من الأسفل' : 'من الأعلى'}.${tail}` }; }
   if (kind === 'phase' || kind === 'turn' || kind === 'exit') {
     const g = x.type === 'greed', who = x.official ? ' · المؤشر الرسمي' : '';
@@ -692,6 +829,8 @@ function alarmTextBase(kind, x, lang = 'de') {
   if (kind === 'cdl') return cdlText(x, lang, tail, na);
   if (kind === 'sma') return smaText(x, lang, tail, na);
   if (kind === 'vwap') return vwapText(x, lang, tail, na);
+  if (kind === 'frac') return fracText(x, lang, tail, na);
+  if (kind === 'ma') return maText(x, lang, tail, na);
   if (kind === 'line') {
     const up = x.dir > 0;
     return { title: de ? `🔔 Alarmlinie ${x.id} ${up ? 'nach oben' : 'nach unten'} gekreuzt` : `🔔 Alert line ${x.id} crossed ${up ? 'upwards' : 'downwards'}`,
