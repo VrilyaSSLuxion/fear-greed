@@ -218,6 +218,8 @@ function buildSite() {
   const shared = fs.readFileSync(path.join(ROOT, 'collector', 'shared.mjs'), 'utf8').replace(/^export /gm, '');
   const html = fs.readFileSync(path.join(ROOT, 'site', 'index.html'), 'utf8').replace('/*SHARED*/', () => shared);
   fs.writeFileSync(path.join(WWW, 'index.html'), html);
+  // Liquidation Heatmap (reine Browser-App) unter /heatmap/ mitveröffentlichen
+  try { fs.cpSync(path.join(ROOT, 'site', 'heatmap'), path.join(WWW, 'heatmap'), { recursive: true }); } catch (e) { log('Heatmap nicht kopiert:', e.message); }
   const engine = fs.readFileSync(path.join(ROOT, 'collector', 'engine.mjs'), 'utf8').replace(/^export /gm, '');
   // alte Links (V6, V7) leiten auf die neue Einzeldatei weiter
   for (const v of ['v6', 'v7', 'v8', 'v9', 'v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17']) fs.writeFileSync(path.join(WWW, `fear-greed-${v}.html`), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=fear-greed-v18.html"><a href="fear-greed-v18.html">fear-greed-v18.html</a>');
@@ -261,7 +263,7 @@ function setAutostart(on) {
 }
 
 /* ---------- Webserver ---------- */
-const TYPES = { '.html': 'text/html; charset=utf-8', '.json': 'application/json', '.js': 'text/javascript', '.png': 'image/png', '.svg': 'image/svg+xml' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.json': 'application/json', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' };
 const body = req => new Promise(r => { let s = ''; req.on('data', d => s += d); req.on('end', () => { try { r(JSON.parse(s || '{}')); } catch { r({}); } }); });
 const send = (res, code, obj) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(obj)); };
 const server = http.createServer(async (req, res) => {
@@ -318,7 +320,8 @@ const server = http.createServer(async (req, res) => {
     } catch (e) { return send(res, 400, { error: e.message }); }
   }
   if (p === '/api/refresh' && req.method === 'POST') { run(); return send(res, 200, { ok: true }); }
-  const file = path.join(WWW, p === '/' ? 'index.html' : p);
+  let file = path.join(WWW, p === '/' ? 'index.html' : p);
+  if (p.endsWith('/') && p !== '/') file = path.join(file, 'index.html');
   if (!file.startsWith(WWW) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end('Nicht gefunden'); }
   res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
   fs.createReadStream(file).pipe(res);
