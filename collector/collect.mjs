@@ -52,6 +52,8 @@ const standalone = html.replace('<!--ENGINE-->', `<script>window.FG_STANDALONE =
 <script type="module">\n${engine}\nwindow.FG_ENGINE = { collect };\nwindow.dispatchEvent(new Event('fg-engine'));\n</script>`);
 fs.writeFileSync(path.join(OUT, 'fear-greed-v18.html'), standalone);
 fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
+// Liquidation Heatmap (reine Browser-App) unter /heatmap/ mitveröffentlichen
+try { fs.cpSync(path.join(ROOT, 'site', 'heatmap'), path.join(OUT, 'heatmap'), { recursive: true }); } catch (e) { console.log('Heatmap nicht kopiert:', e.message); }
 
 const m = latest.modes;
 console.log(`Fertig in ${((Date.now() - t0) / 1000).toFixed(1)} s · Index Binance ${m.binance.index} · Multi ${m.multi.index} · Offiziell ${latest.official.alt} · ${history.length} Tage Verlauf`);
