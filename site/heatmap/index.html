@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Liquidation Heatmap</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect width=%2216%22 height=%2216%22 rx=%223%22 fill=%22%23ffb23f%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="coin">
+    <div class="coin-icon" id="coinIcon">₿</div>
+    <div class="coin-name"><span id="coinName">BTC</span>/USDT LIQ</div>
+    <select id="coinSelect" class="pill" title="Coin wählen"></select>
+  </div>
+  <div class="price-big" id="priceBig">–</div>
+  <div class="chg" id="chg">–</div>
+  <div class="oi">
+    <div class="muted small">Open Interest <span id="oiSource">alle Börsen</span></div>
+    <div class="oi-val" id="oiAll">–</div>
+  </div>
+  <a class="back" href="../">← Fear &amp; Greed</a>
+  <div class="seg" id="rangeSeg">
+    <button data-range="1440">24 Std.</button>
+    <button data-range="4320" class="on">3 Tage</button>
+    <button data-range="10080">7 Tage</button>
+    <button data-range="43200">30 Tage</button>
+    <button data-range="259200">6 Monate</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="chart-card">
+    <div class="toolbar">
+      <div class="seg" id="tfSeg">
+        <button data-tf="5">5m</button>
+        <button data-tf="15">15m</button>
+        <button data-tf="60" class="on">1H</button>
+        <button data-tf="240">4H</button>
+        <button data-tf="720">12H</button>
+        <button data-tf="1440">1D</button>
+        <button data-tf="10080">1W</button>
+      </div>
+      <button class="tb" id="zoomIn">+</button>
+      <button class="tb" id="zoomOut">−</button>
+      <button class="tb on" id="autoBtn">Auto</button>
+      <button class="tb" id="fitBtn">Ganze Ansicht</button>
+    </div>
+    <div class="canvas-wrap" id="wrap">
+      <canvas id="chart"></canvas>
+      <div class="tooltip" id="tip"></div>
+      <div class="loading" id="loading">Lade Daten …</div>
+    </div>
+  </section>
+
+  <aside class="side">
+    <div class="card">
+      <div class="card-title">Stärkste Zonen jetzt</div>
+      <div id="zones" class="zones"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Einstellungen</div>
+      <div class="label">Hebel</div>
+      <div class="chips" id="levChips"></div>
+      <div class="label">Seite</div>
+      <div class="chips" id="sideChips">
+        <button class="chip on" data-side="short">Shorts</button>
+        <button class="chip on" data-side="long">Longs</button>
+      </div>
+      <div class="label">Nur neu eröffnete Positionen</div>
+      <div class="chips" id="sinceChips">
+        <button class="chip2 on" data-since="0">Alle</button>
+        <button class="chip2" data-since="1440">24 Std.</button>
+        <button class="chip2" data-since="4320">3 Tage</button>
+        <button class="chip2" data-since="10080">7 Tage</button>
+      </div>
+      <div class="label">Echte Positionen Hyperliquid</div>
+      <div class="chips" id="hlChips">
+        <button class="chip2" data-hl="0">Aus</button>
+        <button class="chip2 teal on" data-hl="1">Einblenden</button>
+      </div>
+      <div class="label">Ebenen</div>
+      <div class="chips" id="layerChips">
+        <button class="chip2 on" data-layer="volume">Volumenprofil</button>
+        <button class="chip2 on" data-layer="bubbles">Bubbles</button>
+        <button class="chip2 on" data-layer="walls">Orderbuch-Wände</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Echte Positionen Hyperliquid</div>
+      <div id="hlInfo" class="muted small">Noch keine Daten.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title row">Alarme <button class="mini" id="newAlert">+ Neuer Alarm</button></div>
+      <form id="alertForm" class="alert-form hidden" autocomplete="off">
+        <div class="chips">
+          <button type="button" class="chip2 buy on" data-dir="buy">Kauf</button>
+          <button type="button" class="chip2 sell" data-dir="sell">Verkauf</button>
+        </div>
+        <label>Auslöser
+          <select name="trigger">
+            <option value="price_above">Kurs steigt über</option>
+            <option value="price_below">Kurs fällt unter</option>
+            <option value="zone">Kurs erreicht Liquidationszone</option>
+            <option value="liq_wave">Liquidationswelle (60 s)</option>
+            <option value="big_order">Große Order</option>
+            <option value="now">Sofort verfolgen</option>
+          </select>
+        </label>
+        <label class="tv" data-for="price_above price_below">Preis <input name="tvalue" inputmode="decimal"></label>
+        <label class="tv" data-for="zone">Zone ab (Mio. $) <input name="zone_min" value="5" inputmode="decimal"></label>
+        <label class="tv" data-for="zone">Abstand höchstens (%) <input name="zone_pct" value="0.3" inputmode="decimal"></label>
+        <label class="tv" data-for="liq_wave big_order">Betrag ab (Mio. $) <input name="usd_min" value="5" inputmode="decimal"></label>
+        <div class="grid2">
+          <label>Einstieg <input name="entry" placeholder="Kurs beim Auslösen" inputmode="decimal"></label>
+          <label>Stop-Loss <input name="sl" inputmode="decimal"></label>
+          <label>TP 1 <input name="tp1" inputmode="decimal"></label>
+          <label>TP 2 <input name="tp2" inputmode="decimal"></label>
+          <label>TP 3 <input name="tp3" inputmode="decimal"></label>
+          <label>Notiz <input name="note"></label>
+        </div>
+        <div class="muted small" id="rrInfo">Tipp: Feld anklicken, dann in den Chart klicken, um den Preis zu übernehmen.</div>
+        <div class="row gap">
+          <button type="button" class="mini" id="suggestBtn">Vorschlag aus Zonen</button>
+          <button type="submit" class="mini primary">Speichern</button>
+          <button type="button" class="mini" id="cancelAlert">Abbrechen</button>
+        </div>
+        <div class="err" id="alertErr"></div>
+      </form>
+      <div id="alertList" class="alert-list"></div>
+      <details class="tg">
+        <summary>Telegram-Benachrichtigung (optional)</summary>
+        <div class="muted small">Alarme laufen, solange diese Seite offen ist. Mit Telegram kommen sie zusätzlich aufs Handy. Token und Chat-ID bleiben nur in diesem Browser gespeichert.</div>
+        <label>Bot-Token <input id="tgToken" placeholder="123456:ABC…" autocomplete="off"></label>
+        <label>Chat-ID <input id="tgChat" placeholder="z. B. 123456789" autocomplete="off"></label>
+        <button type="button" class="mini primary" id="tgSave">Speichern und Test senden</button>
+      </details>
+    </div>
+  </aside>
+</main>
+
+<footer class="bottom">
+  <div class="b-price" id="bPrice">–</div>
+  <div class="b-stand"><span class="dot"></span> <span id="stand">Stand –</span></div>
+  <div class="b-liq-label">LIQUIDATIONEN</div>
+  <div class="b-liq">
+    <div class="b-liq-row">
+      <span class="lbl">LONGS</span><span class="longs" id="liqLongs">–</span><span class="unit">USDT</span>
+      <span class="vs">vs</span>
+      <span class="shorts" id="liqShorts">–</span><span class="unit">USDT</span><span class="lbl">SHORTS</span>
+    </div>
+    <div class="b-bar"><div class="b-bar-l" id="barL"></div><div class="b-bar-s" id="barS"></div></div>
+  </div>
+  <div class="b-demo hidden" id="demoBadge">DEMO-DATEN</div>
+</footer>
+
+<div class="toasts" id="toasts"></div>
+<script src="engine.js"></script>
+<script src="alerts.js"></script>
+<script src="local.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
