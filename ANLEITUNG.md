@@ -1,18 +1,34 @@
-# Fear & Greed – Version 20
+# Fear & Greed – Version 21
+
+> **Stand 24.10.2026: Testversion.** V21 läuft zum Prüfen auf **http://localhost:8798** und online unter
+> **https://vrilyassluxion.github.io/fear-greed-test/** (Hinweis „TESTVERSION V21“). Live bleibt bis zu deinem OK V20.
+> Nach dem OK übernimmt V21 Port 8797, den Autostart und die Adresse **https://vrilyassluxion.github.io/** (Startseite) mit **…/fear-greed/** wie bisher.
 
 ## Starten
 
 | Datei | Wofür |
 |---|---|
-| `start.bat` | Startet das Programm (falls nicht schon aktiv) und öffnet **http://localhost:8797** |
+| `start.bat` | Startet das Programm (falls nicht schon aktiv) und öffnet **http://localhost:8797** (erst nach dem Umschalten) |
 | `stop.bat` | Beendet das Programm |
-| `fear-greed-v20.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
+| `fear-greed-v21.html` | Einzeldatei zum Verschicken – Doppelklick, braucht nur Browser + Internet |
 
-Das Programm startet automatisch mit Windows (`Fear-Greed-V20.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
+Nach dem Umschalten startet das Programm automatisch mit Windows (`Fear-Greed-V21.lnk`, abschaltbar im Zahnrad → „Programm auf dem PC“).
 Live-Werte jede Minute (einstellbar), große Verläufe stündlich. Protokoll: `data\server.log`.
-Online für Freunde: **https://vrilyassluxion.github.io/fear-greed/** (alle 7 Minuten neu, die alten Links auf v6–v19 leiten weiter; Heatmap-Seite: **…/fear-greed/heatmap/**).
+Website: Startseite **https://vrilyassluxion.github.io/** mit den Reitern Fear & Greed (**…/fear-greed/**, alte Links leiten weiter), Liquidation Heatmap (**…/heatmap/**), Trading Tools, YouTube und „Mehr ▾“ (Link-Seiten).
 
 Beim ersten Öffnen erscheint das **Handbuch** (Knopf „Handbuch“ oben rechts, abschaltbar).
+
+## Neu in V21
+- **Eine Website:** Startseite mit Reitern für alle Seiten; Sprache DE/EN/AR gilt überall; neue Link-Seiten (Playlisten, Strategien, Indikatoren, EA-Creators, Interviews, Kurse, Indikatoren & EAs, Broker & Börsen, Backtest-Seiten, Prop-Firmen), YouTube/Accounts neu (Liste oder Kacheln, alphabetisch, Suche), Trading Tools mit „Verknüpfungen“ (TradingView, MT4/5, MQL5, NetTime)
+- **Kurs-Chart:** Fadenkreuz frei mit Preis/Zeit an den Achsen, Schnellmenü „+“ am Preis und per Rechtsklick, **Zeichenwerkzeuge ✏️** (Linie, Strahl, senkrecht, Trendlinie, Rechteck, Fibonacci), **Heikin-Ashi**, **Asset-Auswahl** (ETH, SOL, BNB, XRP, Gold/PAXG), **Volumenprofil**, **RSI/MACD-Fenster**, **LSOB** und **FVG**, **BOS** und **Trendlinien** (auch im Index-Chart), **Impuls-Signal** mit **Backtest (TP/SL)**, Auge 👁 = alles ausblenden, Dreieck zum Verschieben des Chart-Endes, feinere Kerzen auch in älteren Ausschnitten, Raster standardmäßig aus, Kerzen höchstens so breit wie eingestellt
+- **Index-Chart:** eigene Kerzengröße + Koppeln am Chart, Index-Alarme (Rechtsklick / Leiste unter dem Kreis), offizieller Index als Kerzen, Index-VWAP, Stufen-Menüs an 68/32 und 61,8/38,2, Index-Sets, Kombi-Suche
+- **Heatmap & Cluster:** neue Börsen (Binance COIN-M, Bybit/OKX invers, Bitfinex, KuCoin, BingX, Aster, Phemex), Zeiträume bis 3 Monate (grob), Infos je Börse, Mitte-Stufen mit Ticker und Alarm, Handelsplan (Einstieg/SL/TP, optional Webhook – das Programm handelt nie selbst), Cluster-Signale (Test, mit Mitschnitt `data\clusterlog.jsonl`)
+- **Methoden-Vergleich:** Zeilen LSOB (Ablehnung/Berührung), FVG, BOS, Trendlinien-Bruch, Impuls; Schalter **„Strategie umkehren“**
+- **Neue Alarme (Browser):** BOS / Trendlinien-Bruch mit Kerzenschluss, LSOB-Signal, Impuls, Index-Alarme, Mitte-Stufen
+- **Heatmap-Seite:** Zwischenspeicher, tiefes Orderbuch für Wände, Schwellen und Farbstärke, Open Interest von mehr Börsen, Finger-Gesten, Rechtsklick-Alarm, Links zu fremden Heatmaps, Sprache
+- **Behoben:** Binance-COIN-M-Liquidationen (auch in V20), vertauschte Richtung beim Kreuz „langsame × schnelle“ Index-Linie, gestauchtes Chart 2 beim Minimieren, riesige Kerzen beim Hineinzoomen, Handy-Ansicht ohne seitliches Scrollen
+- **Handbuch:** „Neu in V21 – Überblick“ und sechs neue Abschnitte, „Für später gemerkt“ neu; ältere Handbuch-Fassungen aus der Seite entfernt (lädt schneller)
+- **Später (du lieferst):** TradingView-Code U-Turn, Foto Schnellmenü, Links (YouTube/Discord/Telegram, Inhalte der Reiter, Partner-Links)
 
 ## Neu in V20
 - **Reiter „Fear & Greed | Liquidation Heatmap“** ganz oben; die Heatmap-Seite ist online unter …/fear-greed/heatmap/ und zeigt den aktuellen Index-Wert
