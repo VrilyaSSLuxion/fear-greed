@@ -152,3 +152,20 @@ button, select, input { font: inherit; color: inherit; }
 .tg summary { cursor: pointer; color: var(--muted); }
 .tg label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); margin: 8px 0; }
 .tg input { width: 100%; min-width: 0; background: #0e0817; border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; color: var(--text); }
+/* V21b: deutlichere Rahmen (Zeiträume, Kerzen, Knöpfe, Links), größere Schrift für „BTC/USDT LIQ“ und F&G wie der Preis, nummerierte Link-Kästen */
+.seg { border: 1.5px solid #8f78a0; }
+.seg button { border: 1.5px solid #4f3b5c; }
+.seg button.on { border-color: var(--gold); }
+.seg button:hover:not(.on) { border-color: #8f78a0; }
+.coin-name { font-size: 30px; }
+#fgChip { font-size: 30px !important; padding: 4px 16px !important; font-weight: 800; }
+#newAlert, .mini { border: 1.5px solid #8f78a0 !important; }
+.hmlinks { gap: 7px; }
+.hmlinks a { display: flex; gap: 9px; align-items: center; border: 1.5px solid #8f78a0; border-radius: 9px; padding: 6px 10px; text-decoration: none !important; background: #1a0e20; transition: border-color .15s, box-shadow .15s; }
+.hmlinks a:hover { border-color: var(--gold); box-shadow: 0 0 10px #f6c45344; }
+.hmlinks b { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; background: var(--gold); color: #160b1b; align-items: center; justify-content: center; font-size: 12px; flex: none; }
+.vpcols { gap: 6px; }
+.vpcols input[type=color] { width: 38px; height: 26px; border: 1px solid #6b5578; border-radius: 6px; background: none; padding: 0; cursor: pointer; }
+label.chk { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); margin: 4px 0; }
+/* V21b: schmale Bildschirme – Zeitraum- und Kerzen-Leiste brechen um (kein seitliches Scrollen) */
+@media (max-width: 600px) { #rangeSeg, .toolbar, .toolbar .seg { flex-wrap: wrap; max-width: 100%; } }

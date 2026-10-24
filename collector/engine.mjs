@@ -388,7 +388,22 @@ async function oiOkx(get) {
   return out;
 }
 // V20: Mitschnitt-Schwelle einstellbar (recMin Stunden), Zeiträume 12 Std. … 2 Wochen (nur Positionen, die im Zeitraum eröffnet wurden)
-const HM_PER_E = { '12h': 12, '1d': 24, '3d': 72, '1w': 168, '2w': 336 };
+const HM_PER_E = { '1h': 1, '4h': 4, '12h': 12, '1d': 24, '3d': 72, '1w': 168, '2w': 336 };
+// V21b: lange Historie für 6 und 12 Monate – stündliches Open Interest von Bybit (bis 1 Jahr zurück, beim ersten Mal ~44 Abfragen, danach nur Neues)
+// und Binance-Stundenkerzen; alle 30 Minuten aufgefrischt. Wird auch als Datei für die Heatmap-Seite veröffentlicht (longHistData).
+const LH = { t: 0, oi: [], kl: [] };
+export const longHistData = () => LH;
+async function longHist(get) {
+  if (Date.now() - LH.t < 1800e3 && LH.oi.length) return LH;
+  const H = 3600e3, from = Date.now() - 366 * 864e5, have = new Map(LH.oi);
+  let end = Date.now(); const stop = LH.oi.length ? LH.oi.at(-1)[0] - 2 * H : from;
+  for (let k = 0; k < 60 && end > stop; k++) { const j = await get(`https://api.bybit.com/v5/market/open-interest?category=linear&symbol=BTCUSDT&intervalTime=1h&limit=200&endTime=${end}`); const list = j?.result?.list || []; if (!list.length) break;
+    for (const x of list) have.set(+x.timestamp, +x.openInterest); const oldest = Math.min(...list.map(x => +x.timestamp)); if (oldest >= end) break; end = oldest - 1; }
+  LH.oi = [...have.entries()].filter(x => x[0] >= from).sort((a, b) => a[0] - b[0]);
+  const kh = new Map(LH.kl.map(k => [k[0], k])); let s = LH.kl.length ? LH.kl.at(-1)[0] - 2 * H : from;
+  for (let k = 0; k < 10 && s < Date.now(); k++) { const j = await get(`https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=1500&startTime=${s}`); if (!Array.isArray(j) || !j.length) break; for (const x of j) kh.set(x[0], x.slice(0, 11)); s = j.at(-1)[0] + H; if (j.length < 1500) break; }
+  LH.kl = [...kh.values()].filter(k => k[0] >= from).sort((a, b) => a[0] - b[0]); LH.t = Date.now(); return LH;
+}
 async function liqHeatmap(get, st = null, recMin = OI_REC_MIN) {
   const [oi, taker, kl] = await Promise.all([
     get('https://fapi.binance.com/futures/data/openInterestHist?symbol=BTCUSDT&period=1h&limit=500'),
@@ -424,6 +439,11 @@ async function liqHeatmap(get, st = null, recMin = OI_REC_MIN) {
     const dM = { binance: new Map((Array.isArray(bo) ? bo : []).map(x => [hourOf(x.timestamp), +x.sumOpenInterest])), bybit: new Map((yo?.result?.list || []).map(x => [hourOf(+x.timestamp), +x.openInterest])) };
     for (const [per, days] of [['1mo', 30], ['3mo', 91]]) { out.exP[per] = {}; for (const [ex, m] of Object.entries(dM)) if (m.size >= Math.min(25, days * 0.8) || (ex === 'binance' && per === '1mo' && m.size >= 25)) out.exP[per][ex] = liqMap(liqLevels(m, new Map(), kd, hNow - days * 864e5), kl).rows; }
   } catch { }
+  // V21b: 6 und 12 Monate aus stündlichem Bybit-Open-Interest (grob: nur eine Börse, Käufer-Anteil vor 30 Tagen unbekannt = halb/halb)
+  try { const L = await longHist(get);
+    if (L.oi.length > 24 * 60 && L.kl.length > 24 * 60) { const bm = new Map(L.oi.map(([t, v]) => [hourOf(t), v]));
+      for (const [per, days] of [['6mo', 182], ['1y', 365]]) out.exP[per] = { bybit: liqMap(liqLevels(bm, tkM, L.kl, hNow - days * 864e5), kl).rows };
+      out.longH = { from: L.oi[0][0], hours: L.oi.length }; } } catch { }
   return out;
 }
 function liqLevels(oiM, tkM, kl, fromT = 0) {

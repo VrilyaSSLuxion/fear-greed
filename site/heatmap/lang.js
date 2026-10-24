@@ -22,7 +22,11 @@
     'Alarme laufen, solange diese Seite offen ist. Mit Telegram kommen sie zusätzlich aufs Handy. Token und Chat-ID bleiben nur in diesem Browser gespeichert.': ['Alerts run while this page is open. With Telegram they also reach your phone. Token and chat ID stay in this browser only.', 'تعمل التنبيهات طالما الصفحة مفتوحة. مع تيليغرام تصل أيضاً إلى الهاتف. يبقى الرمز ومعرّف المحادثة في هذا المتصفح فقط.'],
     'Speichern und Test senden': ['Save and send test', 'حفظ وإرسال اختبار'], 'Stand –': ['As of –', 'حتى –'], 'LIQUIDATIONEN': ['LIQUIDATIONS', 'التصفيات'], 'DEMO-DATEN': ['DEMO DATA', 'بيانات تجريبية'],
     'Coin wählen': ['Choose coin', 'اختر العملة'], 'Kurs beim Auslösen': ['Price when triggered', 'السعر عند التفعيل'], 'z. B. 123456789': ['e.g. 123456789', 'مثلاً 123456789'],
-    '🟢 Kauf-Alarm hier': ['🟢 Buy alert here', '🟢 تنبيه شراء هنا'], '🔴 Verkauf-Alarm hier': ['🔴 Sell alert here', '🔴 تنبيه بيع هنا'], 'Ausgelöst: ': ['Triggered: ', 'تم التفعيل: ']
+    '🟢 Kauf-Alarm hier': ['🟢 Buy alert here', '🟢 تنبيه شراء هنا'], '🔴 Verkauf-Alarm hier': ['🔴 Sell alert here', '🔴 تنبيه بيع هنا'], 'Ausgelöst: ': ['Triggered: ', 'تم التفعيل: '],
+    '12 Std.': ['12 h', '12 ساعة'], '1 Jahr': ['1 year', 'سنة'], 'Lade lange Historie (Stundenwerte) …': ['Loading long history (hourly) …', 'جارٍ تحميل السجل الطويل (بالساعة) …'],
+    'Volumenprofil – Farben (Kauf · Verkauf · POC · VAH/VAL)': ['Volume profile – colours (buy · sell · POC · VAH/VAL)', 'ملف الحجم – الألوان (شراء · بيع · POC · VAH/VAL)'],
+    'VAH- und VAL-Linie (Value Area 70 %)': ['VAH and VAL lines (value area 70 %)', 'خطا VAH و VAL (منطقة القيمة 70 %)'], 'POC/VAH/VAL über den ganzen Chart': ['POC/VAH/VAL across the whole chart', 'POC/VAH/VAL عبر الرسم كله'],
+    'Deckkraft in der Value Area · außerhalb': ['Opacity inside the value area · outside', 'الشفافية داخل منطقة القيمة · خارجها']
   };
   var RX = [[/^🔔 Preis-Alarm \((über|unter) /, function (m, a) { return [['🔔 Price alert (' + (a === 'über' ? 'above' : 'below') + ' '], ['🔔 تنبيه سعر (' + (a === 'über' ? 'فوق' : 'تحت') + ' ']]; }],
     [/^Preis /, function () { return [['Price '], ['السعر ']]; }], [/^Geschätzt offen /, function () { return [['Est. open '], ['مفتوح تقديرياً ']]; }], [/^Schluss /, function () { return [['Close '], ['الإغلاق ']]; }]];

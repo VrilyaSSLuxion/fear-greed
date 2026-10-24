@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { collect, vkey, BASE_VARIANTS, SRCS, WINS } from './collector/engine.mjs';
+import { collect, vkey, BASE_VARIANTS, SRCS, WINS, longHistData } from './collector/engine.mjs';
 import { tradePlan, tradePlanText, TPLAN_DEF, liqUsd, methodSignals, phaseSignals, trig, trendInfo, applyTrend, mean7, divergences, divRows, clusterSet, heatEvents, alarmText, touchTrack, nextCluster, pivotEvents, pivotPayload, fiftySignals, F50_TYPES, candleSignals, CDL_TYPES, smaSignals, SMA_DEF, vwapSignals, liqCombine, hmParts,
   avgMap, OFF_COL, fractals, fracBreaks, fracIdxFilter, fracNear, FRAC_DEF, maCrossEvents, maLine, lineName, offExitSignals, offFracSignals, seriesCross, HM_PER, vwapCalc } from './collector/shared.mjs';
 
@@ -371,6 +371,12 @@ function buildSite() {
   // V21: übrige Seiten der Website (Startseite, Reiter, gemeinsame Leiste nav.js/nav.css) und die Heatmap unter /heatmap/
   try { fs.cpSync(path.join(ROOT, 'site', 'www'), WWW, { recursive: true }); } catch (e) { log('Website-Seiten nicht kopiert:', e.message); }
   try { fs.cpSync(path.join(ROOT, 'site', 'heatmap'), path.join(WWW, 'heatmap'), { recursive: true }); } catch (e) { log('Heatmap nicht kopiert:', e.message); }
+  // V21b: lange Historie für die Heatmap-Seite (bis 1 Jahr Stundenwerte: Binance-Kerzen mit Volumen/Käufer-Volumen + Open Interest von Bybit in Dollar)
+  try { const L = longHistData();
+    if (L.kl.length && L.oi.length) { const oiM = new Map(L.oi);
+      const rows = L.kl.map(k => { const t = +k[0], c = +k[4], oi = oiM.get(t); return [Math.floor(t / 60000), +(+k[1]).toFixed(1), +(+k[2]).toFixed(1), +(+k[3]).toFixed(1), +c.toFixed(1), Math.round(+k[7] || 0), Math.round(+k[10] || 0), oi ? Math.round(oi * c) : null]; });
+      fs.mkdirSync(path.join(WWW, 'heatmap', 'data'), { recursive: true });
+      fs.writeFileSync(path.join(WWW, 'heatmap', 'data', 'hist-BTC.json'), JSON.stringify({ updated: Date.now(), src: 'Binance 1h + Bybit OI 1h', rows })); } } catch (e) { log('Heatmap-Historie nicht geschrieben:', e.message); }
   // alte Adresse …/fear-greed/heatmap/ leitet auf …/heatmap/ weiter
   const redir = to => `<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${to}"><a href="${to}">${to}</a>`;
   fs.mkdirSync(path.join(FGW, 'heatmap'), { recursive: true }); fs.writeFileSync(path.join(FGW, 'heatmap', 'index.html'), redir('../../heatmap/'));

@@ -25,11 +25,13 @@
   </div>
   <span class="back"></span>
   <div class="seg" id="rangeSeg">
+    <button data-range="720">12 Std.</button>
     <button data-range="1440">24 Std.</button>
     <button data-range="4320" class="on">3 Tage</button>
     <button data-range="10080">7 Tage</button>
     <button data-range="43200">30 Tage</button>
     <button data-range="259200">6 Monate</button>
+    <button data-range="525600">1 Jahr</button>
   </div>
 </header>
 
@@ -97,6 +99,12 @@
       <input type="range" id="intenR" min="0.3" max="3" step="0.05" class="rng">
       <div class="label">Breite Volumenprofil <span class="muted" id="profRV"></span></div>
       <input type="range" id="profR" min="40" max="260" step="10" class="rng">
+      <div class="label">Volumenprofil – Farben (Kauf · Verkauf · POC · VAH/VAL)</div>
+      <div class="chips vpcols"><input type="color" data-vpc="up" title="Kauf-Volumen"><input type="color" data-vpc="dn" title="Verkauf-Volumen"><input type="color" data-vpc="poc" title="POC"><input type="color" data-vpc="va" title="VAH/VAL"></div>
+      <label class="chk"><input type="checkbox" data-vpc="vaL"> VAH- und VAL-Linie (Value Area 70 %)</label>
+      <label class="chk"><input type="checkbox" data-vpc="ext"> POC/VAH/VAL über den ganzen Chart</label>
+      <div class="label">Deckkraft in der Value Area · außerhalb</div>
+      <input type="range" data-vpc="vaO" min="0.1" max="1" step="0.05" class="rng"><input type="range" data-vpc="oO" min="0" max="0.8" step="0.05" class="rng">
       <div class="label">Orderbuch-Wände ab (Mio. $)</div>
       <input id="wallIn" inputmode="decimal" class="numin">
       <div class="muted small">Aus dem tiefen Orderbuch (1000 Stufen, alle 15 s), in Preis-Fächern von 0,05 % zusammengefasst.</div>
@@ -108,12 +116,12 @@
     <!-- V21: direkte Links zu anderen Heatmaps -->
     <div class="card">
       <div class="card-title">Andere Heatmaps</div>
-      <div class="links">
-        <a href="https://www.coinglass.com/pro/futures/LiquidationHeatMap" target="_blank" rel="noopener">CoinGlass – Liquidation Heatmap ↗</a>
-        <a href="https://coinank.com/liqHeatMapChart" target="_blank" rel="noopener">CoinAnk – Liquidation Heatmap ↗</a>
-        <a href="https://coinmarketcap.com/charts/liquidation-heatmap/" target="_blank" rel="noopener">CoinMarketCap – Liquidation Heatmap ↗</a>
-        <a href="https://liquidate.fun" target="_blank" rel="noopener">liquidate.fun ↗</a>
-        <a href="https://kiyotaka.ai" target="_blank" rel="noopener">Kiyotaka ↗</a>
+      <div class="links hmlinks">
+        <a href="https://coinank.com/liqHeatMapChart" target="_blank" rel="noopener"><b>1</b> CoinAnk – Liquidation Heatmap ↗</a>
+        <a href="https://www.coinglass.com/pro/futures/LiquidationHeatMap" target="_blank" rel="noopener"><b>2</b> CoinGlass – Liquidation Heatmap ↗</a>
+        <a href="https://coinmarketcap.com/charts/liquidation-heatmap/" target="_blank" rel="noopener"><b>3</b> CoinMarketCap – Liquidation Heatmap ↗</a>
+        <a href="https://kiyotaka.ai" target="_blank" rel="noopener"><b>4</b> Kiyotaka ↗</a>
+        <a href="https://liquidate.fun" target="_blank" rel="noopener"><b>5</b> liquidate.fun ↗</a>
       </div>
       <div class="muted small">Fremde Seiten mit eigenen Modellen – zum Vergleich. Andere Modelle, andere Ergebnisse.</div>
     </div>
@@ -197,12 +205,13 @@
 (() => {
   const Z = [[75, 'Extreme Gier', '#22d3a6'], [55, 'Gier', '#7fe0a0'], [45, 'Neutral', '#ffd36b'], [25, 'Angst', '#ff9a5a'], [0, 'Extreme Angst', '#ff4d6d']];
   const load = () => fetch('../fear-greed/data/latest.json', { cache: 'no-store' }).then(r => r.json()).then(j => {
-    /* V21: gleiche Variante wie die Fear-&-Greed-Seite (Binance, 90 Tage) */ const m = j.modes?.binance90 || j.modes?.binance; if (m?.index == null) return; const z = Z.find(x => m.index >= x[0]);
+    /* V21: gleiche Variante wie die Fear-&-Greed-Seite (Binance, 90 Tage) */ const m = j.modes?.binance90 || j.modes?.binance; window.FG_LIQ24 = j.liq24 || null; if (m?.index == null) return; const z = Z.find(x => m.index >= x[0]);
     const el = document.getElementById('fgChip'); el.innerHTML = `F&amp;G <b style="color:${z[2]}">${m.index}</b> · ${z[1]}`;
   }).catch(() => { });
   load(); setInterval(load, 600000);
 })();
 </script>
+<script src="manual.js"></script>
 <script src="lang.js"></script>
 <script src="../nav.js"></script>
 </body>

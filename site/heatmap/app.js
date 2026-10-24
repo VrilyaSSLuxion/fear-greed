@@ -14,6 +14,8 @@ const COLORS = { green: "#22d3a6", red: "#ff4d6d", teal: "#2de0c8", gold: "#ffb2
 const LS = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } };
 const LSset = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
 S.grid = LS("hm_grid", "0") === "1"; S.inten = +LS("hm_inten", "1") || 1; S.profW = +LS("hm_profw", "110") || 110;
+// V21b: Farben und Linien des Volumenprofils (Kauf, Verkauf, POC, VAH/VAL, Deckkraft in/außerhalb der Value Area)
+const VPC = Object.assign({ up: "#2de0c8", dn: "#ff4d6d", poc: "#ffd36b", va: "#7aa7ff", vaL: true, ext: false, vaO: 0.4, oO: 0.18 }, (() => { try { return JSON.parse(LS("hm_vpc", "{}")) || {}; } catch (e) { return {}; } })());
 const AXIS_W = 70, PROF_W = 150, BOTTOM_H = 28;
 const DAYS = ["So.", "Mo.", "Di.", "Mi.", "Do.", "Fr.", "Sa."];
 
@@ -310,12 +312,15 @@ function drawVolumeProfile(r) {
     const y = yOf(S.data.pmin + (i + 0.5) / rows * (S.data.pmax - S.data.pmin)); if (y < -2 || y > r.h + 2) continue;
     const wb = vp.buy[i] / mx * maxW, ws = vp.sell[i] / mx * maxW;
     const inVA = i >= vp.val && i <= vp.vah;
-    ctx.fillStyle = inVA ? "rgba(45,224,200,.38)" : "rgba(45,224,200,.18)"; ctx.fillRect(0, y - rh / 2, wb, rh);
-    ctx.fillStyle = inVA ? "rgba(255,77,109,.38)" : "rgba(255,77,109,.18)"; ctx.fillRect(wb, y - rh / 2, ws, rh);
+    ctx.globalAlpha = inVA ? VPC.vaO : VPC.oO; ctx.fillStyle = VPC.up; ctx.fillRect(0, y - rh / 2, wb, rh);
+    ctx.fillStyle = VPC.dn; ctx.fillRect(wb, y - rh / 2, ws, rh); ctx.globalAlpha = 1;
   }
-  const yp = yOf(S.data.pmin + (vp.poc + 0.5) / rows * (S.data.pmax - S.data.pmin));
-  ctx.strokeStyle = "rgba(255,211,107,.8)"; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(0, yp); ctx.lineTo(maxW + 30, yp); ctx.stroke(); ctx.setLineDash([]);
-  ctx.fillStyle = "rgba(255,211,107,.9)"; ctx.font = "10px Inter, sans-serif"; ctx.textAlign = "left"; ctx.fillText("POC", maxW + 34, yp);
+  // V21b: POC, VAH und VAL wie TradingView (Linien bis an den rechten Rand auf Wunsch), Farben in den Einstellungen
+  const yAt = (row) => yOf(S.data.pmin + row / rows * (S.data.pmax - S.data.pmin)), pAt = (row) => S.data.pmin + row / rows * (S.data.pmax - S.data.pmin);
+  const line = (y, col, txt, dash) => { if (y < -2 || y > r.h + 2) return; ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(VPC.ext ? r.w : maxW + 30, y); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1;
+    ctx.fillStyle = col; ctx.font = "bold 10.5px Inter, sans-serif"; ctx.textAlign = "left"; ctx.fillText(txt, maxW + 34, y - 2); };
+  line(yAt(vp.poc + 0.5), VPC.poc, "POC " + fmtPrice(pAt(vp.poc + 0.5)), [2, 3]);
+  if (VPC.vaL) { line(yAt(vp.vah + 1), VPC.va, "VAH " + fmtPrice(pAt(vp.vah + 1)), [5, 4]); line(yAt(vp.val), VPC.va, "VAL " + fmtPrice(pAt(vp.val)), [5, 4]); }
 }
 function drawProfiles(r) {
   const d = S.data, rows = d.rows, x0 = r.w, mid = x0 + 52;
@@ -423,7 +428,9 @@ function renderState() {
   else if (s.oi_binance) { $("oiAll").textContent = fmtUsd(s.oi_binance); $("oiSource").textContent = "Binance"; }
   const d = new Date(s.updated_ms || Date.now());
   $("stand").textContent = `Stand ${pad2(d.getHours())}:${pad2(d.getMinutes())} · jede Minute neu`;
-  const L = s.liq24.longs, Sh = s.liq24.shorts, tot = L + Sh || 1;
+  // V21b: bei Bitcoin die 24-Stunden-Summen vom PC-Programm (wie im Fear-&-Greed-Ticker) – vorher nur ab dem Öffnen der Seite gezählt, darum oft 0
+  const FL = s.coin === "BTC" && window.FG_LIQ24 ? (window.FG_LIQ24.binance || window.FG_LIQ24.multi) : null;
+  const L = FL ? FL.L : s.liq24.longs, Sh = FL ? FL.S : s.liq24.shorts, tot = L + Sh || 1;
   $("liqLongs").textContent = Math.round(L).toLocaleString("de-DE"); $("liqShorts").textContent = Math.round(Sh).toLocaleString("de-DE");
   $("barL").style.width = (L / tot * 100) + "%"; $("barS").style.width = (Sh / tot * 100) + "%";
   const hl = s.hl || {};
@@ -461,7 +468,8 @@ function segHandler(id, attr, fn) {
 }
 function setup() {
   segHandler("tfSeg", "tf", (v) => { S.tf = +v; loadChart(true); });
-  segHandler("rangeSeg", "range", (v) => { S.range = +v; loadChart(true); });
+  // V21b: lange Zeiträume brauchen größere Kerzen (höchstens ~2500 Kerzen) – Kerzengröße passt sich an
+  segHandler("rangeSeg", "range", (v) => { S.range = +v; if (S.range / S.tf > 2500) { const ok = [5, 15, 60, 240, 720, 1440, 10080].find((x) => S.range / x <= 2500) || 10080; S.tf = ok; document.querySelectorAll("#tfSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.tf === ok)); } loadChart(true); });
   segHandler("sinceChips", "since", (v) => { S.since = +v; loadChart(); });
   segHandler("hlChips", "hl", (v) => { S.hl = v === "1"; draw(); });
   $("levChips").innerHTML = S.meta.leverages.map((l) => `<button class="chip on" data-lev="${l}">${l}x</button>`).join("");
@@ -595,6 +603,9 @@ function setupV21() {
   const rng = (id, key, sk, fn) => { const el = $(id); if (!el) return; el.value = S[sk]; const out = $(id + "V"); const show = () => { if (out) out.textContent = fn ? fn(+el.value) : el.value; }; show();
     el.addEventListener("input", () => { S[sk] = +el.value; LSset(key, el.value); show(); if (sk === "inten" && S.data) buildHeatImage(); draw(); }); };
   rng("intenR", "hm_inten", "inten", (v) => Math.round(v * 100) + " %"); rng("profR", "hm_profw", "profW", (v) => v + " px");
+  // V21b: Volumenprofil-Farben und -Linien
+  document.querySelectorAll("[data-vpc]").forEach((el) => { const k = el.dataset.vpc; if (el.type === "checkbox") el.checked = !!VPC[k]; else el.value = VPC[k];
+    el.addEventListener(el.type === "checkbox" ? "change" : "input", () => { VPC[k] = el.type === "checkbox" ? el.checked : el.type === "range" ? +el.value : el.value; LSset("hm_vpc", JSON.stringify(VPC)); draw(); }); });
   for (const [id, key, d] of [["wallIn", "hm_wall", "1.5"], ["bubIn", "hm_bub", "0.25"]]) { const el = $(id); if (!el) continue; el.value = LS(key, d);
     el.addEventListener("change", () => { const v = parseFloat(String(el.value).replace(",", ".")); if (v > 0) LSset(key, String(v)); }); }
 }

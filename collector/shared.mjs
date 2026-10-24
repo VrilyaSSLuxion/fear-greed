@@ -536,7 +536,7 @@ export function liqFromRows(rows, price, bin, hours) {
   return { price, bin, rows, longNear: zone(below, 1, nearL), shortNear: zone(above, 2, nearS), longTop: zone(below, 1, topL), shortTop: zone(above, 2, topS), longs: peaks(below, 1), shorts: peaks(above, 2), hours, updated: Date.now() };
 }
 // V20: Heatmap-Zeitraum – nur Positionen, die in den letzten 12 Std. / 1 Tag / … eröffnet wurden (hm.exP[per][ex]); 'all' = alles (≈ 3 Wochen)
-export const HM_PER = { '12h': 12, '1d': 24, '3d': 72, '1w': 168, '2w': 336, '1mo': 720, '3mo': 2184 };
+export const HM_PER = { '1h': 1, '4h': 4, '12h': 12, '1d': 24, '3d': 72, '1w': 168, '2w': 336, '1mo': 720, '3mo': 2184, '6mo': 4380, '1y': 8760 };
 // V20: Dollar-Wert einer Binance-Liquidation (!forceOrder@arr). COIN-M-Kontrakte (z. B. BTCUSD_PERP, ETHUSD_251226) zählen in Kontrakten
 // zu 100 $ (BTC) bzw. 10 $ (alle anderen) – vorher Kontrakte × Kurs gerechnet, dadurch rund 800× zu hoch. USDⓈ-M: Menge in Coins × Durchschnittspreis.
 export function liqUsd(o) { const q = +o.z || +o.q || 0; return /USD_(PERP|\d{6})$/.test(o.s || '') ? q * (/^BTCUSD_/.test(o.s) ? 100 : 10) : q * +(o.ap || o.p || 0); }

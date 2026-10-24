@@ -38,6 +38,20 @@ const Local = (() => {
   // V21: Schwellen aus den Einstellungen der Seite (Mio. $), sonst wie bisher je Coin
   const setNum = (k) => { try { const v = parseFloat(localStorage.getItem(k)); return v > 0 ? v * 1e6 : null; } catch (e) { return null; } };
 
+  // V21b: lange Historie (bis 1 Jahr, Stundenwerte) vom PC-Programm – Binance-Stundenkerzen und Open Interest von Bybit; nur Bitcoin.
+  // Die Stundenzeilen kommen VOR die 30 Tage Minutenkerzen; das Open Interest wird an der Nahtstelle auf das Binance-Niveau angeglichen (es zählen nur die Änderungen).
+  async function withLongHist(coin, rows) {
+    if (coin !== "BTC" || !rows.length) return rows;
+    try {
+      statusText = "Lade lange Historie (Stundenwerte) …";
+      const j = await getJson("./data/hist-BTC.json?t=" + Math.floor(Date.now() / 600000), {}, 1), H = Array.isArray(j && j.rows) ? j.rows : [];
+      const first = rows[0][0], old = H.filter((r) => r[0] + 60 <= first); if (!old.length) return rows;
+      const okv = (v) => v != null && isFinite(v) && v > 0, fo = rows.find((r) => okv(r[7])), lo = [...old].reverse().find((r) => okv(r[7]));
+      const f = fo && lo ? fo[7] / lo[7] : 1;
+      window.HM_LONGH = { from: old[0][0] * 60000, hours: old.length };
+      return old.map((r) => [r[0], r[1], r[2], r[3], r[4], r[5] || 0, r[6] || 0, okv(r[7]) ? r[7] * f : NaN]).concat(rows);
+    } catch (e) { return rows; }
+  }
   // ------------------------------------------------------------------ Binance Historie
   async function binanceHistory(coin, days) {
     const sym = coin + "USDT";
@@ -278,7 +292,7 @@ const Local = (() => {
     try {
       if (DEMO) { m.bootstrap(demoHistory(coin, HISTORY_DAYS)); demoExtras(coin); demoStream(coin); }
       else {
-        const rows = await binanceHistory(coin, HISTORY_DAYS);
+        const rows = await withLongHist(coin, await binanceHistory(coin, HISTORY_DAYS));
         statusText = `Berechne ${coin}-Heatmap …`; await sleep(30);
         m.bootstrap(rows);
         binanceStream(coin); depthLoop(coin);

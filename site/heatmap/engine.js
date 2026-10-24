@@ -76,7 +76,8 @@ class SymbolModel {
       this.oi.push(oi[i]);
       const d = i ? oi[i] - oi[i - 1] : 0;
       const red = d < 0 && isFinite(d) ? Math.min(0.9, -d / Math.max(oi[i - 1], 1)) : 0;
-      lf += Math.log1p(-red) + this.decay; this.logf.push(lf);
+      // V21b: Zerfall je Zeitabstand (ältere Stundenzeilen der langen Historie zählen 60 Minuten, nicht 1)
+      lf += Math.log1p(-red) + this.decay * (i ? Math.max(1, Math.min(1440, rows[i][0] - rows[i - 1][0])) : 1); this.logf.push(lf);
       if (d > 0) this._newSegments(n0 + i, d);
     }
     this._resolveEndsBulk();
@@ -110,12 +111,13 @@ class SymbolModel {
 
   addMinute(minute, o, h, l, c, vol, tb, oiUsd) {
     if (this.n && minute <= this.t.last) return;
+    const dtM = this.n ? Math.max(1, Math.min(1440, minute - this.t.last)) : 1;   // V21b: Zerfall je Zeitabstand
     const prevOi = this.oi.n ? this.oi.last : NaN;
     if (oiUsd == null || isNaN(oiUsd)) oiUsd = prevOi;
     this.t.push(minute); this.o.push(o); this.h.push(h); this.l.push(l); this.c.push(c); this.vol.push(vol); this.tb.push(tb); this.oi.push(oiUsd);
     const d = isNaN(prevOi) || isNaN(oiUsd) ? 0 : oiUsd - prevOi;
     const red = d < 0 ? Math.min(0.9, -d / Math.max(prevOi, 1)) : 0;
-    this.logf.push((this.logf.n ? this.logf.last : 0) + Math.log1p(-red) + this.decay);
+    this.logf.push((this.logf.n ? this.logf.last : 0) + Math.log1p(-red) + this.decay * dtM);
     const i = this.n - 1;
     const keep = [];
     for (const s of this.alive) {
