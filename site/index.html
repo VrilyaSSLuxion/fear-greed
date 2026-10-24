@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart Money Fear & Greed</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%23d65ac9' stroke-width='5' stroke-dasharray='50 90' transform='rotate(-90 16 16)'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0c0610; --panel:#160b1b; --panel2:#1c0f24; --line:#2a1b33; --line2:#3a2747;
+    --text:#f4eef8; --muted:#a397ae; --dim:#6f6479; --track:#2a1c33;
+    --pink:#d65ac9; --teal:#3fd6c3; --green:#33d39a; --red:#f0566e; --gold:#f6b860;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:14px;
+    padding:18px 16px 110px;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(ellipse 80% 50% at 30% 0%,rgba(120,40,110,.18),transparent 70%)}
+  button{font-family:inherit;cursor:pointer}
+  a{color:inherit}
+  .page{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+
+  /* ---------- Kopfzeile ---------- */
+  .top{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .brand{font-weight:800;font-size:24px;letter-spacing:.01em;margin-right:auto}
+  .hprice{display:flex;align-items:center;gap:12px}
+  .hprice b{font-size:34px;font-weight:800;letter-spacing:-.01em}
+  .chg{border-radius:10px;padding:5px 10px;font-weight:700;font-size:14px}
+  .chg.neg{background:rgba(240,86,110,.15);color:#ff7d90}
+  .chg.pos{background:rgba(51,211,154,.14);color:#4fe0aa}
+  .whyBtn{background:rgba(246,184,96,.06);border:1px solid #7a5a2c;color:var(--gold);font-weight:700;font-size:15px;padding:11px 18px;border-radius:13px}
+  .seg{display:inline-flex;background:#130a18;border:1px solid var(--line);border-radius:13px;padding:4px;gap:2px}
+  .seg button{background:none;border:1px solid transparent;color:var(--muted);font-weight:600;font-size:14px;padding:7px 13px;border-radius:9px;white-space:nowrap}
+  .seg button.on{background:#2a1a20;border-color:#7a5a2c;color:var(--gold)}
+  .iconbtn{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:#130a18;color:var(--muted);display:grid;place-items:center}
+  .iconbtn:hover{color:var(--text)}
+
+  /* ---------- Hero ---------- */
+  .hero{display:grid;grid-template-columns:minmax(0,1fr) 460px;gap:18px;align-items:start}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:24px;position:relative}
+  .main{overflow:hidden;padding:26px 30px 26px;
+    background:radial-gradient(ellipse 55% 55% at 50% 52%,#3a1840 0%,#24102b 40%,#160b1b 78%)}
+  .badge{display:table;margin:0 auto;border:1px solid #6a4b26;background:rgba(246,184,96,.05);color:var(--gold);border-radius:999px;padding:7px 16px;font-size:13px;font-weight:800;letter-spacing:.06em}
+  .badge::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gold);margin-right:9px;vertical-align:1px}
+  .h1{text-align:center;font-size:40px;font-weight:800;letter-spacing:-.01em;margin-top:18px}
+  .h1sub{text-align:center;color:var(--muted);font-size:17px;margin-top:6px}
+  .grid{position:relative;display:grid;grid-template-columns:1fr 300px 1fr;align-items:center;z-index:1;margin-top:34px}
+  .col h3{font-size:13px;letter-spacing:.14em;color:var(--dim);font-weight:700;margin-bottom:12px}
+  .col.left h3{text-align:right;padding-right:84px}
+  .col.right h3{padding-left:84px}
+  .item{display:flex;align-items:center;gap:14px;height:72px;cursor:help}
+  .col.left .item{justify-content:flex-end}
+  .col.left .txt{text-align:right}
+  .txt{min-width:0}
+  .txt .name{font-weight:700;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
+  .txt .val{font-size:14px;color:var(--muted);margin-top:2px;white-space:nowrap}
+  .gauge{position:relative;width:60px;height:60px;flex:none}
+  .gauge svg{width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+  .gauge .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+  .center{position:relative;width:300px;height:300px;justify-self:center}
+  .center svg{position:absolute;inset:0;transform:rotate(-90deg);overflow:visible}
+  .center .inner{position:absolute;inset:36px;border-radius:50%;
+    background:radial-gradient(circle at 50% 35%,#1d0f24,#0c060f 72%);
+    box-shadow:0 0 0 1px #3a2447,0 24px 60px rgba(0,0,0,.5);
+    display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .center .lbl{font-size:14px;letter-spacing:.14em;color:var(--muted);font-weight:700}
+  .center .big{font-size:110px;font-weight:800;line-height:1;margin:6px 0 4px;letter-spacing:-.03em}
+  .center .zone{font-size:22px;font-weight:800}
+  .center .sub{font-size:13px;color:var(--dim);margin-top:6px}
+  .pulse{transform-box:fill-box;transform-origin:center;animation:pulse 3s ease-in-out infinite}
+  .pulse2{transform-box:fill-box;transform-origin:center;animation:pulse 3s ease-in-out infinite 1.5s}
+  @keyframes pulse{0%,100%{opacity:.25;transform:scale(.985)}50%{opacity:.75;transform:scale(1.03)}}
+  .glowArc{animation:glow 3s ease-in-out infinite}
+  @keyframes glow{0%,100%{opacity:.35}50%{opacity:.85}}
+  #wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:visible}
+  #wires .flow{stroke-dasharray:7 70;animation:flow 2.8s linear infinite}
+  @keyframes flow{to{stroke-dashoffset:-77}}
+
+  .scale{position:relative;margin:58px 6px 0;height:52px}
+  .segs{display:flex;gap:6px;height:12px;position:absolute;left:0;right:0;top:20px}
+  .segs div{border-radius:6px;height:100%}
+  .mk{position:absolute;transform:translateX(-50%);transition:left .8s}
+  .mk.cur{top:8px;width:5px;height:36px;border-radius:3px;background:#fff;box-shadow:0 0 0 2px #160b1b}
+  .mk.off{top:10px;width:4px;height:32px;border-radius:2px;background:var(--teal);box-shadow:0 0 10px rgba(63,214,195,.6)}
+  .mlabel{position:absolute;transform:translateX(-50%);font-weight:800;font-size:14px;white-space:nowrap;transition:left .8s}
+  .mlabel.cur{top:-16px}
+  .mlabel.off{top:46px;color:var(--teal)}
+  .zones{display:flex;margin:22px 6px 0;font-size:14px;color:var(--dim)}
+  .zones span{text-align:center}
+  .zones span.on{font-weight:800}
+  .chips{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:18px}
+  .chip{display:flex;align-items:center;gap:8px;border:1px solid var(--line2);background:#1a0e20;border-radius:999px;padding:9px 16px;color:var(--muted);font-size:15px}
+  .chip b{color:var(--text);font-weight:800}
+  .chip i{width:9px;height:9px;border-radius:50%}
+  .past{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+  .pcard{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#1a0e21;border:1px solid var(--line2);border-radius:14px;padding:13px 16px}
+  .pcard b{display:block;font-size:15px}
+  .pcard span{font-size:13px;color:var(--muted)}
+  .pcard .gauge{width:46px;height:46px}
+  .pcard .gauge .num{font-size:13px}
+
+  /* ---------- rechte Spalte ---------- */
+  .side{display:flex;flex-direction:column;gap:18px}
+  .side .card{padding:22px 24px}
+  .h{font-size:13px;letter-spacing:.12em;color:var(--dim);font-weight:700;text-transform:uppercase;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .h small{font-size:12px;letter-spacing:0;text-transform:none;font-weight:500;color:var(--dim);white-space:nowrap}
+  .osub{color:var(--muted);font-size:15px;line-height:1.4;margin-top:6px}
+  .odds{display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px}
+  .odds .lab{font-size:15px;color:var(--muted)}
+  .odds .big{font-size:58px;font-weight:800;line-height:1.05;letter-spacing:-.02em}
+  .odds .r{text-align:right}
+  .obar{position:relative;height:12px;border-radius:7px;margin-top:10px;background:linear-gradient(90deg,#1da877 0%,#3fe0a5 var(--p),#e0507a var(--p),#c9416f 100%)}
+  .obar i{position:absolute;top:-6px;width:3px;height:24px;border-radius:2px;background:#fff;transform:translateX(-50%);left:var(--p)}
+  .inf .h{margin-top:20px}
+  .inf .row{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid var(--line2);border-radius:12px;padding:12px 15px;margin-top:9px;font-size:15px;color:var(--muted);cursor:help}
+  .inf .row b{color:var(--text);font-weight:800;text-align:right;white-space:nowrap}
+  .action{display:inline-flex;align-items:center;gap:14px;margin:18px 0 16px;border-radius:16px;padding:14px 26px 14px 20px;font-size:30px;font-weight:800;color:#1a0b1c;box-shadow:0 10px 30px rgba(214,90,201,.25)}
+  .action i{width:14px;height:14px;border-radius:50%;background:#1a0b1c}
+  .bt{font-size:16px;line-height:1.55;color:#cfc4d9}
+  .bt b{color:var(--text)}
+  .zl{margin-top:16px;display:flex;flex-direction:column;gap:4px}
+  .zl div{display:grid;grid-template-columns:84px 1fr;align-items:center;padding:11px 15px;border-radius:12px;border:1px solid transparent;font-size:15px;color:var(--muted)}
+  .zl div b{font-weight:800}
+  .zl div.on{border-color:#6b4a83;background:#22122b;color:var(--text);font-weight:700}
+  .note{font-size:14px;line-height:1.55;color:var(--dim);margin-top:14px}
+  .note b{color:#d7cce0}
+
+  /* ---------- Chart ---------- */
+  .chart{padding:24px 26px 18px}
+  .chead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .ctitle{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:14px;color:var(--muted);font-weight:600}
+  .legend span{display:flex;align-items:center;gap:7px}
+  .legend .ln{width:16px;height:3px;border-radius:2px;background:#fff}
+  .legend .gr{width:18px;height:10px;border-radius:3px;background:linear-gradient(90deg,#8b6cff,#d65ac9,#f0566e,#f3843c,#f6cf5c)}
+  .legend .dt{width:9px;height:9px;border-radius:50%}
+  .ctools{display:flex;gap:10px;flex-wrap:wrap}
+  .tog{background:#130a18;border:1px solid var(--line);color:var(--muted);font-weight:700;font-size:15px;padding:10px 16px;border-radius:13px}
+  .tog.on{border-color:#7a5a2c;color:var(--gold);background:rgba(246,184,96,.05)}
+  .rangeRow{margin-top:16px}
+  .cwrap{position:relative;margin-top:10px;user-select:none}
+  .csvg{width:100%;display:block}
+  #priceChart{height:360px;cursor:crosshair}
+  #idxChart{height:200px;cursor:crosshair}
+  .clabel{font-size:13px;letter-spacing:.12em;color:var(--dim);font-weight:700;margin:2px 0 0}
+  .axisHint{position:absolute;right:4px;top:4px;font-size:11px;color:var(--dim)}
+  .tt{position:fixed;pointer-events:none;z-index:50;background:#1d1026f2;border:1px solid var(--line2);border-radius:10px;padding:9px 12px;font-size:13px;line-height:1.6;min-width:170px;display:none;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+  .tt .r{display:flex;justify-content:space-between;gap:14px}
+  .tt .r span:first-child{color:var(--muted)}
+
+  /* ---------- Tabellen ---------- */
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch}
+  .duo>*,.hero>*{min-width:0}
+  .tcard{padding:22px 24px}
+  .tw{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th{font-size:12px;letter-spacing:.1em;color:var(--dim);font-weight:700;text-align:left;padding:9px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:0 6px;height:62px;border-bottom:1px solid #22142b;font-size:16px;white-space:nowrap}
+  th.r,td.r{text-align:right}
+  .bname{font-weight:700;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+  .bval b{font-weight:700}
+  .bval small{color:var(--dim);font-size:14px;margin-left:6px}
+  .bbar{width:140px;height:7px;border-radius:4px;background:#2a1c33;overflow:hidden}
+  .bbar i{display:block;height:100%;border-radius:4px}
+  .pts{font-weight:800;font-size:18px}
+  .d7{font-weight:700;font-size:14px}
+  tr.hov:hover td{background:#1d1026}
+  .tl{position:relative;width:40px;height:62px}
+  .tl::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;transform:translateX(-50%);background:var(--lc,#c45bd6)}
+  .tl i{position:absolute;left:50%;top:50%;width:13px;height:13px;border-radius:50%;transform:translate(-50%,-50%);background:var(--dc);box-shadow:0 0 0 4px #160b1b}
+  .zp{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-size:14px;font-weight:700}
+  .zp::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+  .sub2{display:block;font-size:13px;color:var(--dim);margin-top:2px}
+  .btc b{display:block;font-weight:800}
+  .btc small{font-size:13px;font-weight:600}
+  .up{color:var(--green)} .down{color:var(--red)} .flat{color:var(--dim)}
+  .tabs{display:flex;gap:14px;align-items:baseline}
+  .tabs button{background:none;border:0;color:var(--dim);font-size:13px;letter-spacing:.12em;font-weight:700;text-transform:uppercase;padding:0}
+  .tabs button.on{color:var(--muted)}
+
+  .foot{display:flex;gap:22px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:15px;padding:4px 4px 0}
+  .foot .dot{width:9px;height:9px;border-radius:50%;background:var(--green);display:inline-block;margin-right:8px;box-shadow:0 0 8px var(--green)}
+  .foot .na{color:var(--dim)}
+  .foot a{text-decoration:underline;cursor:pointer}
+
+  /* ---------- Ticker ---------- */
+  .ticker{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:auto auto 1fr;background:#0a1613;border-top:1px solid #1d3a33;font-weight:800}
+  .ticker>div{padding:9px 18px;display:flex;align-items:center}
+  .price{font-size:32px;color:#eef8f4;gap:10px;letter-spacing:-.01em}
+  .price .b{color:#f7a531;font-size:22px}
+  .price .dir{font-size:16px}
+  .liqtitle{border-left:1px solid #1d3a33;border-right:1px solid #1d3a33;letter-spacing:.08em;font-size:18px;color:#e6efe9}
+  .liq{flex-direction:column;align-items:stretch!important;gap:4px}
+  .liq .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .liq .sd{display:flex;align-items:baseline;gap:8px;font-size:27px}
+  .liq small{font-size:9px;color:#9fb5ad;letter-spacing:.14em}
+  .liq .l{color:#5ee0b0} .liq .s{color:#ff7a68}
+  .vs{width:26px;height:26px;border-radius:50%;border:1px solid #2b4a42;display:grid;place-items:center;font-size:9px;color:#9fb5ad}
+  .segbar{display:flex;gap:3px;height:9px}
+  .segbar i{flex:1;border-radius:2px}
+  .pcts{display:flex;justify-content:space-between;font-size:9px;color:#9fb5ad}
+
+  /* ---------- Tooltip, Dialoge, Laden ---------- */
+  .tip{position:fixed;z-index:60;pointer-events:none;max-width:340px;background:#1d1026f7;border:1px solid var(--line2);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.55;display:none;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+  .tip b{font-size:14px}
+  .tip .r{display:flex;justify-content:space-between;gap:16px}
+  .tip .r span:first-child{color:var(--muted)}
+  .tip .m{color:var(--dim);margin-top:6px}
+  .modal{position:fixed;inset:0;z-index:70;background:rgba(5,2,8,.65);display:none;align-items:center;justify-content:center;padding:16px}
+  .modal.open{display:flex}
+  .dlg{width:100%;max-width:620px;max-height:88vh;overflow:auto;background:var(--panel2);border:1px solid var(--line2);border-radius:20px;padding:24px}
+  .dlg h2{font-size:21px;margin-bottom:10px}
+  .dlg p{color:#cfc4d9;font-size:15px;line-height:1.6;margin-top:10px}
+  .dlg .muted{color:var(--muted);font-size:13px}
+  .set{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:14px 0;border-top:1px solid var(--line)}
+  .set label{font-weight:700}
+  .set small{display:block;color:var(--dim);font-size:12px;font-weight:400;margin-top:2px}
+  .srcs{display:grid;grid-template-columns:1fr 1fr;gap:5px 16px;font-size:12px;margin-top:6px}
+  .srcs div{display:flex;gap:8px;align-items:baseline;min-width:0}
+  .srcs .st{flex:none;width:8px;height:8px;border-radius:50%}
+  .srcs .m{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .btns{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+  .btn{border:1px solid var(--line2);background:#21132a;color:var(--text);border-radius:11px;padding:10px 16px;font-weight:700;text-decoration:none;display:inline-block}
+  .btn.pri{background:var(--pink);border-color:var(--pink);color:#1a0b1c}
+  .loading{position:fixed;inset:0;z-index:80;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted);font-size:15px;text-align:center;padding:16px}
+  .spin{width:46px;height:46px;border-radius:50%;border:4px solid #2a1c33;border-top-color:var(--pink);animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .hidden{display:none!important}
+
+  @media (max-width:1240px){ .hero{grid-template-columns:1fr} .duo{grid-template-columns:1fr} }
+  @media (max-width:880px){
+    body{padding-bottom:160px}
+    .brand{font-size:18px;width:100%}
+    .hprice b{font-size:26px}
+    .h1{font-size:28px}
+    .grid{grid-template-columns:1fr}
+    .center{order:-1;margin-bottom:12px;width:260px;height:260px}
+    .center .big{font-size:90px}
+    .col.left .item{justify-content:flex-start;flex-direction:row-reverse}
+    .col.left .txt{text-align:left}
+    .col.left h3,.col.right h3{text-align:left;padding:0}
+    #wires{display:none}
+    .main{padding:20px 16px}
+    .past{grid-template-columns:1fr}
+    .zones{font-size:10px}
+    .ticker{grid-template-columns:1fr auto}
+    .liq{grid-column:1/-1;border-top:1px solid #1d3a33}
+    .price{font-size:22px}
+    .liq .sd{font-size:17px}
+    .odds .big{font-size:44px}
+    .action{font-size:22px}
+    .srcs{grid-template-columns:1fr}
+    .seg{flex-wrap:wrap}
+    .seg button{padding:6px 10px;font-size:13px}
+    .tcard{padding:18px 14px}
+  }
+</style>
+</head>
+<body>
+<div class="loading" id="loading"><div class="spin"></div><div id="loadTxt">Lade Daten…</div></div>
+
+<div class="page">
+  <!-- ======= Kopfzeile ======= -->
+  <div class="top">
+    <div class="brand" data-t="title"></div>
+    <div class="hprice"><b id="hPrice">–</b><span class="chg" id="hChg">–</span></div>
+    <button class="whyBtn" id="whyBtn" data-t="why"></button>
+    <div class="seg" id="modeSeg"><button data-v="binance">Binance</button><button data-v="multi">Multi-Source</button></div>
+    <div class="seg" id="langSeg"><button data-v="de">DE</button><button data-v="en">EN</button></div>
+    <button class="iconbtn" id="setBtn" aria-label="Einstellungen">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
+
+  <div class="hero">
+    <!-- ======= Hauptanzeige ======= -->
+    <div class="card main" id="main">
+      <svg id="wires"></svg>
+      <div class="badge" data-t="badge"></div>
+      <div class="h1" data-t="h1"></div>
+      <div class="h1sub" data-t="h1sub"></div>
+      <div class="grid">
+        <div class="col left" id="left"><h3 data-t="futures"></h3></div>
+        <div class="center" id="center">
+          <svg viewBox="0 0 300 300">
+            <defs><filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="5"/></filter></defs>
+            <circle class="pulse" cx="150" cy="150" r="148" fill="none" stroke="#7a3a80" stroke-width="1.4"/>
+            <circle class="pulse2" cx="150" cy="150" r="140" fill="none" stroke="#5a2a62" stroke-width="1"/>
+            <circle cx="150" cy="150" r="128" fill="none" stroke="#2c1a33" stroke-width="10"/>
+            <circle id="arcGlow" class="glowArc" cx="150" cy="150" r="128" fill="none" stroke-width="10" filter="url(#glow)" stroke-dasharray="0 1000"/>
+            <circle id="arc" cx="150" cy="150" r="128" fill="none" stroke-width="10" stroke-dasharray="0 1000" style="transition:stroke-dasharray 1s"/>
+          </svg>
+          <div class="inner">
+            <div class="lbl" data-t="index"></div>
+            <div class="big" id="idx">–</div>
+            <div class="zone" id="zone">–</div>
+            <div class="sub" data-t="avg7"></div>
+          </div>
+        </div>
+        <div class="col right" id="right"><h3 data-t="flows"></h3></div>
+      </div>
+      <div class="scale">
+        <div class="segs">
+          <div style="flex:25;background:linear-gradient(90deg,#7a5cf0,#8f5ff0)"></div>
+          <div style="flex:20;background:linear-gradient(90deg,#a95de6,#cf5bd0)"></div>
+          <div style="flex:10;background:#e0506e"></div>
+          <div style="flex:20;background:linear-gradient(90deg,#f0663c,#f39a3a)"></div>
+          <div style="flex:25;background:linear-gradient(90deg,#f5c45a,#f6d66e)"></div>
+        </div>
+        <div class="mlabel cur" id="curLbl"></div>
+        <div class="mk cur" id="curMk"></div>
+        <div class="mk off" id="offMk"></div>
+        <div class="mlabel off" id="offLbl"></div>
+      </div>
+      <div class="zones" id="zones"></div>
+      <div class="chips" id="chips"></div>
+      <div class="past" id="past"></div>
+    </div>
+
+    <!-- ======= rechte Spalte ======= -->
+    <div class="side">
+      <div class="card">
+        <div class="h"><span data-t="next24"></span><small id="polyEnd"></small></div>
+        <div class="osub" data-t="next24sub"></div>
+        <div class="odds">
+          <div><div class="lab" data-t="rises"></div><div class="big" id="pUp" style="color:#3fe0a5">–</div></div>
+          <div class="r"><div class="lab" data-t="falls"></div><div class="big" id="pDown" style="color:#ff5f86">–</div></div>
+        </div>
+        <div class="obar" id="obar" style="--p:50%"><i></i></div>
+        <div class="inf">
+          <div class="h" data-t="inputs"></div>
+          <div class="row" data-tip="poly"><span data-t="polyRow"></span><b id="infPoly">–</b></div>
+          <div class="row" data-tip="ownzone"><span id="infZoneLbl"></span><b id="infZone">–</b></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="h"><span data-t="meaning"></span><small data-t="fromZone"></small></div>
+        <div class="action" id="action"><i></i><span id="actionTxt">–</span></div>
+        <div class="bt" id="bt"></div>
+        <div class="zl" id="zl"></div>
+        <div class="note" data-t="note"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= Chart ======= -->
+  <div class="card chart">
+    <div class="chead">
+      <div class="ctitle">
+        <div class="h" data-t="chartTitle"></div>
+        <div class="legend">
+          <span><i class="ln"></i><span data-t="lgBtc"></span></span>
+          <span><i class="gr"></i><span data-t="lgIdx"></span></span>
+          <span><i class="dt" style="background:#8b6cff"></i><span data-t="xfear"></span></span>
+          <span><i class="dt" style="background:#f3a43c"></i><span data-t="xgreed"></span></span>
+        </div>
+      </div>
+      <div class="ctools">
+        <button class="tog" id="togNums" data-t="btnNums"></button>
+        <button class="tog" id="togBands" data-t="btnBands"></button>
+        <button class="tog on" id="togOff" data-t="btnOff"></button>
+      </div>
+    </div>
+    <div class="rangeRow"><div class="seg" id="rangeSeg"><button data-v="91" data-t="r3"></button><button data-v="182" data-t="r6"></button><button data-v="365" data-t="r12"></button><button data-v="99999" data-t="rAll"></button></div></div>
+    <div class="cwrap"><svg class="csvg" id="priceChart"></svg><span class="axisHint" data-t="axisHint"></span></div>
+    <div class="clabel" data-t="idxChart"></div>
+    <div class="cwrap"><svg class="csvg" id="idxChart"></svg></div>
+  </div>
+
+  <!-- ======= Tabellen ======= -->
+  <div class="duo">
+    <div class="card tcard">
+      <div class="h"><span data-t="blocks"></span><small data-t="scaleNote"></small></div>
+      <div class="tw"><table id="bTable"></table></div>
+    </div>
+    <div class="card tcard">
+      <div class="h"><div class="tabs" id="tabs"><button data-v="ext" data-t="extremes"></button><button data-v="days" data-t="last12"></button></div><small id="tabNote"></small></div>
+      <div class="tw"><table id="rTable"></table></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span><i class="dot"></i><span id="stand">–</span></span>
+    <span class="na" data-t="noAdvice"></span>
+    <a id="whyLink" data-t="why"></a>
+  </div>
+</div>
+
+<!-- ======= Ticker ======= -->
+<div class="ticker">
+  <div class="price"><span class="b">₿</span><span id="tPrice">–</span><span class="dir" id="tDir"></span></div>
+  <div class="liqtitle" data-t="liqTitle"></div>
+  <div class="liq">
+    <div class="row">
+      <div class="sd l"><small>LONGS</small><span id="liqL">–</span><small>USDT</small></div>
+      <div class="vs">vs</div>
+      <div class="sd s"><span id="liqS">–</span><small>USDT</small><small>SHORTS</small></div>
+    </div>
+    <div class="segbar" id="segbar"></div>
+    <div class="pcts"><span id="pL">–</span><span id="pS">–</span></div>
+  </div>
+</div>
+
+<div class="tip" id="tip"></div>
+<div class="tt" id="tt"></div>
+
+<!-- ======= Warum dieser Index ======= -->
+<div class="modal" id="whyModal"><div class="dlg"><h2 data-t="why"></h2><div id="whyText"></div><div class="btns"><button class="btn pri" data-close data-t="close"></button></div></div></div>
+
+<!-- ======= Einstellungen ======= -->
+<div class="modal" id="setModal">
+  <div class="dlg">
+    <h2 data-t="settings"></h2>
+    <div class="set"><label><span data-t="defMode"></span><small data-t="defModeSub"></small></label><div class="seg" id="defModeSeg"><button data-v="binance">Binance</button><button data-v="multi">Multi-Source</button></div></div>
+    <div class="set"><label><span data-t="language"></span></label><div class="seg" id="defLangSeg"><button data-v="de">Deutsch</button><button data-v="en">English</button></div></div>
+    <div class="set" id="dlRow"><label><span data-t="download"></span><small data-t="downloadSub"></small></label><a class="btn" href="fear-greed-v3.html" download data-t="downloadBtn"></a></div>
+    <div class="set" style="display:block"><label><span data-t="sources"></span><small id="srcMode"></small></label><div class="srcs" id="srcs"></div></div>
+    <p class="muted" data-t="keysHint"></p>
+    <div class="btns"><button class="btn pri" data-close data-t="close"></button></div>
+  </div>
+</div>
+
+<!--ENGINE-->
+<script>
+/* ================= Texte DE / EN ================= */
+const T = {
+  de: {
+    title:'SMART MONEY FEAR & GREED', why:'Warum dieser Index?', badge:'SMART MONEY FEAR & GREED INDEX',
+    h1:'Wie viel Angst steckt im Markt?', h1sub:'Futures, Flows und Makro statt Spot-Volumen',
+    futures:'FUTURES-MARKT', flows:'FLOWS UND MAKRO', index:'INDEX', avg7:'7-Tage-Mittel',
+    xfear:'Extreme Angst', fear:'Angst', neutral:'Neutral', greed:'Gier', xgreed:'Extreme Gier',
+    official:'Offiziell', chipSM:'Smart Money', chipOff:'Offizieller Index', chipGap:'Abstand', points:'Punkte',
+    d1:'Gestern', d7:'Vor 7 Tagen', d30:'Vor 30 Tagen',
+    next24:'Bitcoin in den nächsten 24 Stunden', until:'bis', next24sub:'Polymarket und die eigenen Datenquellen, zusammengerechnet',
+    rises:'Steigt', falls:'Fällt', inputs:'Was einfliesst', polyRow:'Polymarket, Preisleiter', polyVal:'{p} % über dem Kurs',
+    zoneRow:'Eigene Zone · {z}', zoneVal:'{p} % stiegen ({n} Tage)', na:'nicht verfügbar',
+    meaning:'Was das jetzt heisst', fromZone:'aus der Zone des Index',
+    act_xgreed:'Gewinne sichern', act_greed:'Halten, nicht nachkaufen', act_neutral:'Abwarten', act_fear:'In Tranchen kaufen', act_xfear:'Kaufen',
+    bt:'In der Zone <b>{z}</b> lag Bitcoin <b>30 Tage später</b> an <b>{p} %</b> der Tage höher, im Schnitt {a} % ({n} Tage seit {s}).',
+    note:'<b>Kein Richtungssignal.</b> Der Index zeigt, wo Futures-Markt, Flows und Makro gerade stehen, jeder Baustein gemessen gegen seine eigenen letzten 365 Tage. Ob Bitcoin morgen steigt, sagt er nicht.',
+    chartTitle:'Wo Angst war und wo Gier', lgBtc:'Bitcoin', lgIdx:'INDEX', btnNums:'Zahlen', btnBands:'Index im Chart', btnOff:'Offizieller Index',
+    r3:'3 Monate', r6:'6 Monate', r12:'12 Monate', rAll:'Alles', idxChart:'INDEX · 7-TAGE-MITTEL', axisHint:'Preisachse ziehen = zoomen · Doppelklick = zurücksetzen',
+    blocks:'Die zehn Bausteine', scaleNote:'0 Angst · 100 Gier', cBlock:'BAUSTEIN', cValue:'WERT', cPoints:'PUNKTE', c7:'7 TAGE',
+    extremes:'Extreme der letzten 12 Monate', last12:'Die letzten 12 Tage', exCount:'{a} Angst · {g} Gier', noExt:'kein Tag im Extrem', exDays:'{n} Tage im Extrem',
+    cPeriod:'ZEITRAUM', cType:'ART', cPeak:'SPITZE', cDay:'TAG', cZone:'ZONE', cIndex:'INDEX', days:'Tage', atExt:'am Extrem',
+    stand:'Stand {t} · Tageswerte bis {d} · alle 10 Minuten neu', standLocal:'Stand {t} · Einzeldatei, Daten direkt aus dem Browser', noAdvice:'Keine Anlageberatung.',
+    liqTitle:'LIQUIDATIONEN', noData:'keine Daten', noKey:'API-Key fehlt', collecting:'sammelt Daten…',
+    n_funding:'Funding', n_oi:'Open-Interest-Änderung', n_ls:'Long/Short', n_liq:'Liquidationen', n_rsi:'RSI und Volatilität',
+    n_etf:'ETF-Flows', n_stable:'Stablecoin-Zufluss', n_cbp:'Coinbase-Premium', n_vix:'VIX', n_dxy:'DXY-Trend',
+    x_funding:'je 8 Std.', x_oi:'7 Tage', x_ls_binance:'Konten Binance', x_ls_multi:'Konten, 3 Börsen', x_liq:'Long / Short 24h', x_rsi:'ATR {a} %',
+    x_etf:'5 Tage', x_stable:'30 Tage', x_cbp:'5 Tage', x_vix:'Aktien-Angst', x_dxy_up:'Dollar stärker', x_dxy_down:'Dollar schwächer',
+    tipMulti:'Multi-Source: Mittelwert aus {n} Quellen', tipBin:'Modus Binance', tipPts:'Punkte {p} von 100 (Perzentil der letzten 365 Tage)',
+    tipPoly:'Polymarket-Wetten „Bitcoin above ___ on {d}?“: Wahrscheinlichkeit, dass Bitcoin über dem aktuellen Kurs schliesst, aus der Preisleiter abgelesen.',
+    tipZone:'Backtest seit {s}: An wie vielen Tagen in der Zone {z} Bitcoin 24 Stunden später höher stand.',
+    settings:'Einstellungen', defMode:'Standard-Modus', defModeSub:'Wird beim Öffnen angezeigt', language:'Sprache',
+    download:'Einzeldatei', downloadSub:'Zum Verschicken, läuft ohne Server', downloadBtn:'Herunterladen',
+    sources:'Datenquellen', keysHint:'ETF-Flows brauchen einen kostenlosen SoSoValue-Key (oder optional CoinGlass). Er wird bei GitHub als Secret SOSOVALUE_API_KEY hinterlegt, siehe Anleitung.',
+    close:'Schliessen', loading:'Lade Daten…', loadingLocal:'Einzeldatei: hole Daten direkt von den Börsen (ca. 20–40 Sekunden)…', loadErr:'Daten konnten nicht geladen werden.',
+    whyHtml:`<p><b>Der klassische Fear-&-Greed-Index</b> (alternative.me, CoinMarketCap) misst vor allem Spot-Volumen, Social Media und Google-Trends. Das reagiert oft spät.</p>
+      <p><b>Dieser Index</b> schaut dorthin, wo grosses Geld positioniert ist: <b>Futures-Markt</b> (Funding, Open Interest, Long/Short, Liquidationen, RSI/Volatilität) und <b>Flows & Makro</b> (ETF-Flows, Stablecoin-Zufluss, Coinbase-Premium, VIX, Dollar-Trend).</p>
+      <p>Jeder der zehn Bausteine wird <b>gegen seine eigenen letzten 365 Tage</b> gemessen: 0 = so ängstlich wie selten im letzten Jahr, 100 = so gierig wie selten. Der Index ist der Durchschnitt, angezeigt als 7-Tage-Mittel.</p>
+      <p><b>Binance</b> nutzt nur Binance-Daten, <b>Multi-Source</b> mittelt mehrere Börsen und Quellen. Die Prognose für 24 Stunden kombiniert Polymarket mit dem eigenen Backtest der aktuellen Zone.</p>
+      <p class="muted">Kein Richtungssignal und keine Anlageberatung.</p>`
+  },
+  en: {
+    title:'SMART MONEY FEAR & GREED', why:'Why this index?', badge:'SMART MONEY FEAR & GREED INDEX',
+    h1:'How much fear is in the market?', h1sub:'Futures, flows and macro instead of spot volume',
+    futures:'FUTURES MARKET', flows:'FLOWS AND MACRO', index:'INDEX', avg7:'7-day average',
+    xfear:'Extreme fear', fear:'Fear', neutral:'Neutral', greed:'Greed', xgreed:'Extreme greed',
+    official:'Official', chipSM:'Smart Money', chipOff:'Official index', chipGap:'Gap', points:'points',
+    d1:'Yesterday', d7:'7 days ago', d30:'30 days ago',
+    next24:'Bitcoin in the next 24 hours', until:'until', next24sub:'Polymarket and our own data sources, combined',
+    rises:'Rises', falls:'Falls', inputs:'What goes in', polyRow:'Polymarket, price ladder', polyVal:'{p} % above price',
+    zoneRow:'Own zone · {z}', zoneVal:'{p} % rose ({n} days)', na:'not available',
+    meaning:'What this means now', fromZone:'from the index zone',
+    act_xgreed:'Take profits', act_greed:'Hold, don\'t add', act_neutral:'Wait', act_fear:'Buy in tranches', act_xfear:'Buy',
+    bt:'In the <b>{z}</b> zone, Bitcoin was higher <b>30 days later</b> on <b>{p} %</b> of days, on average {a} % ({n} days since {s}).',
+    note:'<b>No directional signal.</b> The index shows where futures, flows and macro stand right now, each building block measured against its own last 365 days. It does not say whether Bitcoin rises tomorrow.',
+    chartTitle:'Where fear was and where greed', lgBtc:'Bitcoin', lgIdx:'INDEX', btnNums:'Numbers', btnBands:'Index in chart', btnOff:'Official index',
+    r3:'3 months', r6:'6 months', r12:'12 months', rAll:'All', idxChart:'INDEX · 7-DAY AVERAGE', axisHint:'drag price axis = zoom · double-click = reset',
+    blocks:'The ten building blocks', scaleNote:'0 fear · 100 greed', cBlock:'BLOCK', cValue:'VALUE', cPoints:'POINTS', c7:'7 DAYS',
+    extremes:'Extremes of the last 12 months', last12:'The last 12 days', exCount:'{a} fear · {g} greed', noExt:'no day in extreme', exDays:'{n} days in extreme',
+    cPeriod:'PERIOD', cType:'TYPE', cPeak:'PEAK', cDay:'DAY', cZone:'ZONE', cIndex:'INDEX', days:'days', atExt:'at extreme',
+    stand:'As of {t} · daily values until {d} · refreshed every 10 minutes', standLocal:'As of {t} · single file, data straight from the browser', noAdvice:'Not investment advice.',
+    liqTitle:'LIQUIDATIONS', noData:'no data', noKey:'API key missing', collecting:'collecting…',
+    n_funding:'Funding', n_oi:'Open interest change', n_ls:'Long/Short', n_liq:'Liquidations', n_rsi:'RSI and volatility',
+    n_etf:'ETF flows', n_stable:'Stablecoin inflow', n_cbp:'Coinbase premium', n_vix:'VIX', n_dxy:'DXY trend',
+    x_funding:'per 8h', x_oi:'7 days', x_ls_binance:'Binance accounts', x_ls_multi:'accounts, 3 exchanges', x_liq:'long / short 24h', x_rsi:'ATR {a} %',
+    x_etf:'5 days', x_stable:'30 days', x_cbp:'5 days', x_vix:'equity fear', x_dxy_up:'dollar stronger', x_dxy_down:'dollar weaker',
+    tipMulti:'Multi-source: average of {n} sources', tipBin:'Binance mode', tipPts:'{p} of 100 points (percentile of the last 365 days)',
+    tipPoly:'Polymarket bets "Bitcoin above ___ on {d}?": probability that Bitcoin closes above the current price, read from the price ladder.',
+    tipZone:'Backtest since {s}: share of days in the {z} zone on which Bitcoin was higher 24 hours later.',
+    settings:'Settings', defMode:'Default mode', defModeSub:'Shown when opening', language:'Language',
+    download:'Single file', downloadSub:'To share, runs without a server', downloadBtn:'Download',
+    sources:'Data sources', keysHint:'ETF flows need a free SoSoValue key (or optionally CoinGlass). It is stored on GitHub as the secret SOSOVALUE_API_KEY, see the guide.',
+    close:'Close', loading:'Loading data…', loadingLocal:'Single file: fetching data straight from the exchanges (about 20–40 seconds)…', loadErr:'Data could not be loaded.',
+    whyHtml:`<p><b>The classic Fear & Greed index</b> (alternative.me, CoinMarketCap) mostly measures spot volume, social media and Google trends, which often reacts late.</p>
+      <p><b>This index</b> looks where big money is positioned: the <b>futures market</b> (funding, open interest, long/short, liquidations, RSI/volatility) and <b>flows & macro</b> (ETF flows, stablecoin inflow, Coinbase premium, VIX, dollar trend).</p>
+      <p>Each of the ten building blocks is measured <b>against its own last 365 days</b>: 0 = as fearful as rarely in the past year, 100 = as greedy as rarely. The index is the average, shown as a 7-day mean.</p>
+      <p><b>Binance</b> uses Binance data only, <b>Multi-Source</b> averages several exchanges and sources. The 24-hour outlook combines Polymarket with our own backtest of the current zone.</p>
+      <p class="muted">No directional signal and not investment advice.</p>`
+  }
+};
+
+/* ================= Zustand ================= */
+const $ = id => document.getElementById(id);
+const store = { get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { } } };
+let LANG = store.get('fg3_lang', 'de'), MODE = store.get('fg3_mode', 'multi'), RANGE = +store.get('fg3_range', '182'), TAB = 'ext';
+let OPT = { nums: false, bands: false, off: true };
+let D = null, H = [], STANDALONE = false, LIVE = { price: null, ch: null, dir: 0 };
+let yZoom = 1, yShift = 0;
+const t = (k, vars = {}) => (T[LANG][k] ?? k).replace(/\{(\w+)\}/g, (_, v) => vars[v] ?? '');
+const loc = () => LANG === 'de' ? 'de-DE' : 'en-US';
+const fmt = (n, d = 0) => n == null || !isFinite(n) ? '–' : n.toLocaleString(loc(), { minimumFractionDigits: d, maximumFractionDigits: d });
+const sgn = (n, d = 0) => n == null || !isFinite(n) ? '–' : (n > 0 ? '+' : n < 0 ? '−' : '+') + fmt(Math.abs(n), d);
+const usd = (n, d = 0) => LANG === 'de' ? fmt(n, d) + ' $' : '$' + fmt(n, d);
+const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
+const dmy = (d, year = true) => year ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(2, 4)}` : `${d.slice(8, 10)}.${d.slice(5, 7)}.`;
+
+/* ================= Farben & Zonen ================= */
+const STOPS = [[0, [124, 96, 250]], [20, [146, 94, 240]], [35, [196, 91, 214]], [44, [214, 90, 201]], [50, [232, 82, 112]], [60, [240, 104, 60]], [72, [243, 150, 58]], [85, [246, 200, 90]], [100, [246, 214, 110]]];
+function color(s) {
+  if (s == null) return '#6f6479';
+  for (let i = 1; i < STOPS.length; i++) if (s <= STOPS[i][0]) { const [a, c1] = STOPS[i - 1], [b, c2] = STOPS[i], k = (s - a) / (b - a); return `rgb(${c1.map((c, j) => Math.round(c + (c2[j] - c) * k)).join(',')})`; }
+  return 'rgb(246,214,110)';
+}
+const rgba = (c, a) => c.replace('rgb(', 'rgba(').replace(')', `,${a})`);
+const ZL = [{ k: 'xgreed', from: 75, to: 100, c: '#f6cf5c' }, { k: 'greed', from: 55, to: 74, c: '#f3843c' }, { k: 'neutral', from: 45, to: 54, c: '#ea5a78' }, { k: 'fear', from: 25, to: 44, c: '#d65ac9' }, { k: 'xfear', from: 0, to: 24, c: '#8b6cff' }];
+const zoneOf = v => ZL.find(z => v >= z.from) || ZL[4];
+
+/* ================= Bedienelemente ================= */
+function seg(id, get, set) {
+  const el = $(id), upd = () => [...el.children].forEach(b => b.classList.toggle('on', b.dataset.v == String(get())));
+  el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; set(b.dataset.v); upd(); });
+  upd(); return upd;
+}
+const updMode = seg('modeSeg', () => MODE, v => { MODE = v; render(); });
+const updLang = seg('langSeg', () => LANG, v => { LANG = v; store.set('fg3_lang', v); updDefLang(); render(); });
+seg('rangeSeg', () => RANGE, v => { RANGE = +v; store.set('fg3_range', v); yZoom = 1; yShift = 0; renderCharts(); });
+seg('defModeSeg', () => store.get('fg3_mode', 'multi'), v => { store.set('fg3_mode', v); MODE = v; updMode(); render(); });
+const updDefLang = seg('defLangSeg', () => LANG, v => { LANG = v; store.set('fg3_lang', v); updLang(); render(); });
+seg('tabs', () => TAB, v => { TAB = v; renderRight(); });
+for (const [id, k] of [['togNums', 'nums'], ['togBands', 'bands'], ['togOff', 'off']])
+  $(id).onclick = e => { OPT[k] = !OPT[k]; e.currentTarget.classList.toggle('on', OPT[k]); renderCharts(); };
+const openModal = id => { $(id).classList.add('open'); };
+$('whyBtn').onclick = $('whyLink').onclick = () => openModal('whyModal');
+$('setBtn').onclick = () => { renderSources(); openModal('setModal'); };
+document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m || e.target.closest('[data-close]')) m.classList.remove('open'); }));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal.open').forEach(m => m.classList.remove('open')); });
+
+/* ================= Gauges ================= */
+function gauge(score, size = 60, stroke = 4) {
+  const r = size / 2 - stroke - 1, C = 2 * Math.PI * r, c = color(score), p = score == null ? 0 : score / 100;
+  return `<svg viewBox="0 0 ${size} ${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 1}" fill="#120914"/>
+    <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--track)" stroke-width="${stroke}"/>
+    <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${c}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${C * p} ${C}" style="filter:drop-shadow(0 0 3px ${rgba(c, .6)})"/></svg>
+    <div class="num" style="color:${score == null ? '#a88fd8' : c}">${score ?? '–'}</div>`;
+}
+function compText(c) { // Hauptwert + Zusatz je Baustein
+  const liq = D.liq24?.[MODE];
+  switch (c.id) {
+    case 'funding': return [sgn(c.raw, 4) + ' %', t('x_funding')];
+    case 'oi': return [sgn(c.raw, 1) + ' %', t('x_oi')];
+    case 'ls': return [fmt(c.raw, 2), t('x_ls_' + MODE)];
+    case 'liq': return liq && liq.L + liq.S >= 2e6 ? [`${fmt(liq.L / 1e6, 0)} / ${fmt(liq.S / 1e6, 0)} ${LANG === 'de' ? 'Mio. $' : 'M $'}`, t('x_liq')] : [t('collecting'), t('x_liq')];
+    case 'rsi': return ['RSI ' + fmt(c.raw, 0), t('x_rsi', { a: fmt(c.atr, 1) })];
+    case 'etf': return c.raw == null ? [t('noKey'), t('x_etf')] : [sgn(c.raw, 0) + (LANG === 'de' ? ' Mio. $' : ' M $'), t('x_etf')];
+    case 'stable': return [sgn(c.raw, 1) + ' %', t('x_stable')];
+    case 'cbp': return [sgn(c.raw, 3) + ' %', t('x_cbp')];
+    case 'vix': return [fmt(c.level, 1), t('x_vix')];
+    case 'dxy': return [fmt(c.level, 1), c.raw > 0 ? t('x_dxy_up') : t('x_dxy_down')];
+  }
+  return ['–', ''];
+}
+function srcVal(id, v) {
+  if (v == null) return '–';
+  return { funding: sgn(v, 4) + ' %', oi: sgn(v, 1) + ' %', ls: fmt(v, 2), rsi: 'RSI ' + fmt(v, 1), etf: sgn(v, 0) + ' Mio. $', stable: sgn(v, 2) + ' %', cbp: sgn(v, 3) + ' %', vix: fmt(v, 1), dxy: sgn(v, 2) + ' %', liq: usd(v / 1e6, 1) + 'M' }[id] ?? fmt(v, 2);
+}
+
+/* ================= Rendering ================= */
+function applyTexts() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-t]').forEach(el => { const k = el.dataset.t; el.innerHTML = t(k); });
+  $('whyText').innerHTML = t('whyHtml');
+}
+let builtComps = false;
+function render() {
+  if (!D) return;
+  applyTexts(); renderHeader(); renderMain(); renderSide(); renderCharts(); renderTable(); renderRight(); renderFooter(); renderTicker();
+}
+function renderHeader() {
+  const p = LIVE.price ?? D.btc.price, ch = LIVE.ch ?? D.btc.ch24;
+  $('hPrice').textContent = usd(p, 0);
+  $('hChg').textContent = `${sgn(ch, 2)} % · 24h`; $('hChg').className = 'chg ' + (ch < 0 ? 'neg' : 'pos');
+}
+function renderMain() {
+  const m = D.modes[MODE];
+  // Gauges
+  for (const side of ['left', 'right']) {
+    const col = $(side);
+    col.querySelectorAll('.item').forEach(e => e.remove());
+    for (const c of m.components.filter(x => x.side === side)) {
+      const [v] = compText(c);
+      const el = document.createElement('div'); el.className = 'item'; el.dataset.tip = 'comp:' + c.id;
+      const txt = `<div class="txt"><div class="name">${t('n_' + c.id)}</div><div class="val">${v}</div></div>`;
+      const g = `<div class="gauge" id="g-${c.id}">${gauge(c.score)}</div>`;
+      el.innerHTML = side === 'left' ? txt + g : g + txt;
+      col.appendChild(el);
+    }
+  }
+  const v = m.index, c = color(v), z = zoneOf(v ?? 50);
+  $('idx').textContent = v ?? '–'; $('idx').style.color = c;
+  $('zone').textContent = v == null ? '–' : t(z.k); $('zone').style.color = c;
+  const C = 2 * Math.PI * 128;
+  for (const id of ['arc', 'arcGlow']) { $(id).setAttribute('stroke', c); $(id).setAttribute('stroke-dasharray', `${C * (v ?? 0) / 100} ${C}`); }
+  $('curMk').style.left = $('curLbl').style.left = (v ?? 50) + '%'; $('curLbl').textContent = v ?? '–';
+  const off = D.official.alt;
+  $('offMk').style.left = $('offLbl').style.left = (off ?? 50) + '%'; $('offLbl').textContent = `${t('official')} ${off ?? '–'}`;
+  $('offMk').classList.toggle('hidden', off == null); $('offLbl').classList.toggle('hidden', off == null);
+  const zi = ['xfear', 'fear', 'neutral', 'greed', 'xgreed'].indexOf(z.k);
+  $('zones').innerHTML = [['xfear', 25], ['fear', 20], ['neutral', 10], ['greed', 20], ['xgreed', 25]].map(([k, f], i) => `<span style="flex:${f};${i === zi ? 'color:' + c : ''}" class="${i === zi ? 'on' : ''}">${t(k)}</span>`).join('');
+  $('chips').innerHTML = `<span class="chip"><i style="background:#fff"></i>${t('chipSM')} <b>${v ?? '–'}</b> ${v == null ? '' : t(z.k)}</span>` +
+    (off == null ? '' : `<span class="chip"><i style="background:var(--teal)"></i>${t('chipOff')} <b>${off}</b> ${t(zoneOf(off).k)}</span>`) +
+    (off == null || v == null ? '' : `<span class="chip">${t('chipGap')} <b>${Math.abs(v - off)}</b> ${t('points')}</span>`);
+  $('past').innerHTML = [['d1', m.past.d1], ['d7', m.past.d7], ['d30', m.past.d30]].map(([k, pv]) =>
+    `<div class="pcard"><div><b>${t(k)}</b><span>${pv == null ? '–' : t(zoneOf(pv).k)}</span></div><div class="gauge">${gauge(pv, 46, 3.5)}</div></div>`).join('');
+  requestAnimationFrame(drawWires);
+}
+function renderSide() {
+  const m = D.modes[MODE], z = zoneOf(m.index ?? 50);
+  const up = m.outlook;
+  $('pUp').textContent = up == null ? '–' : up + ' %'; $('pDown').textContent = up == null ? '–' : (100 - up) + ' %';
+  $('obar').style.setProperty('--p', (up ?? 50) + '%');
+  $('polyEnd').textContent = D.poly?.end ? `${t('until')} ${dmy(new Date(Date.parse(D.poly.end) - 864e5 / 2).toISOString().slice(0, 10), false)}` : '';
+  $('infPoly').textContent = D.poly?.pct != null ? t('polyVal', { p: D.poly.pct }) : t('na');
+  $('infZoneLbl').textContent = t('zoneRow', { z: t(z.k) });
+  $('infZone').textContent = m.backtest1 ? t('zoneVal', { p: m.backtest1.up, n: fmt(m.backtest1.n) }) : t('na');
+  $('action').style.background = z.c; $('action').style.boxShadow = `0 10px 30px ${z.c}44`; $('actionTxt').textContent = t('act_' + z.k);
+  const b = m.backtest30;
+  $('bt').innerHTML = b ? t('bt', { z: t(z.k), p: b.up, a: sgn(b.avg, 1), n: fmt(b.n), s: monthYear(b.since) }) : '';
+  $('zl').innerHTML = ZL.map(x => `<div class="${x === z ? 'on' : ''}"><b style="color:${x.c}">${x.from}–${x.to}</b><span>${t('act_' + x.k)}</span></div>`).join('');
+}
+function monthYear(d) {
+  const de = ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni', 'Juli', 'Aug.', 'Sept.', 'Okt.', 'Nov.', 'Dez.'], en = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return (LANG === 'de' ? de : en)[+d.slice(5, 7) - 1] + ' ' + d.slice(0, 4);
+}
+function renderTable() {
+  const m = D.modes[MODE];
+  let h = `<tr><th>${t('cBlock')}</th><th>${t('cValue')}</th><th></th><th class="r">${t('cPoints')}</th><th class="r">${t('c7')}</th></tr>`;
+  for (const id of ['funding', 'oi', 'ls', 'liq', 'etf', 'stable', 'cbp', 'rsi', 'vix', 'dxy']) {
+    const c = m.components.find(x => x.id === id), col = color(c.score), [v, x] = compText(c);
+    const d7 = c.d7 == null ? '<span class="flat">–</span>' : `<span style="color:${c.d7 > 0 ? '#f3b04c' : c.d7 < 0 ? '#a77bff' : 'var(--dim)'}">${sgn(c.d7)}</span>`;
+    h += `<tr class="hov" data-tip="comp:${id}"><td class="bname">${t('n_' + id)}</td><td class="bval"><b>${v}</b><small>${x}</small></td>
+      <td><div class="bbar"><i style="width:${c.score ?? 0}%;background:linear-gradient(90deg,${color(Math.max(0, (c.score ?? 0) - 40))},${col})"></i></div></td>
+      <td class="r pts" style="color:${c.score == null ? 'var(--dim)' : col}">${c.score ?? '–'}</td><td class="r d7">${d7}</td></tr>`;
+  }
+  $('bTable').innerHTML = h;
+}
+function renderRight() {
+  const m = D.modes[MODE], col = MODE === 'binance' ? 1 : 2;
+  if (TAB === 'ext') {
+    const ex = [...m.extremes].reverse(), a = ex.filter(e => e.type === 'xfear').length, g = ex.length - a;
+    $('tabNote').textContent = t('exCount', { a, g });
+    let h = `<tr><th>${t('cPeriod')}</th><th></th><th>${t('cType')}</th><th class="r">${t('cPeak')}</th><th class="r">Bitcoin</th></tr>`;
+    ex.forEach((e, i) => {
+      const c = e.type === 'xfear' ? '#a77bff' : '#f3a43c', nx = ex[i + 1];
+      h += `<tr><td>${dmy(e.from)} – ${dmy(e.to)}<span class="sub2">${e.days} ${t('days')}</span></td>
+        <td><div class="tl" style="--lc:linear-gradient(${c},${nx ? (nx.type === 'xfear' ? '#a77bff' : '#f3a43c') : c});--dc:${c}"><i></i></div></td>
+        <td><span class="zp" style="color:${c};background:${c}22">${t(e.type)}</span></td>
+        <td class="r pts" style="color:${color(e.peak)}">${e.peak}</td>
+        <td class="r btc"><b>${usd(e.btc ?? 0)}</b><small class="flat">${t('atExt')}</small></td></tr>`;
+    });
+    if (!ex.length) h += `<tr><td colspan="5" class="flat">${t('noExt')}</td></tr>`;
+    $('rTable').innerHTML = h;
+  } else {
+    const rows = H.filter(r => r[col] != null).slice(-13);
+    const last = rows.slice(-12).reverse();
+    const wd = LANG === 'de' ? ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const ext = last.filter(r => r[col] < 25 || r[col] >= 75).length;
+    $('tabNote').textContent = ext ? t('exDays', { n: ext }) : t('noExt');
+    let h = `<tr><th>${t('cDay')}</th><th></th><th>${t('cZone')}</th><th class="r">${t('cIndex')}</th><th class="r">Bitcoin</th></tr>`;
+    last.forEach((r, i) => {
+      const v = r[col], c = color(v), prev = rows[rows.length - 2 - i], ch = prev && prev[4] ? (r[4] / prev[4] - 1) * 100 : null, nx = last[i + 1];
+      h += `<tr><td style="color:${i < 5 ? 'var(--text)' : 'var(--muted)'}">${wd[new Date(r[0] + 'T12:00:00Z').getUTCDay()]}, ${dmy(r[0], false)}</td>
+        <td><div class="tl" style="--lc:linear-gradient(${c},${nx ? color(nx[col]) : c});--dc:${c}"><i></i></div></td>
+        <td><span class="zp" style="color:${c};background:${rgba(c, .14)}">${t(zoneOf(v).k)}</span></td>
+        <td class="r pts" style="color:${c}">${v}</td>
+        <td class="r btc"><b>${usd(r[4] ?? 0)}</b><small class="${ch > 0 ? 'up' : ch < 0 ? 'down' : 'flat'}">${sgn(ch, 1)} %</small></td></tr>`;
+    });
+    $('rTable').innerHTML = h;
+  }
+}
+function renderFooter() {
+  const up = new Date(D.updated), hm = up.toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' });
+  $('stand').textContent = STANDALONE ? t('standLocal', { t: hm }) : t('stand', { t: hm, d: dmy(D.dailyUntil) });
+  $('dlRow').classList.toggle('hidden', STANDALONE);
+}
+function renderTicker() {
+  const p = LIVE.price ?? D.btc.price;
+  $('tPrice').textContent = '$' + p.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  $('tDir').textContent = LIVE.dir < 0 ? '↓' : '↑'; $('tDir').style.color = LIVE.dir < 0 ? 'var(--red)' : 'var(--green)';
+  const L = D.liq24?.[MODE] || { L: 0, S: 0 }, tot = L.L + L.S, pl = tot ? Math.round(L.L / tot * 100) : 50;
+  $('liqL').textContent = Math.round(L.L).toLocaleString('de-DE'); $('liqS').textContent = Math.round(L.S).toLocaleString('de-DE');
+  $('pL').textContent = pl + ' %'; $('pS').textContent = (100 - pl) + ' %';
+  $('segbar').innerHTML = Array.from({ length: 50 }, (_, i) => `<i style="background:${i < pl / 2 ? '#3fd6a3' : '#f06a5a'}"></i>`).join('');
+}
+function renderSources() {
+  $('srcMode').textContent = STANDALONE ? 'Einzeldatei' : 'Online · ' + new Date(D.updated).toLocaleString(loc());
+  $('srcs').innerHTML = D.status.map(s => `<div><span class="st" style="background:${s.ok === true ? 'var(--green)' : s.ok === false ? 'var(--red)' : '#6f6479'}"></span><span>${s.name}</span><span class="m" title="${s.msg || ''}">${s.ok === true ? 'ok' : s.msg || ''}</span></div>`).join('');
+}
+
+/* ================= Verbindungslinien mit Lichtpunkten ================= */
+function drawWires() {
+  const svg = $('wires'), card = $('main').getBoundingClientRect(), cen = $('center').getBoundingClientRect();
+  if (getComputedStyle(svg).display === 'none' || !D) return;
+  const cx = cen.left + cen.width / 2 - card.left, cy = cen.top + cen.height / 2 - card.top, R = cen.width / 2 - 24;
+  svg.setAttribute('viewBox', `0 0 ${card.width} ${card.height}`);
+  let out = '', i = 0;
+  for (const c of D.modes[MODE].components) {
+    const el = $('g-' + c.id); if (!el) continue;
+    const g = el.getBoundingClientRect(), left = c.side === 'left';
+    const gx = (left ? g.right : g.left) - card.left + (left ? 3 : -3), gy = g.top + g.height / 2 - card.top;
+    const phi = clamp((gy - cy) / R * 0.18, -0.3, 0.3);
+    const ex = cx + (left ? -1 : 1) * Math.cos(phi) * R, ey = cy + Math.sin(phi) * R;
+    const k = (ex - gx) * 0.55, col = color(c.score);
+    const d = `M${gx},${gy} C${gx + k},${gy} ${ex - k},${ey} ${ex},${ey}`;
+    out += `<path d="${d}" fill="none" stroke="${col}" stroke-opacity=".25" stroke-width="1.2"/>`;
+    out += `<path class="flow" d="${d}" fill="none" stroke="${col}" stroke-width="2.6" stroke-linecap="round" style="animation-delay:${-(i * 0.37) % 2.8}s;filter:drop-shadow(0 0 4px ${col})"/>`;
+    i++;
+  }
+  svg.innerHTML = out;
+}
+window.addEventListener('resize', () => { drawWires(); renderCharts(); });
+
+/* ================= Charts ================= */
+const MON = { de: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'], en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] };
+let chartData = [];
+function niceStep(raw) { const p = 10 ** Math.floor(Math.log10(raw)), f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p; }
+function renderCharts() {
+  if (!D) return;
+  const col = MODE === 'binance' ? 1 : 2;
+  const all = H.filter(r => r[4] != null && r[col] != null);
+  const data = all.slice(-Math.min(RANGE, all.length));
+  chartData = data;
+  const n = data.length; if (n < 2) return;
+  const W = Math.max(320, $('priceChart').clientWidth), H1 = 360, H2 = 200;
+  const P = { l: 4, r: 78, t: 16, b: 8 }, iw = W - P.l - P.r, ih = H1 - P.t - P.b;
+  const X = i => P.l + i / (n - 1) * iw;
+  // Y-Bereich mit Zoom/Verschiebung (Preisachse ziehen)
+  const prices = data.map(d => d[4]), lo0 = Math.min(...prices), hi0 = Math.max(...prices), pad = (hi0 - lo0) * 0.1 || 1;
+  const mid = (lo0 + hi0) / 2 + yShift, half = ((hi0 - lo0) / 2 + pad) * yZoom, yl = mid - half, yh = mid + half;
+  const Y = v => P.t + (1 - (v - yl) / (yh - yl)) * ih;
+  const stops = data.map((d, i) => `<stop offset="${(i / (n - 1) * 100).toFixed(2)}%" stop-color="${color(d[col])}"/>`).join('');
+  const line = data.map((d, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(d[4]).toFixed(1)).join('');
+  let g = `<defs><linearGradient id="lg" gradientUnits="userSpaceOnUse" x1="${P.l}" x2="${P.l + iw}" y1="0" y2="0">${stops}</linearGradient>
+    <linearGradient id="fade" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".42"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <mask id="fm"><rect x="0" y="0" width="${W}" height="${H1}" fill="url(#fade)"/></mask>
+    <linearGradient id="bandFade" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity=".25"/></linearGradient>
+    <mask id="bmask"><rect x="0" y="0" width="${W}" height="${H1}" fill="url(#bandFade)"/></mask>
+    <clipPath id="plot"><rect x="${P.l}" y="0" width="${iw + 2}" height="${H1}"/></clipPath>
+    <filter id="lglow" x="-5%" y="-40%" width="110%" height="180%"><feGaussianBlur stdDeviation="6"/></filter></defs>`;
+  // Raster
+  const mStep = n > 900 ? 6 : n > 400 ? 2 : 1;
+  data.forEach((d, i) => { if (+d[0].slice(8, 10) === 1 && (+d[0].slice(5, 7) - 1) % mStep === 0) g += `<line x1="${X(i)}" x2="${X(i)}" y1="0" y2="${H1}" stroke="#fff" stroke-opacity=".05"/>`; });
+  const step = niceStep((yh - yl) / 6);
+  for (let v = Math.ceil(yl / step) * step; v <= yh; v += step) g += `<line x1="${P.l}" x2="${P.l + iw}" y1="${Y(v)}" y2="${Y(v)}" stroke="#fff" stroke-opacity=".04"/><text x="${W - 8}" y="${Y(v) + 4}" fill="#9a8ea6" font-size="13" text-anchor="end">${fmt(v / 1000, 1)}K</text>`;
+  g += `<g clip-path="url(#plot)">`;
+  if (OPT.bands) { const bw = iw / (n - 1); g += `<g mask="url(#bmask)">` + data.map((d, i) => `<rect x="${(X(i) - bw / 2).toFixed(1)}" y="0" width="${(bw + .6).toFixed(1)}" height="${H1}" fill="${color(d[col])}" opacity=".28"/>`).join('') + `</g>`; }
+  g += `<path d="${line}L${X(n - 1)},${H1}L${X(0)},${H1}Z" fill="url(#lg)" mask="url(#fm)" opacity="${OPT.bands ? .5 : 1}"/>`;
+  g += `<path d="${line}" fill="none" stroke="url(#lg)" stroke-width="8" opacity=".45" filter="url(#lglow)"/>`;
+  g += `<path d="${line}" fill="none" stroke="url(#lg)" stroke-width="2.8" stroke-linejoin="round"/>`;
+  // Extrem-Spitzen
+  const idxOf = new Map(data.map((d, i) => [d[0], i]));
+  for (const e of D.modes[MODE].extremes) {
+    const i = idxOf.get(e.peakDay); if (i == null) continue;
+    const c = e.type === 'xfear' ? '#a77bff' : '#f3a43c';
+    g += `<circle cx="${X(i)}" cy="${Y(data[i][4])}" r="6" fill="${c}" stroke="#160b1b" stroke-width="2.5"/>`;
+    if (OPT.nums) g += `<text x="${X(i)}" y="${Y(data[i][4]) + (e.type === 'xfear' ? 24 : -14)}" fill="${c}" font-size="13" font-weight="800" text-anchor="middle">${e.peak}</text>`;
+  }
+  if (OPT.nums) { const k = Math.max(1, Math.round(n / 14)); data.forEach((d, i) => { if (i % k === 0 && i < n - 2) g += `<text x="${X(i)}" y="${Y(d[4]) - 12}" fill="${color(d[col])}" font-size="12" font-weight="700" text-anchor="middle">${d[col]}</text>`; }); }
+  g += `</g>`;
+  const last = data[n - 1], lp = LIVE.price ?? last[4];
+  g += `<circle cx="${X(n - 1)}" cy="${Y(last[4])}" r="5" fill="${color(last[col])}" stroke="#160b1b" stroke-width="2"/>`;
+  g += `<rect x="${W - 74}" y="${clamp(Y(lp) - 14, 0, H1 - 28)}" width="70" height="28" rx="8" fill="#f4eef8"/><text x="${W - 39}" y="${clamp(Y(lp) - 14, 0, H1 - 28) + 19}" fill="#160b1b" font-size="14" font-weight="800" text-anchor="middle">${fmt(lp / 1000, 1)}K</text>`;
+  g += `<rect id="axisGrab" x="${P.l + iw}" y="0" width="${P.r}" height="${H1}" fill="transparent" style="cursor:ns-resize"/>`;
+  g += `<line id="xh1" x1="0" x2="0" y1="0" y2="${H1}" stroke="#fff" stroke-opacity=".25" stroke-dasharray="3 4" visibility="hidden"/>`;
+  const svg1 = $('priceChart'); svg1.setAttribute('viewBox', `0 0 ${W} ${H1}`); svg1.innerHTML = g;
+
+  // ---- Index-Chart ----
+  const Q = { t: 10, b: 26 }, ih2 = H2 - Q.t - Q.b, Y2 = v => Q.t + (1 - v / 100) * ih2;
+  const bw = iw / n, gap = n > 300 ? 0 : n > 120 ? 1 : 2;
+  let h = `<defs><linearGradient id="bf" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset="1" stop-color="#fff" stop-opacity=".3"/></linearGradient>
+    <mask id="bm"><rect x="0" y="0" width="${W}" height="${H2}" fill="url(#bf)"/></mask></defs><g mask="url(#bm)">`;
+  data.forEach((d, i) => { const y = Y2(d[col]); h += `<rect x="${(P.l + i * bw + gap / 2).toFixed(2)}" y="${y.toFixed(1)}" width="${Math.max(.5, bw - gap).toFixed(2)}" height="${(Y2(0) - y).toFixed(1)}" fill="${color(d[col])}" opacity=".8"/>`; });
+  h += `</g>`;
+  for (const [v, c] of [[75, '#f3843c'], [25, '#8b6cff']]) h += `<line x1="${P.l}" x2="${P.l + iw}" y1="${Y2(v)}" y2="${Y2(v)}" stroke="${c}" stroke-opacity=".5" stroke-dasharray="4 5"/>`;
+  [[100, '#9a8ea6'], [75, '#f3843c'], [50, '#9a8ea6'], [25, '#8b6cff'], [0, '#9a8ea6']].forEach(([v, c]) => h += `<text x="${W - 30}" y="${Y2(v) + 4}" fill="${c}" font-size="13" text-anchor="end" font-weight="${v === 75 || v === 25 ? 800 : 500}">${v}</text>`);
+  const top = data.map((d, i) => (i ? 'L' : 'M') + (P.l + i * bw + bw / 2).toFixed(1) + ',' + Y2(d[col]).toFixed(1)).join('');
+  h += `<path d="${top}" fill="none" stroke="#efe3f7" stroke-opacity=".75" stroke-width="1.8" stroke-linejoin="round"/>`;
+  if (OPT.off) { let off = '', prev = -2; data.forEach((d, i) => { if (d[3] == null) return; off += (i === prev + 1 ? 'L' : 'M') + (P.l + i * bw + bw / 2).toFixed(1) + ',' + Y2(d[3]).toFixed(1); prev = i; }); h += `<path d="${off}" fill="none" stroke="#3fd6c3" stroke-width="2" stroke-dasharray="5 4"/>`; }
+  if (OPT.nums) { const k = Math.max(1, Math.round(n / 20)); data.forEach((d, i) => { if (i % k === 0) h += `<text x="${P.l + i * bw + bw / 2}" y="${Y2(d[col]) - 6}" fill="${color(d[col])}" font-size="11" font-weight="700" text-anchor="middle">${d[col]}</text>`; }); }
+  data.forEach((d, i) => {
+    const day = +d[0].slice(8, 10), mo = +d[0].slice(5, 7) - 1;
+    if (day === 1 && mo % mStep === 0) h += `<text x="${P.l + i * bw + bw / 2}" y="${H2 - 6}" fill="#9a8ea6" font-size="13" text-anchor="middle">${MON[LANG][mo]}${mStep > 1 || mo === 0 ? " '" + d[0].slice(2, 4) : ''}</text>`;
+  });
+  h += `<line id="xh2" x1="0" x2="0" y1="0" y2="${H2}" stroke="#fff" stroke-opacity=".25" stroke-dasharray="3 4" visibility="hidden"/>`;
+  const svg2 = $('idxChart'); svg2.setAttribute('viewBox', `0 0 ${W} ${H2}`); svg2.innerHTML = h;
+  chartGeom = { W, iw, P, n, X };
+}
+let chartGeom = null;
+// Hover-Tooltip
+function hover(e, svg) {
+  if (!chartGeom) return;
+  const r = svg.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * chartGeom.W;
+  const i = clamp(Math.round((x - chartGeom.P.l) / chartGeom.iw * (chartGeom.n - 1)), 0, chartGeom.n - 1), d = chartData[i];
+  const col = MODE === 'binance' ? 1 : 2;
+  for (const id of ['xh1', 'xh2']) { const l = $(id); if (l) { l.setAttribute('x1', chartGeom.X(i)); l.setAttribute('x2', chartGeom.X(i)); l.setAttribute('visibility', 'visible'); } }
+  const tt = $('tt'); tt.style.display = 'block';
+  tt.style.left = Math.min(e.clientX + 16, innerWidth - 200) + 'px'; tt.style.top = (e.clientY + 16) + 'px';
+  tt.innerHTML = `<b>${dmy(d[0])}</b><div class="r"><span>Bitcoin</span><span>${usd(d[4])}</span></div><div class="r"><span>Index</span><span style="color:${color(d[col])}">${d[col]} · ${t(zoneOf(d[col]).k)}</span></div><div class="r"><span>${t('official')}</span><span>${d[5] ?? '–'}</span></div>`;
+}
+for (const id of ['priceChart', 'idxChart']) {
+  const s = $(id);
+  s.addEventListener('mousemove', e => { if (!drag) hover(e, s); });
+  s.addEventListener('mouseleave', () => { $('tt').style.display = 'none'; ['xh1', 'xh2'].forEach(x => $(x)?.setAttribute('visibility', 'hidden')); });
+}
+// Preisachse ziehen = zoomen, im Chart ziehen = verschieben, Doppelklick = zurücksetzen (wie TradingView)
+let drag = null;
+$('priceChart').addEventListener('pointerdown', e => {
+  const onAxis = e.target.id === 'axisGrab';
+  drag = { y: e.clientY, zoom: yZoom, shift: yShift, axis: onAxis, h: $('priceChart').getBoundingClientRect().height };
+  $('priceChart').setPointerCapture(e.pointerId);
+});
+$('priceChart').addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dy = e.clientY - drag.y;
+  if (drag.axis) yZoom = clamp(drag.zoom * Math.exp(dy * 0.006), 0.08, 8);
+  else { const prices = chartData.map(d => d[4]); const span = (Math.max(...prices) - Math.min(...prices)) * 1.2 * yZoom; yShift = drag.shift + dy / drag.h * span; }
+  $('tt').style.display = 'none';
+  renderCharts();
+});
+$('priceChart').addEventListener('pointerup', () => drag = null);
+$('priceChart').addEventListener('dblclick', () => { yZoom = 1; yShift = 0; renderCharts(); });
+$('priceChart').addEventListener('wheel', e => { if (e.target.id !== 'axisGrab') return; e.preventDefault(); yZoom = clamp(yZoom * Math.exp(e.deltaY * 0.001), 0.08, 8); renderCharts(); }, { passive: false });
+
+/* ================= Tooltip für Quellen ================= */
+document.addEventListener('mousemove', e => {
+  const el = e.target.closest('[data-tip]'), tip = $('tip');
+  if (!el || !D) { tip.style.display = 'none'; return; }
+  const k = el.dataset.tip, m = D.modes[MODE]; let html = '';
+  if (k.startsWith('comp:')) {
+    const c = m.components.find(x => x.id === k.slice(5)), [v, x] = compText(c);
+    html = `<b>${t('n_' + c.id)}</b><div style="color:var(--muted)">${v} · ${x}</div><div style="margin-top:6px">` +
+      (c.sources.length ? c.sources.map(s => `<div class="r"><span>${s.name}</span><span>${srcVal(c.id, s.value)}</span></div>`).join('') : `<div class="r"><span>${t('noData')}</span><span></span></div>`) +
+      `</div><div class="m">${MODE === 'multi' ? t('tipMulti', { n: c.sources.length }) : t('tipBin')} · ${t('tipPts', { p: c.score ?? '–' })}</div>`;
+  } else if (k === 'poly') html = `<b>Polymarket</b><div class="m">${t('tipPoly', { d: D.poly?.end ? dmy(new Date(Date.parse(D.poly.end) - 432e5).toISOString().slice(0, 10)) : '–' })}</div><div class="r" style="margin-top:6px"><span>Quelle</span><span>gamma-api.polymarket.com</span></div>`;
+  else if (k === 'ownzone') html = `<b>${t('zoneRow', { z: t(zoneOf(m.index ?? 50).k) })}</b><div class="m">${t('tipZone', { s: m.backtest1 ? monthYear(m.backtest1.since) : '–', z: t(zoneOf(m.index ?? 50).k) })}</div>`;
+  tip.innerHTML = html; tip.style.display = 'block';
+  tip.style.left = Math.min(e.clientX + 16, innerWidth - tip.offsetWidth - 10) + 'px'; tip.style.top = Math.min(e.clientY + 16, innerHeight - tip.offsetHeight - 10) + 'px';
+});
+
+/* ================= Live-Preis (Binance) ================= */
+function livePrice() {
+  let ws;
+  try { ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@ticker'); } catch { return; }
+  let last = 0;
+  ws.onmessage = e => {
+    const m = JSON.parse(e.data), p = +m.c;
+    LIVE.dir = LIVE.price ? Math.sign(p - LIVE.price) || LIVE.dir : 0; LIVE.price = p; LIVE.ch = +m.P;
+    if (D && Date.now() - last > 1000) { last = Date.now(); renderHeader(); renderTicker(); }
+  };
+  ws.onclose = () => setTimeout(livePrice, 5000);
+}
+// Einzeldatei: Liquidationen live im Browser sammeln (seit dem Öffnen)
+const BLIQ = { binance: { L: 0, S: 0 }, multi: { L: 0, S: 0 } };
+function liveLiquidations() {
+  const add = (bin, isLong, v) => { if (!(v > 0)) return; const k = isLong ? 'L' : 'S'; if (bin) BLIQ.binance[k] += v; BLIQ.multi[k] += v; };
+  const ws = (url, sub, fn) => { try { const w = new WebSocket(url); w.onopen = () => sub && w.send(JSON.stringify(sub)); w.onmessage = e => { try { fn(JSON.parse(e.data)); } catch { } }; w.onclose = () => setTimeout(() => ws(url, sub, fn), 5000); } catch { } };
+  ws('wss://fstream.binance.com/market/stream?streams=!forceOrder@arr', null, m => { const o = m.data?.o; if (o) add(true, o.S === 'SELL', +o.z * +o.ap); });
+  ws('wss://stream.bybit.com/v5/public/linear', { op: 'subscribe', args: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT'].map(s => 'allLiquidation.' + s) }, m => { for (const x of m.data || []) add(false, x.S === 'Buy', +x.v * +x.p); });
+  setInterval(() => { if (D && STANDALONE) { D.liq24 = JSON.parse(JSON.stringify(BLIQ)); renderTicker(); } }, 3000);
+}
+
+/* ================= Laden ================= */
+async function loadOnline() {
+  const [a, b] = await Promise.all([fetch('data/latest.json?' + Date.now()), fetch('data/history.json?' + Date.now())]);
+  if (!a.ok || !b.ok) throw new Error('keine Online-Daten');
+  D = await a.json(); H = await b.json();
+}
+async function loadStandalone() {
+  STANDALONE = true;
+  $('loadTxt').textContent = t('loadingLocal');
+  const { result } = await window.FG_ENGINE.collect({ env: 'browser', state: {}, liqOverride: JSON.parse(JSON.stringify(BLIQ)) });
+  H = result.history; D = result;
+}
+let lastLoad = 0;
+async function load(first) {
+  lastLoad = Date.now();
+  try {
+    if (window.FG_STANDALONE) {
+      if (!window.FG_ENGINE) await new Promise(r => window.addEventListener('fg-engine', r, { once: true }));
+      if (first) liveLiquidations();
+      await loadStandalone();
+    } else await loadOnline();
+  } catch (e) {
+    if (first) $('loadTxt').textContent = t('loadErr') + ' ' + (e?.message || '');
+    return;
+  }
+  $('loading').classList.add('hidden');
+  render();
+}
+applyTexts();
+$('loadTxt').textContent = t('loading');
+load(true);
+livePrice();
+// Online alle 2 Minuten neue Daten holen, Einzeldatei alle 10 Minuten neu berechnen
+setInterval(() => { if (Date.now() - lastLoad > (window.FG_STANDALONE ? 600000 : 115000)) load(false); }, 30000);
+</script>
+</body>
+</html>
