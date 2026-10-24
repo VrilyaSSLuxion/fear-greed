@@ -950,6 +950,25 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
   hr.hsep.full{width:100%;border:0;border-top:1.5px solid var(--line2);margin:8px 0}
   #heatMenu{min-width:520px}
   .hsinfo{color:#cbbfd6;font-size:11.5px;margin-left:6px;white-space:nowrap}
+  /* V21 Teil D: Schnellmenü „+“, Indikator-Fenster, Zeichenwerkzeuge, Strategie umkehren, Impuls-Backtest */
+  .qplus{position:absolute;z-index:5;width:20px;height:20px;padding:0;border-radius:5px;border:1px solid #f6c453;background:#1a0e20;color:#f6c453;font:800 15px/17px system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 8px #0008}
+  .qplus:hover{background:#f6c453;color:#160b1b}
+  .oscwrap{margin-top:2px;border-top:1px solid rgba(255,255,255,.2)}
+  .drawmenu{right:0;left:auto;min-width:260px}
+  .drawtools{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0}
+  .drawtools button{min-width:40px;padding:4px 7px;border-radius:7px;border:1px solid #4a3556;background:#241530;color:#eee;cursor:pointer;font:inherit;font-size:13px}
+  .drawtools button.on,.drawtools button:hover{border-color:#f6c453;color:#f6c453}
+  .dpal{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+  .dpal i{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid #160b1b;display:inline-block;box-shadow:0 0 0 1px #4a3556}
+  .dpal i.on{border-color:#fff}
+  .mtinv{display:inline-flex;align-items:center;gap:5px;font-size:12px;margin-left:12px;cursor:pointer;font-weight:600;color:var(--muted)}
+  .impgrid td,.impgrid th{padding:3px 7px;text-align:right;white-space:nowrap}
+  .impgrid td.g{color:#33d39a}.impgrid td.r{color:#ff4d5e}
+  .impform{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:6px 0 10px}
+  .impform label{display:flex;gap:5px;align-items:center;font-size:13px}
+  .impform input[type=number]{width:72px}
+  #priceChart.drawing{cursor:crosshair}
+  .impform input,.impform select{background:#120916;color:var(--text,#eee);border:1px solid #4a3556;border-radius:7px;padding:4px 6px;font:inherit;font-size:13px}
 </style>
 <link rel="stylesheet" href="../nav.css">
 </head>
@@ -1083,7 +1102,7 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
         <div class="dirbox vss" id="dirBox"></div>
       </div>
       <div class="ctools">
-        <div class="seg vss" id="ctypeSeg"><button data-v="line" data-t="ctLine"></button><button data-v="candle" data-t="ctCandle"></button></div>
+        <select class="csel vss" id="assetSel"></select><div class="seg vss" id="ctypeSeg"><button data-v="line" data-t="ctLine"></button><button data-v="candle" data-t="ctCandle"></button><button data-v="ha" data-t="ctHa"></button></div>
         <select class="csel vss" id="csSel"></select><span class="csnote vss" id="csNote"></span>
         <button class="tog" id="togNums" data-t="btnNums"></button>
         <button class="tog vss" id="togBands" data-t="btnBands"></button>
@@ -1099,22 +1118,26 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
         <button class="tog vss" id="togFib" data-t="btnFib"></button>
         <div class="tgrp vss"><button class="tog vss" id="togMA" data-t="btnMA"></button><button class="tog vss" id="togMaSig" data-t="btnSigS"></button><div class="ddwrap"><button class="tog" id="maDd"></button><div class="ddmenu tall" id="maMenu"></div></div></div>
         <div class="tgrp vss"><button class="tog vss" id="togVw" data-t="btnVw"></button><button class="tog vss" id="togVwS" data-t="btnSigS"></button><div class="ddwrap"><button class="tog" id="vwDd"></button><div class="ddmenu tall" id="vwMenu"></div></div></div>
+        <div class="tgrp vss"><button class="tog vss" id="togOb">LSOB</button><button class="tog vss" id="togFvg">FVG</button><div class="ddwrap"><button class="tog" id="obDd">▾</button><div class="ddmenu tall" id="obMenu"></div></div></div>
+        <div class="tgrp vss"><button class="tog vss" id="togBos">BOS</button><button class="tog vss" id="togTl" data-t="btnTl"></button><div class="ddwrap"><button class="tog" id="strDd">▾</button><div class="ddmenu tall" id="strMenu"></div></div></div>
+        <div class="tgrp vss"><button class="tog vss" id="togVp" data-t="btnVp"></button><button class="tog vss" id="togOsc">RSI</button><div class="ddwrap"><button class="tog" id="indDd">▾</button><div class="ddmenu tall" id="indMenu"></div></div></div>
         <div class="tgrp vss" hidden></div>
         <div class="tgrp vss"><button class="tog vss" id="togBell" data-t="btnBell"></button><div class="ddwrap"><button class="tog" id="bellDd"></button><div class="ddmenu" id="bellMenu"></div></div></div><div class="tgrp vss"><button class="tog vss" id="togOwn" data-t="btnOwn"></button><div class="ddwrap"><button class="tog" id="ownDd"></button><div class="ddmenu tall" id="ownMenu"></div></div></div>
         <div class="layers vss"><button class="tog" id="layBtn" data-t="btnLayers"></button><div class="laymenu" id="layMenu"></div></div>
         <div class="ddwrap vss"><button class="tog" id="setsDd"></button><div class="ddmenu" id="setsMenu"></div></div>
         <i id="phOff" hidden></i><button class="tog on" id="togOff" data-t="btnOff"></button>
         <div class="seg" id="rangeSeg"><span class="seglbl" id="rangeLbl" data-t="rangeLbl"></span><button data-v="1" data-t="r1d"></button><button data-v="5" data-t="r5d"></button><button data-v="30" data-t="r1m"></button><button data-v="91" data-t="r3"></button><button data-v="182" data-t="r6"></button><button data-v="ytd" data-t="rYtd"></button><button data-v="365" data-t="r12"></button><button data-v="all" data-t="rAll"></button><span class="ddwrap"><button data-v="custom" id="rngBtn" data-t="rCustom"></button><span class="ddmenu" id="rngMenu"></span></span></div>
-        <div class="endbtns vss"><button class="tog iconb" id="hideBtn">👁</button><button class="tog iconb" id="lockBtn">🔓</button><button class="tog iconb" id="magBtn">🧲</button></div>
+        <div class="endbtns vss"><div class="ddwrap"><button class="tog iconb" id="drawDd">✏️</button><div class="ddmenu drawmenu" id="drawMenu"></div></div><button class="tog iconb" id="hideBtn">👁</button><button class="tog iconb" id="lockBtn">🔓</button><button class="tog iconb" id="magBtn">🧲</button></div>
       </div>
     </div>
-    <div class="cwrap"><svg class="csvg" id="priceChart"></svg><span class="axisHint vss" data-t="axisHint"></span></div>
+    <div class="cwrap"><svg class="csvg" id="priceChart"></svg><span class="axisHint vss" data-t="axisHint"></span><button class="qplus vss" id="qplus" hidden>+</button></div>
+    <div class="cwrap oscwrap vss" id="oscWrap" hidden><svg class="csvg" id="oscChart"></svg></div>
     <div class="splitter" id="splitter"><span></span></div>
   </div>
   <!-- V18: Index-Chart als eigenes Fenster (eigene Höhe, eigene Knöpfe; Zeitachse gekoppelt oder frei) -->
   <div class="card chart chart2" id="idxCard">
-    <div class="ihead"><div class="clabel" id="idxLbl" data-t="idxChart"></div><select class="csel avgsel" id="avgISel"></select><select class="csel vss" id="idxTfSel"></select><button class="tog vss" id="coupleBtn"></button><div class="itools vss" id="itools"><div class="tgrp vss"><button class="tog vss" id="tog50" data-t="btn50"></button><button class="tog vss" id="tog50s" data-t="btnSigS"></button></div><div class="tgrp vss"><button class="tog vss" id="togMAi"></button><button class="tog vss" id="togSma" data-t="btnSigS"></button></div><div class="tgrp vss"><button class="tog vss" id="togI2"></button><button class="tog vss" id="togI2s" data-t="btnSigS"></button></div><div class="tgrp vss"><button class="tog vss" id="togI3"></button><button class="tog vss" id="togI3s" data-t="btnSigS"></button></div><div class="ddwrap vss"><button class="tog" id="ilnDd"></button><div class="ddmenu tall" id="ilnMenu"></div></div><div class="tgrp vss"><button class="tog vss" id="togFrI" data-t="btnFrac"></button><span class="ddwrap"><button class="tog" id="frIDd"></button><span class="ddmenu tall" id="frIMenu"></span></span></div><div class="tgrp vss" id="lvGrp1"><i id="phLv1" hidden></i><button class="tog vss" id="togLv1s" data-t="btnSigS"></button><span class="ddwrap"><button class="tog vss" id="lvDd1">▾</button><span class="ddmenu" id="lvMenu1"></span></span></div><div class="tgrp vss" id="lvGrp2"><i id="phLv2" hidden></i><button class="tog vss" id="togLv2s" data-t="btnSigS"></button><span class="ddwrap"><button class="tog vss" id="lvDd2">▾</button><span class="ddmenu" id="lvMenu2"></span></span></div><div class="tgrp vss" id="offGrp"><button class="tog vss" id="togOffS" data-t="btnSigS"></button><span class="ddwrap"><button class="tog" id="offSigDd"></button><span class="ddmenu tall" id="offSigMenu"></span></span></div><div class="tgrp vss"><span class="ddwrap"><button class="tog vss" id="isetDd"></button><span class="ddmenu tall" id="isetMenu"></span></span><button class="tog vss" id="comboBtn"></button></div></div></div>
-    <div class="cwrap"><svg class="csvg" id="idxChart"></svg></div>
+    <div class="ihead"><div class="clabel" id="idxLbl" data-t="idxChart"></div><select class="csel avgsel" id="avgISel"></select><select class="csel vss" id="idxTfSel"></select><button class="tog vss" id="coupleBtn"></button><div class="itools vss" id="itools"><div class="tgrp vss"><button class="tog vss" id="togBosI">BOS</button><button class="tog vss" id="togTlI" data-t="btnTl"></button></div><div class="tgrp vss"><button class="tog vss" id="tog50" data-t="btn50"></button><button class="tog vss" id="tog50s" data-t="btnSigS"></button></div><div class="tgrp vss"><button class="tog vss" id="togMAi"></button><button class="tog vss" id="togSma" data-t="btnSigS"></button></div><div class="tgrp vss"><button class="tog vss" id="togI2"></button><button class="tog vss" id="togI2s" data-t="btnSigS"></button></div><div class="tgrp vss"><button class="tog vss" id="togI3"></button><button class="tog vss" id="togI3s" data-t="btnSigS"></button></div><div class="ddwrap vss"><button class="tog" id="ilnDd"></button><div class="ddmenu tall" id="ilnMenu"></div></div><div class="tgrp vss"><button class="tog vss" id="togFrI" data-t="btnFrac"></button><span class="ddwrap"><button class="tog" id="frIDd"></button><span class="ddmenu tall" id="frIMenu"></span></span></div><div class="tgrp vss" id="lvGrp1"><i id="phLv1" hidden></i><button class="tog vss" id="togLv1s" data-t="btnSigS"></button><span class="ddwrap"><button class="tog vss" id="lvDd1">▾</button><span class="ddmenu" id="lvMenu1"></span></span></div><div class="tgrp vss" id="lvGrp2"><i id="phLv2" hidden></i><button class="tog vss" id="togLv2s" data-t="btnSigS"></button><span class="ddwrap"><button class="tog vss" id="lvDd2">▾</button><span class="ddmenu" id="lvMenu2"></span></span></div><div class="tgrp vss" id="offGrp"><button class="tog vss" id="togOffS" data-t="btnSigS"></button><span class="ddwrap"><button class="tog" id="offSigDd"></button><span class="ddmenu tall" id="offSigMenu"></span></span></div><div class="tgrp vss"><span class="ddwrap"><button class="tog vss" id="isetDd"></button><span class="ddmenu tall" id="isetMenu"></span></span><button class="tog vss" id="comboBtn"></button></div></div></div>
+    <div class="cwrap"><svg class="csvg" id="idxChart"></svg><button class="qplus vss" id="qplus2" hidden>+</button></div>
     <div class="splitter" id="splitter2"><span></span></div>
     <div class="heatinfo vss hidden" id="heatInfo"></div>
     <div class="csum vss" id="csum"></div>
@@ -1182,6 +1205,7 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
 <div class="tip" id="tip"></div>
 <div class="toast hidden" id="toast"></div>
 <div class="alstack" id="alStack"></div>
+<div class="modal" id="impModal"><div class="dlg wide"><h2 id="impTitle"></h2><div id="impBody"></div><div class="btns"><button class="btn pri" data-close data-t="close"></button></div></div></div>
 <div class="modal" id="comboModal"><div class="dlg wide"><h2 id="comboTitle"></h2><div id="comboBody"></div><div class="btns"><button class="btn pri" data-close data-t="close"></button></div></div></div>
 <div class="modal" id="alLogModal"><div class="dlg wide"><h2 data-t="alLogTitle"></h2><div class="alog" id="alLog"></div><div class="btns"><button class="btn sm" id="alLogClear" data-t="alLogClear"></button><button class="btn pri" data-close data-t="close"></button></div></div></div>
 <div class="tt" id="tt"></div>
@@ -1576,6 +1600,14 @@ Object.assign(T.ar, {"actCircle":"كما في الدائرة ({n})","actAvgTip":
 Object.assign(T.de, {"heatLine3":"<b>Liquidations-Heatmap</b> (Schätzung aus {s} · Zeitraum: {p})","hp_1mo":"1 Monat (grob, Tageswerte)","hp_3mo":"3 Monate (grob, Tageswerte, Binance nur 30 Tage)","tkMid":"Mitte {a}/{b}","clmHead":"Welche Cluster","clmExtra":"weitere Cluster (Anzahl)","clmFarRange":"Fernster Cluster: höchstens % vom Kurs","midHead":"Mitte-Stufen (0 % = Long-Cluster, 100 % = Short-Cluster)","midp_top":"stärkste (L1/S1)","midp_near":"nächste (L2/S2)","midp_far":"fernste (LF/SF)","midTicker":"Mitte-Stufen im Ticker zeigen","midAl":"Alarm, wenn der Kurs eine Mitte-Stufe kreuzt","midNote":"Die Mitte zwischen zwei Clustern eignet sich z. B. als Orientierung für einen Stop-Loss. 61,8 % und 88,7 % liegen näher am Short-Cluster, 38,2 % und 11,3 % näher am Long-Cluster.","midAlT":"↔ Mitte {f} % {d}","midAlB":"Der Kurs hat die Mitte-Stufe {f} % zwischen {a} und {b} ({p}) {d} gekreuzt.","tpHead":"Handelsplan bei Signalen","tpOn":"Einstieg, Stop-Loss und Ziele an Signal-Meldungen hängen","tpsl_cluster":"SL hinter Cluster","tpsl_half":"SL halber Weg","tpsl_allper":"SL nächster Cluster aller Zeiträume","tpslH_cluster":"Stop-Loss knapp hinter dem nächsten Cluster der eigenen Seite (Long: darunter, Short: darüber)","tpslH_half":"Stop-Loss auf halbem Weg zwischen Kurs und dem nächsten Cluster der eigenen Seite","tpslH_allper":"Wie „hinter Cluster“, aber es zählt der nächstgelegene Cluster aus allen Heatmap-Zeiträumen (12 Std. … 3 Monate) – meist der engste Stop","tpBuf":"Puffer hinter dem Cluster (%)","tpN":"Anzahl Ziele (TP)","tpHook":"Webhook für einen Bot","tpHookBad":"Nur https-Adressen sind erlaubt","tpNote":"Ziele = nächste Cluster der Gegenseite, R = Chance/Risiko-Verhältnis. Das Programm handelt nicht selbst – ein Webhook schickt Signal und Plan als JSON an eine Adresse deiner Wahl (z. B. für einen eigenen Bot). Keine Anlageberatung.","csHead":"Cluster-Signale (Test)","csGrow":"Gegen-Cluster wächst nach dem Abholen","csGrowH":"Ein Short-Cluster wurde abgeholt und danach wächst das Long-Volumen in der Nähe stark (oder umgekehrt) – nächste Bewegung eher Richtung des wachsenden Clusters","csGrowPct":"Wachstum mindestens (%)","csGrowMin":"innerhalb von (Minuten)","csWick":"Cluster angelaufen, Kerze schließt mit Docht davor","csWickH":"Der Kurs läuft in einen Cluster, die Kerze schließt aber wieder davor und hinterlässt einen langen Docht – mögliche Gegenbewegung","csWickPct":"Docht mindestens (%)","csTf":"Kerze","csPat":"Cluster berührt + Kerzenmuster","csPatH":"Der Tageskurs hat einen Cluster berührt und am selben Tag entstand ein bullisches bzw. bärisches Kerzenmuster","csNote":"Test: Es gibt dafür noch keine Auswertung. Das Programm schreibt die Cluster alle 5 Minuten mit, damit die Trefferquote später ehrlich geprüft werden kann. Meldungen im Browser, solange die Seite offen ist.","csGrowT":"{d} Cluster-Signal: {s}-Cluster abgeholt, Gegenseite wächst","csGrowB":"Der Cluster bei {c} wurde abgeholt; danach ist das {side}-Volumen in der Nähe (±5 %) in {m} Min. um {p} % gewachsen. Nächste Bewegung eher {dir} Richtung {side}-Cluster.","csWickT":"{d} Cluster-Signal {s}: {id} angelaufen, Docht","csWickB":"{id} wurde angelaufen, die {tf}-Kerze schließt aber wieder davor ({z}) – Docht {w} %. Mögliche Gegenbewegung.","csPatT":"{d} Cluster-Signal {s}: Cluster + Kerzenmuster","csPatB":"Am {day} wurde {id} berührt und es entstand das Muster „{n}“.","alk_clsig":"Cluster-Signal","al_clsig":"Cluster-Signale (Test, im Menü „Cluster ▾“ einschalten)"});
 Object.assign(T.en, {"heatLine3":"<b>Liquidation heatmap</b> (estimate from {s} · period: {p})","hp_1mo":"1 month (rough, daily values)","hp_3mo":"3 months (rough, daily values, Binance only 30 days)","tkMid":"mid {a}/{b}","clmHead":"Which clusters","clmExtra":"further clusters (count)","clmFarRange":"Farthest cluster: at most % from price","midHead":"Mid levels (0 % = long cluster, 100 % = short cluster)","midp_top":"strongest (L1/S1)","midp_near":"nearest (L2/S2)","midp_far":"farthest (LF/SF)","midTicker":"Show mid levels in the ticker","midAl":"Alert when price crosses a mid level","midNote":"The middle between two clusters is e.g. a guide for a stop loss. 61.8 % and 88.7 % lie closer to the short cluster, 38.2 % and 11.3 % closer to the long cluster.","midAlT":"↔ Mid {f} % {d}","midAlB":"Price crossed the mid level {f} % between {a} and {b} ({p}) {d}.","tpHead":"Trade plan for signals","tpOn":"Add entry, stop loss and targets to signal messages","tpsl_cluster":"SL behind cluster","tpsl_half":"SL half way","tpsl_allper":"SL nearest cluster of all periods","tpslH_cluster":"Stop loss just behind the nearest cluster on your own side (long: below, short: above)","tpslH_half":"Stop loss half way between price and the nearest cluster on your own side","tpslH_allper":"Like “behind cluster”, but the nearest cluster across all heatmap periods (12 h … 3 months) counts – usually the tightest stop","tpBuf":"Buffer behind the cluster (%)","tpN":"Number of targets (TP)","tpHook":"Webhook for a bot","tpHookBad":"Only https addresses are allowed","tpNote":"Targets = nearest clusters on the other side, R = reward/risk ratio. The program does not trade itself – a webhook sends signal and plan as JSON to an address of your choice (e.g. your own bot). Not financial advice.","csHead":"Cluster signals (test)","csGrow":"Opposite cluster grows after the sweep","csGrowH":"A short cluster was swept and afterwards the long volume nearby grows strongly (or vice versa) – next move rather toward the growing cluster","csGrowPct":"Growth at least (%)","csGrowMin":"within (minutes)","csWick":"Cluster hit, candle closes back with a wick","csWickH":"Price runs into a cluster but the candle closes back outside and leaves a long wick – possible reversal","csWickPct":"Wick at least (%)","csTf":"Candle","csPat":"Cluster touched + candle pattern","csPatH":"The daily price touched a cluster and the same day formed a bullish or bearish candle pattern","csNote":"Test: there is no evaluation yet. The program records the clusters every 5 minutes so the hit rate can be checked honestly later. Messages in the browser while the page is open.","csGrowT":"{d} Cluster signal: {s} cluster swept, opposite side grows","csGrowB":"The cluster at {c} was swept; afterwards the {side} volume nearby (±5 %) grew by {p} % within {m} min. Next move rather {dir} toward the {side} cluster.","csWickT":"{d} Cluster signal {s}: {id} hit, wick","csWickB":"{id} was hit, but the {tf} candle closes back outside ({z}) – wick {w} %. Possible reversal.","csPatT":"{d} Cluster signal {s}: cluster + candle pattern","csPatB":"On {day} {id} was touched and the pattern “{n}” formed.","alk_clsig":"Cluster signal","al_clsig":"Cluster signals (test, switch on in the “Cluster ▾” menu)"});
 Object.assign(T.ar, {"heatLine3":"<b>خريطة التصفيات</b> (تقدير من {s} · الفترة: {p})","hp_1mo":"شهر (تقريبي، قيم يومية)","hp_3mo":"3 أشهر (تقريبي، قيم يومية، Binance ‏30 يوماً فقط)","tkMid":"منتصف {a}/{b}","clmHead":"أي التجمعات","clmExtra":"تجمعات إضافية (العدد)","clmFarRange":"أبعد تجمع: % كحد أقصى من السعر","midHead":"مستويات المنتصف (0 % = تجمع اللونغ، 100 % = تجمع الشورت)","midp_top":"الأقوى (L1/S1)","midp_near":"الأقرب (L2/S2)","midp_far":"الأبعد (LF/SF)","midTicker":"إظهار مستويات المنتصف في الشريط","midAl":"تنبيه عندما يقطع السعر مستوى منتصف","midNote":"المنتصف بين تجمعين يصلح مثلاً كمرشد لوقف الخسارة. 61.8 % و88.7 % أقرب إلى تجمع الشورت، و38.2 % و11.3 % أقرب إلى تجمع اللونغ.","midAlT":"↔ المنتصف {f} % {d}","midAlB":"قطع السعر مستوى المنتصف {f} % بين {a} و{b} ({p}) {d}.","tpHead":"خطة تداول للإشارات","tpOn":"إضافة الدخول ووقف الخسارة والأهداف إلى رسائل الإشارات","tpsl_cluster":"وقف خلف التجمع","tpsl_half":"وقف في منتصف الطريق","tpsl_allper":"وقف عند أقرب تجمع لكل الفترات","tpslH_cluster":"وقف الخسارة خلف أقرب تجمع في جهتك مباشرة (لونغ: تحته، شورت: فوقه)","tpslH_half":"وقف الخسارة في منتصف الطريق بين السعر وأقرب تجمع في جهتك","tpslH_allper":"مثل «خلف التجمع»، لكن يُحتسب أقرب تجمع من كل فترات الخريطة (12 ساعة … 3 أشهر) – غالباً أضيق وقف","tpBuf":"هامش خلف التجمع (%)","tpN":"عدد الأهداف (TP)","tpHook":"Webhook لروبوت","tpHookBad":"يُسمح فقط بعناوين https","tpNote":"الأهداف = أقرب تجمعات الجهة المقابلة، R = نسبة العائد إلى المخاطرة. البرنامج لا يتداول بنفسه – يرسل Webhook الإشارة والخطة بصيغة JSON إلى عنوان تختاره (مثلاً لروبوتك). ليست نصيحة استثمارية.","csHead":"إشارات التجمعات (تجريبي)","csGrow":"التجمع المقابل يكبر بعد الاصطياد","csGrowH":"تم اصطياد تجمع شورت وبعدها يكبر حجم اللونغ القريب بقوة (أو العكس) – الحركة التالية غالباً نحو التجمع الذي يكبر","csGrowPct":"النمو على الأقل (%)","csGrowMin":"خلال (دقائق)","csWick":"لمس التجمع، الشمعة تُغلق بفتيل قبله","csWickH":"يدخل السعر في تجمع لكن الشمعة تُغلق خارجه تاركة فتيلاً طويلاً – انعكاس محتمل","csWickPct":"الفتيل على الأقل (%)","csTf":"الشمعة","csPat":"لمس تجمع + نمط شموع","csPatH":"لمس السعر اليومي تجمعاً وتكوّن في اليوم نفسه نمط شموع صاعد أو هابط","csNote":"تجريبي: لا يوجد تقييم بعد. يسجل البرنامج التجمعات كل 5 دقائق ليُفحص معدل الإصابة لاحقاً بأمانة. رسائل في المتصفح طالما الصفحة مفتوحة.","csGrowT":"{d} إشارة تجمع: اصطياد تجمع {s}، الجهة المقابلة تكبر","csGrowB":"تم اصطياد التجمع عند {c}؛ بعدها كبر حجم {side} القريب (±5 %) خلال {m} دقيقة بنسبة {p} %. الحركة التالية غالباً {dir} نحو تجمع {side}.","csWickT":"{d} إشارة تجمع {s}: لمس {id} مع فتيل","csWickB":"تم لمس {id} لكن شمعة {tf} أُغلقت خارجه ({z}) – فتيل {w} %. انعكاس محتمل.","csPatT":"{d} إشارة تجمع {s}: تجمع + نمط شموع","csPatB":"في {day} تم لمس {id} وتكوّن النمط «{n}».","alk_clsig":"إشارة تجمع","al_clsig":"إشارات التجمعات (تجريبي، تفعيلها من قائمة «Cluster ▾»)"});
+// V21 Teil D: Texte
+Object.assign(T.de, {"ctHa":"Heikin-Ashi","btnTl":"Trendlinien","btnVp":"Vol.-Profil","assetTip":"Asset im Kurs-Chart (Kerzen von Binance). Index, Heatmap, Cluster und Liquidationen bleiben Bitcoin.","assetNote":"{a}: Kerzen von Binance. Index, Heatmap, Cluster und Alarmlinien bleiben Bitcoin – Ebenen aus Bitcoin-Kursen sind ausgeblendet.","obTip":"LSOB: Box um die tiefste (Long) bzw. höchste (Short) Kerze nach einem Liquidity Sweep; Signal beim Rücklauf in die Box","fvgTip":"Fair Value Gaps: Lücke zwischen Kerze 1 und Kerze 3 (Ungleichgewicht)","bosTip":"Break of Structure: Schluss über dem letzten Swing-Hoch bzw. unter dem letzten Swing-Tief","tlTip":"Trendlinien durch die letzten Swing-Hochs bzw. -Tiefs, mit Bruch-Signal","vpTip":"Volumenprofil: Volumen der gezeigten Kerzen nach Preis (POC = meistes Volumen)","oscTip":"Indikator-Fenster unter dem Chart (RSI und/oder MACD) – Auswahl im Menü ▾ daneben","bosTipI":"Break of Structure im Index-Chart","tlTipI":"Trendlinien im Index-Chart","obDdTip":"Einstellungen LSOB und FVG, Alarm","strDdTip":"Einstellungen Swings, BOS, Trendlinien, Index-Chart, Alarme","indDdTip":"Volumenprofil, RSI/MACD, Impuls-Signal und Backtest","fvgFilled":"gefüllt","lsobSw":"Sweep unter/über {p}","lsobBroken":"gebrochen","lsobTouch":"Berührung","lsobRej":"Ablehnung","bosHi":"über Swing-Hoch","bosLo":"unter Swing-Tief","tlBrk":"Trendlinien-Bruch","impT":"Impuls {p} % in {n} Kerzen","drawTip":"Zeichenwerkzeuge (Linie, Strahl, Trendlinie, Rechteck, Fibonacci)","drawHead":"Zeichnen – Werkzeug wählen, dann in Chart 1 klicken","dt_hline":"Waagerechte Linie","dt_hray":"Waagerechter Strahl","dt_vline":"Senkrechte Linie","dt_trend":"Trendlinie","dt_rect":"Rechteck","dt_fib":"Fibonacci","drawShow":"Zeichnungen zeigen","drawClr":"Alle Zeichnungen löschen ({n})","drawClrQ":"Alle Zeichnungen in diesem Chart löschen?","drawNote":"Klicken setzt den ersten Punkt; ziehen oder ein zweiter Klick setzt den zweiten. Zeichnung anklicken = auswählen und verschieben (Punkte an den Enden ziehen), Rechtsklick = Farbe / Löschen, Entf = löschen, Esc = abbrechen. Der Magnet 🧲 gilt auch hier. Gespeichert im Browser, je Asset.","drawHint":"{k}: in Chart 1 klicken (Esc = abbrechen)","drawDel":"Löschen","drawCtxTip":"ziehen = verschieben, Rechtsklick = Farbe/Löschen","qmLine":"Waagerechte Linie bei {p}","qmOwn":"Eigene Alarmlinie bei {p}","qmBox":"Box um diese Kerze","qmVl":"Senkrechte Linie hier","qmTools":"Zeichenwerkzeuge …","obSw":"Swing: Kerzen links/rechts","obWin":"Sweep: Schluss zurück innerhalb Kerzen","obAge":"Box gilt höchstens Kerzen","obMax":"Boxen zeigen (letzte)","obm_reject":"Ablehnung","obm_touch":"Berührung","obmH_reject":"Signal, wenn eine Kerze mit dem Docht in die Box läuft und wieder außerhalb schließt (Box nicht gebrochen)","obmH_touch":"Signal schon beim ersten Antippen der Box (Einstieg an der Box-Kante)","obSig":"Signale (LS) zeigen","obAl":"Alarm bei LSOB-Signal","alTfLbl":"Kerzen für den Alarm","fvgMin":"FVG: Mindestgröße %","fvgMax":"FVG zeigen (letzte)","fvgShowFilled":"gefüllte FVG blass zeigen","obNote":"Gerechnet aus den gezeigten Kerzen (Kerzengröße oben wählen). Der Alarm prüft die abgeschlossenen Bitcoin-Kerzen der gewählten Größe, nur solange die Seite offen ist. Rückblick auf Tageskerzen: Methoden-Vergleich (LSOB · Ablehnung / Berührung).","strHead":"Swings (wie Fraktale)","strL":"Kerzen links","strR":"Kerzen rechts (Bestätigung)","strMax":"BOS zeigen (letzte)","strTlN":"Trendlinien je Seite","strTlBrk":"Bruch der Trendlinie markieren (TL)","strIdx":"Index-Chart (Chart 2)","strIdxBos":"BOS im Index-Chart","strIdxTl":"Trendlinien im Index-Chart","strAlHead":"Alarm mit Kerzenschluss (Bitcoin)","strAl":"Alarm bei Break of Structure","strAlTl":"auch bei Trendlinien-Bruch","strNote":"Swing-Hoch = höher als die Kerzen links und rechts; bekannt erst, wenn die rechten Kerzen geschlossen sind. BOS = erster Schluss über dem letzten Swing-Hoch (▲) bzw. unter dem letzten Swing-Tief (▼). Trendlinie = zwei fallende Hochs bzw. zwei steigende Tiefs. Alarme nur bei offener Seite.","vpHead":"Volumenprofil","vpBins":"Preis-Stufen","vpW":"Breite (% des Charts)","vpVa":"Value Area (% des Volumens)","vps_right":"rechts","vps_left":"links","oscHead":"Indikator-Fenster (unter Chart 1)","rsiN":"RSI-Länge","macdP":"MACD schnell / langsam / Signal","oscH":"Höhe je Fenster (px)","impHead":"Impuls-Signal (Kursbewegung)","impShow":"Impuls-Signale ⚡ im Chart","impPct":"Bewegung mind. %","impN":"innerhalb Kerzen","impm_follow":"mitgehen","impm_revert":"dagegen","impAl":"Alarm bei Impuls","impDPct":"Methoden-Vergleich: mind. % (Tageskerzen)","impDN":"Methoden-Vergleich: in Tagen","impBtOpen":"Backtest mit TP/SL öffnen","impNote":"Steigt oder fällt der Kurs innerhalb von N Kerzen um mindestens X %, gibt es ein Signal (mitgehen = in Bewegungsrichtung, dagegen = Gegenrichtung). Im Chart gilt die gezeigte Kerzengröße.","impBtTitle":"Impuls-Backtest · {a}","impBtTf":"Kerzen","impTp":"TP %","impSl":"SL %","impHold":"höchstens Kerzen halten","impBtLoad":"Kerzen werden bei Binance geladen …","impBtFew":"Zu wenige Kerzen für einen Backtest.","impBtRange":"{s} · {tf}-Kerzen {a} – {b} ({n} Kerzen, so weit Binance sie liefert)","impWin":"Treffer","impAvg":"Ø je Trade","impSum":"Summe","impPfTip":"Profit-Faktor = Summe der Gewinne ÷ Summe der Verluste (über 1 = Gewinn)","impThis":"Diese Einstellung","impInvRow":"Umgekehrt (Long ↔ Short)","impGrid":"Raster: Ø % je Trade (Anzahl) für Bewegung X % in N Kerzen – gleiche TP/SL","impLast":"Letzte Trades","impTime":"Zeit um","impBtWarn":"Einstieg zum Schluss der Signal-Kerze; berühren TP und SL dieselbe Kerze, zählt der Stop. Ohne Gebühren, Finanzierung und Slippage. Nach Ablauf der Haltedauer wird zum Schlusskurs geschlossen. Vergangene Ergebnisse sind keine Garantie – keine Anlageberatung.","mInv":"Strategie umkehren","mInvTip":"Jedes Signal mit der Gegenrichtung werten (Long ↔ Short) – zeigt, ob eine schwache Methode umgekehrt besser wäre","mInvOn":"umgekehrt (Long ↔ Short)","m_lsob":"LSOB · Ablehnung (Kurs)","m_lsobT":"LSOB · Berührung (Kurs)","m_fvg":"Fair Value Gap (Kurs)","m_bos":"Break of Structure (Kurs)","m_tlb":"Trendlinien-Bruch (Kurs)","m_imp":"Impuls (Kursbewegung, Tage)","alk_bos":"BOS / Trendlinie","alk_lsob":"LSOB-Signal","alk_imp":"Impuls","al_bos":"Break of Structure / Trendlinien-Bruch (Menü „BOS ▾“)","al_lsob":"LSOB-Signale (Menü „LSOB ▾“)","al_imp":"Impuls-Signale (Menü „Vol.-Profil ▾“)","bosAlT":"{d} BOS {tf}","bosAlB":"Bitcoin {tf}-Kerze schließt bei {c} {s} {p} (Break of Structure).","tlAlT":"{d} Trendlinien-Bruch {tf}","tlAlB":"Bitcoin {tf}-Kerze schließt bei {c} durch die Trendlinie (≈ {p}) – {s}.","lsAlT":"{d} LSOB {s} ({tf})","lsAlB":"Rücklauf in die LSOB-Box {lo} – {hi} ({m}) nach dem Sweep über/unter {sw}. Schluss {c}.","impAlT":"{d} Impuls {s} ({tf})","impAlB":"Bitcoin {p} % in {n} {tf}-Kerzen, Schluss {c} ({m})."});
+Object.assign(T.en, {"ctHa":"Heikin-Ashi","btnTl":"Trendlines","btnVp":"Vol. profile","assetTip":"Asset in the price chart (Binance candles). Index, heatmap, clusters and liquidations stay Bitcoin.","assetNote":"{a}: Binance candles. Index, heatmap, clusters and alert lines stay Bitcoin – layers built from Bitcoin prices are hidden.","obTip":"LSOB: box around the lowest (long) or highest (short) candle after a liquidity sweep; signal when price returns into the box","fvgTip":"Fair value gaps: gap between candle 1 and candle 3 (imbalance)","bosTip":"Break of structure: close above the last swing high or below the last swing low","tlTip":"Trendlines through the last swing highs / lows, with break signal","vpTip":"Volume profile: volume of the shown candles by price (POC = most volume)","oscTip":"Indicator pane below the chart (RSI and/or MACD) – choose in the ▾ menu next to it","bosTipI":"Break of structure in the index chart","tlTipI":"Trendlines in the index chart","obDdTip":"LSOB and FVG settings, alert","strDdTip":"Swings, BOS, trendlines, index chart, alerts","indDdTip":"Volume profile, RSI/MACD, impulse signal and backtest","fvgFilled":"filled","lsobSw":"sweep below/above {p}","lsobBroken":"broken","lsobTouch":"touch","lsobRej":"rejection","bosHi":"above swing high","bosLo":"below swing low","tlBrk":"Trendline break","impT":"Impulse {p} % in {n} candles","drawTip":"Drawing tools (line, ray, trendline, rectangle, Fibonacci)","drawHead":"Draw – pick a tool, then click in chart 1","dt_hline":"Horizontal line","dt_hray":"Horizontal ray","dt_vline":"Vertical line","dt_trend":"Trendline","dt_rect":"Rectangle","dt_fib":"Fibonacci","drawShow":"Show drawings","drawClr":"Delete all drawings ({n})","drawClrQ":"Delete all drawings in this chart?","drawNote":"A click sets the first point; drag or click again for the second. Click a drawing = select and move (drag the end points), right-click = colour / delete, Del = delete, Esc = cancel. The magnet 🧲 applies here too. Saved in the browser, per asset.","drawHint":"{k}: click in chart 1 (Esc = cancel)","drawDel":"Delete","drawCtxTip":"drag = move, right-click = colour/delete","qmLine":"Horizontal line at {p}","qmOwn":"Own alert line at {p}","qmBox":"Box around this candle","qmVl":"Vertical line here","qmTools":"Drawing tools …","obSw":"Swing: candles left/right","obWin":"Sweep: close back within candles","obAge":"Box valid for at most candles","obMax":"Boxes shown (latest)","obm_reject":"Rejection","obm_touch":"Touch","obmH_reject":"Signal when a candle wicks into the box and closes back outside (box not broken)","obmH_touch":"Signal on the first touch of the box (entry at the box edge)","obSig":"Show signals (LS)","obAl":"Alert on LSOB signal","alTfLbl":"Candles for the alert","fvgMin":"FVG: minimum size %","fvgMax":"FVGs shown (latest)","fvgShowFilled":"show filled FVGs faded","obNote":"Calculated from the shown candles (choose the candle size above). The alert checks closed Bitcoin candles of the chosen size, only while the page is open. Daily review: method comparison (LSOB · rejection / touch).","strHead":"Swings (like fractals)","strL":"Candles left","strR":"Candles right (confirmation)","strMax":"BOS shown (latest)","strTlN":"Trendlines per side","strTlBrk":"Mark trendline breaks (TL)","strIdx":"Index chart (chart 2)","strIdxBos":"BOS in the index chart","strIdxTl":"Trendlines in the index chart","strAlHead":"Alert on candle close (Bitcoin)","strAl":"Alert on break of structure","strAlTl":"also on trendline break","strNote":"Swing high = higher than the candles left and right; known only once the right candles have closed. BOS = first close above the last swing high (▲) or below the last swing low (▼). Trendline = two falling highs or two rising lows. Alerts only while the page is open.","vpHead":"Volume profile","vpBins":"Price levels","vpW":"Width (% of chart)","vpVa":"Value area (% of volume)","vps_right":"right","vps_left":"left","oscHead":"Indicator pane (below chart 1)","rsiN":"RSI length","macdP":"MACD fast / slow / signal","oscH":"Height per pane (px)","impHead":"Impulse signal (price move)","impShow":"Impulse signals ⚡ in the chart","impPct":"Move at least %","impN":"within candles","impm_follow":"follow","impm_revert":"fade","impAl":"Alert on impulse","impDPct":"Method comparison: at least % (daily)","impDN":"Method comparison: in days","impBtOpen":"Open backtest with TP/SL","impNote":"If price rises or falls by at least X % within N candles, a signal appears (follow = in the direction of the move, fade = opposite). The chart uses the shown candle size.","impBtTitle":"Impulse backtest · {a}","impBtTf":"Candles","impTp":"TP %","impSl":"SL %","impHold":"hold at most candles","impBtLoad":"Loading candles from Binance …","impBtFew":"Too few candles for a backtest.","impBtRange":"{s} · {tf} candles {a} – {b} ({n} candles, as far as Binance provides them)","impWin":"Hits","impAvg":"Avg per trade","impSum":"Sum","impPfTip":"Profit factor = sum of wins ÷ sum of losses (above 1 = profit)","impThis":"This setting","impInvRow":"Inverted (long ↔ short)","impGrid":"Grid: avg % per trade (count) for a move of X % in N candles – same TP/SL","impLast":"Latest trades","impTime":"Time out","impBtWarn":"Entry at the close of the signal candle; if TP and SL are hit in the same candle, the stop counts. No fees, funding or slippage. After the holding time the trade closes at the close. Past results are no guarantee – not investment advice.","mInv":"Invert strategy","mInvTip":"Count every signal in the opposite direction (long ↔ short) – shows whether a weak method would work better inverted","mInvOn":"inverted (long ↔ short)","m_lsob":"LSOB · rejection (price)","m_lsobT":"LSOB · touch (price)","m_fvg":"Fair value gap (price)","m_bos":"Break of structure (price)","m_tlb":"Trendline break (price)","m_imp":"Impulse (price move, days)","alk_bos":"BOS / trendline","alk_lsob":"LSOB signal","alk_imp":"Impulse","al_bos":"Break of structure / trendline break (“BOS ▾” menu)","al_lsob":"LSOB signals (“LSOB ▾” menu)","al_imp":"Impulse signals (“Vol. profile ▾” menu)","bosAlT":"{d} BOS {tf}","bosAlB":"Bitcoin {tf} candle closes at {c} {s} {p} (break of structure).","tlAlT":"{d} Trendline break {tf}","tlAlB":"Bitcoin {tf} candle closes at {c} through the trendline (≈ {p}) – {s}.","lsAlT":"{d} LSOB {s} ({tf})","lsAlB":"Return into the LSOB box {lo} – {hi} ({m}) after the sweep below/above {sw}. Close {c}.","impAlT":"{d} Impulse {s} ({tf})","impAlB":"Bitcoin {p} % in {n} {tf} candles, close {c} ({m})."});
+Object.assign(T.ar, {"ctHa":"هايكن آشي","btnTl":"خطوط الاتجاه","btnVp":"ملف الحجم","assetTip":"الأصل في رسم السعر (شموع من Binance). المؤشر والخريطة الحرارية والتجمعات والتصفيات تبقى بيتكوين.","assetNote":"{a}: شموع من Binance. المؤشر والخريطة الحرارية والتجمعات وخطوط التنبيه تبقى بيتكوين – الطبقات المحسوبة من أسعار بيتكوين مخفية.","obTip":"LSOB: صندوق حول أدنى شمعة (شراء) أو أعلى شمعة (بيع) بعد كسح السيولة؛ إشارة عند عودة السعر إلى الصندوق","fvgTip":"فجوات القيمة العادلة: فجوة بين الشمعة 1 والشمعة 3 (اختلال)","bosTip":"كسر الهيكل: إغلاق فوق آخر قمة تأرجح أو تحت آخر قاع تأرجح","tlTip":"خطوط اتجاه عبر آخر قمم / قيعان التأرجح مع إشارة الكسر","vpTip":"ملف الحجم: حجم الشموع المعروضة حسب السعر (POC = أكبر حجم)","oscTip":"نافذة مؤشر تحت الرسم (RSI و/أو MACD) – الاختيار من القائمة ▾ بجانبها","bosTipI":"كسر الهيكل في رسم المؤشر","tlTipI":"خطوط الاتجاه في رسم المؤشر","obDdTip":"إعدادات LSOB و FVG والتنبيه","strDdTip":"التأرجحات وكسر الهيكل وخطوط الاتجاه ورسم المؤشر والتنبيهات","indDdTip":"ملف الحجم و RSI/MACD وإشارة الاندفاع والاختبار الرجعي","fvgFilled":"مُملوءة","lsobSw":"كسح تحت/فوق {p}","lsobBroken":"مكسور","lsobTouch":"لمس","lsobRej":"رفض","bosHi":"فوق قمة التأرجح","bosLo":"تحت قاع التأرجح","tlBrk":"كسر خط الاتجاه","impT":"اندفاع {p} % خلال {n} شموع","drawTip":"أدوات الرسم (خط، شعاع، خط اتجاه، مستطيل، فيبوناتشي)","drawHead":"الرسم – اختر أداة ثم انقر في الرسم 1","dt_hline":"خط أفقي","dt_hray":"شعاع أفقي","dt_vline":"خط عمودي","dt_trend":"خط اتجاه","dt_rect":"مستطيل","dt_fib":"فيبوناتشي","drawShow":"إظهار الرسومات","drawClr":"حذف كل الرسومات ({n})","drawClrQ":"حذف كل الرسومات في هذا الرسم؟","drawNote":"النقرة تضع النقطة الأولى؛ السحب أو نقرة ثانية تضع الثانية. النقر على رسم = تحديده وتحريكه (اسحب نقاط الأطراف)، النقر الأيمن = اللون / الحذف، Del = حذف، Esc = إلغاء. المغناطيس 🧲 يعمل هنا أيضاً. محفوظة في المتصفح لكل أصل.","drawHint":"{k}: انقر في الرسم 1 (Esc = إلغاء)","drawDel":"حذف","drawCtxTip":"السحب = تحريك، النقر الأيمن = اللون/الحذف","qmLine":"خط أفقي عند {p}","qmOwn":"خط تنبيه خاص عند {p}","qmBox":"صندوق حول هذه الشمعة","qmVl":"خط عمودي هنا","qmTools":"أدوات الرسم …","obSw":"التأرجح: شموع يسار/يمين","obWin":"الكسح: الإغلاق بالعودة خلال شموع","obAge":"صلاحية الصندوق بحد أقصى شموع","obMax":"الصناديق المعروضة (الأخيرة)","obm_reject":"رفض","obm_touch":"لمس","obmH_reject":"إشارة عندما يدخل ذيل شمعة الصندوق وتغلق خارجه مجدداً (الصندوق غير مكسور)","obmH_touch":"إشارة عند أول لمس للصندوق (الدخول عند حافة الصندوق)","obSig":"إظهار الإشارات (LS)","obAl":"تنبيه عند إشارة LSOB","alTfLbl":"شموع التنبيه","fvgMin":"FVG: الحد الأدنى %","fvgMax":"فجوات FVG المعروضة (الأخيرة)","fvgShowFilled":"إظهار الفجوات المملوءة باهتة","obNote":"محسوبة من الشموع المعروضة (اختر حجم الشمعة في الأعلى). التنبيه يفحص شموع بيتكوين المغلقة بالحجم المختار، فقط طالما الصفحة مفتوحة. المراجعة اليومية: مقارنة الطرق (LSOB · رفض / لمس).","strHead":"التأرجحات (مثل الفراكتلات)","strL":"شموع يسار","strR":"شموع يمين (تأكيد)","strMax":"كسور الهيكل المعروضة (الأخيرة)","strTlN":"خطوط اتجاه لكل جانب","strTlBrk":"تمييز كسر خط الاتجاه (TL)","strIdx":"رسم المؤشر (الرسم 2)","strIdxBos":"كسر الهيكل في رسم المؤشر","strIdxTl":"خطوط الاتجاه في رسم المؤشر","strAlHead":"تنبيه عند إغلاق الشمعة (بيتكوين)","strAl":"تنبيه عند كسر الهيكل","strAlTl":"وأيضاً عند كسر خط الاتجاه","strNote":"قمة التأرجح = أعلى من الشموع يساراً ويميناً؛ تُعرف فقط بعد إغلاق الشموع اليمنى. كسر الهيكل = أول إغلاق فوق آخر قمة تأرجح (▲) أو تحت آخر قاع (▼). خط الاتجاه = قمتان هابطتان أو قاعان صاعدان. التنبيهات فقط والصفحة مفتوحة.","vpHead":"ملف الحجم","vpBins":"مستويات السعر","vpW":"العرض (% من الرسم)","vpVa":"منطقة القيمة (% من الحجم)","vps_right":"يمين","vps_left":"يسار","oscHead":"نافذة المؤشر (تحت الرسم 1)","rsiN":"طول RSI","macdP":"MACD سريع / بطيء / إشارة","oscH":"ارتفاع كل نافذة (px)","impHead":"إشارة الاندفاع (حركة السعر)","impShow":"إشارات الاندفاع ⚡ في الرسم","impPct":"حركة لا تقل عن %","impN":"خلال شموع","impm_follow":"مع الحركة","impm_revert":"عكس الحركة","impAl":"تنبيه عند الاندفاع","impDPct":"مقارنة الطرق: لا يقل عن % (يومي)","impDN":"مقارنة الطرق: خلال أيام","impBtOpen":"فتح الاختبار الرجعي مع TP/SL","impNote":"إذا ارتفع السعر أو انخفض بما لا يقل عن X % خلال N شموع تظهر إشارة (مع الحركة = في اتجاهها، عكس الحركة = الاتجاه المعاكس). الرسم يستخدم حجم الشمعة المعروض.","impBtTitle":"اختبار رجعي للاندفاع · {a}","impBtTf":"الشموع","impTp":"TP %","impSl":"SL %","impHold":"الاحتفاظ بحد أقصى شموع","impBtLoad":"جارٍ تحميل الشموع من Binance …","impBtFew":"عدد الشموع قليل جداً للاختبار الرجعي.","impBtRange":"{s} · شموع {tf} من {a} إلى {b} ({n} شمعة، بقدر ما توفره Binance)","impWin":"الإصابات","impAvg":"المتوسط لكل صفقة","impSum":"المجموع","impPfTip":"معامل الربح = مجموع الأرباح ÷ مجموع الخسائر (فوق 1 = ربح)","impThis":"هذا الإعداد","impInvRow":"معكوس (شراء ↔ بيع)","impGrid":"شبكة: متوسط % لكل صفقة (العدد) لحركة X % خلال N شموع – نفس TP/SL","impLast":"آخر الصفقات","impTime":"انتهاء الوقت","impBtWarn":"الدخول عند إغلاق شمعة الإشارة؛ إذا لمس TP و SL الشمعة نفسها يُحتسب الإيقاف. بدون رسوم أو تمويل أو انزلاق. بعد مدة الاحتفاظ تُغلق الصفقة بسعر الإغلاق. النتائج السابقة ليست ضماناً – ليست نصيحة استثمارية.","mInv":"عكس الاستراتيجية","mInvTip":"احتساب كل إشارة بالاتجاه المعاكس (شراء ↔ بيع) – يبيّن إن كانت طريقة ضعيفة أفضل معكوسة","mInvOn":"معكوسة (شراء ↔ بيع)","m_lsob":"LSOB · رفض (السعر)","m_lsobT":"LSOB · لمس (السعر)","m_fvg":"فجوة القيمة العادلة (السعر)","m_bos":"كسر الهيكل (السعر)","m_tlb":"كسر خط الاتجاه (السعر)","m_imp":"اندفاع (حركة السعر، أيام)","alk_bos":"كسر الهيكل / خط الاتجاه","alk_lsob":"إشارة LSOB","alk_imp":"اندفاع","al_bos":"كسر الهيكل / كسر خط الاتجاه (قائمة «BOS ▾»)","al_lsob":"إشارات LSOB (قائمة «LSOB ▾»)","al_imp":"إشارات الاندفاع (قائمة «ملف الحجم ▾»)","bosAlT":"{d} كسر الهيكل {tf}","bosAlB":"شمعة بيتكوين {tf} تغلق عند {c} {s} {p} (كسر الهيكل).","tlAlT":"{d} كسر خط الاتجاه {tf}","tlAlB":"شمعة بيتكوين {tf} تغلق عند {c} عبر خط الاتجاه (≈ {p}) – {s}.","lsAlT":"{d} LSOB {s} ({tf})","lsAlB":"عودة إلى صندوق LSOB {lo} – {hi} ({m}) بعد الكسح تحت/فوق {sw}. الإغلاق {c}.","impAlT":"{d} اندفاع {s} ({tf})","impAlB":"بيتكوين {p} % خلال {n} شموع {tf}، الإغلاق {c} ({m})."});
+// V21 Teil D2: Texte
+Object.assign(T.de, {"dirBtcOnly":"Chart zeigt {a}. Richtung, nächstes Ziel und Cluster gibt es nur für Bitcoin – oben links auf Bitcoin umschalten."});
+Object.assign(T.en, {"dirBtcOnly":"Chart shows {a}. Direction, next target and clusters are Bitcoin only – switch to Bitcoin at the top left."});
+Object.assign(T.ar, {"dirBtcOnly":"الرسم يعرض {a}. الاتجاه والهدف التالي والتجمعات متاحة لبيتكوين فقط – بدّل إلى بيتكوين أعلى اليسار."});
 
 /* ================= Zustand ================= */
 const $ = id => document.getElementById(id);
@@ -1675,7 +1707,7 @@ let HEAT = jget('fg6_heat', HEAT_DEF);
 const MOB = store.get('fg6_mobile', 'desktop'), SMALL = Math.min(screen.width, screen.height) < 900 && navigator.maxTouchPoints > 0;
 // Ebenen im Chart (VrilyaSS): Cluster-Linien, nächste/weitere Cluster, Glocken-Linien, Mitte, eigene Linien, Punkte, Signale offiziell, Divergenz
 // V19: Linie und Signale getrennt (50er, VWAP, offizieller Index), Fraktale im Kurs-/Index-Chart, Signale der MA-Alarme im Kurs-Chart
-const LAY_DEF = { cl: true, near: true, extra: true, bell: true, mid: false, own: false, dots: true, sigOff: false, div: true, divMode: 'both', ext: true, pivot: true, fib: false, ma: true, mai: true, clMode: 'all', extMode: 'cycle', f50: true, cdl: true, sma: true, vwap: true,
+const LAY_DEF = { ob: false, fvg: false, bos: false, tl: false, vp: false, osc: false, imp: false, cl: true, near: true, extra: true, bell: true, mid: false, own: false, dots: true, sigOff: false, div: true, divMode: 'both', ext: true, pivot: true, fib: false, ma: true, mai: true, clMode: 'all', extMode: 'cycle', f50: true, cdl: true, sma: true, vwap: true,
   f50s: true, vwS: true, sigOffI: false, frP: false, frI: false, maSig: false };
 // Trendfilter für Kauf-Signale (kombinierbar: EMA / ADX / MACD Woche), Modus aus / markieren / ausblenden
 const TREND_DEF = { basis: ['ema'], mode: 'mark', emaN: 200, adxMin: 25, sides: 'both' };
@@ -2070,7 +2102,7 @@ for (const k of ['p1', 'p2']) $(k === 'p1' ? 'togLv1s' : 'togLv2s').onclick = ()
 for (const [id, k] of [['togNums', 'nums'], ['togBands', 'bands'], ['togOff', 'off'], ['togHeat', 'heat'], ['togSig', 'sig']])
   $(id).onclick = e => { OPT[k] = !OPT[k]; e.currentTarget.classList.toggle('on', OPT[k]); store.set('fg8_opt', JSON.stringify(OPT)); renderLayMenu(); renderCharts(); };
 // Ebenen (VrilyaSS): direkte Knöpfe + Menü „Ebenen“
-const LAYBTN = [['tog50s', 'f50s'], ['togOffS', 'sigOffI'], ['togFrI', 'frI'], ['togFrP', 'frP'], ['togVwS', 'vwS'], ['togMaSig', 'maSig'], ['togSigOff', 'sigOff'], ['togBell', 'bell'], ['togOwn', 'own'], ['togMid', 'mid'], ['togFib', 'fib'], ['togMA', 'ma'], ['togMAi', 'mai'], ['togPivot', 'pivot'], ['tog50', 'f50'], ['togCdl', 'cdl'], ['togSma', 'sma'], ['togVw', 'vwap']];
+const LAYBTN = [['togOb', 'ob'], ['togFvg', 'fvg'], ['togBos', 'bos'], ['togTl', 'tl'], ['togVp', 'vp'], ['togOsc', 'osc'], ['tog50s', 'f50s'], ['togOffS', 'sigOffI'], ['togFrI', 'frI'], ['togFrP', 'frP'], ['togVwS', 'vwS'], ['togMaSig', 'maSig'], ['togSigOff', 'sigOff'], ['togBell', 'bell'], ['togOwn', 'own'], ['togMid', 'mid'], ['togFib', 'fib'], ['togMA', 'ma'], ['togMAi', 'mai'], ['togPivot', 'pivot'], ['tog50', 'f50'], ['togCdl', 'cdl'], ['togSma', 'sma'], ['togVw', 'vwap']];
 // V15: Kerzengröße und Heatmap-Quelle
 // V20: Kerzengröße passt den Zeitraum an, wenn der Minuten-/Stundenverlauf nicht so weit zurückreicht (1 Min. ≈ 2 Tage, 5 Min. ≈ 10 Tage, 30 Min. ≈ 2 Monate …)
 const CS_RANGE = { '1m': '1', '3m': '5', '5m': '5', '15m': '30', '30m': '30', '1h': '91', '4h': '365' };
@@ -2324,7 +2356,7 @@ $('ownMenu').addEventListener('click', e => { const b = e.target.closest('button
 const ctxEl = document.createElement('div'); ctxEl.className = 'ctxmenu'; document.body.appendChild(ctxEl);
 document.addEventListener('click', () => ctxEl.classList.remove('open'));
 $('priceChart').addEventListener('contextmenu', e => {
-  const id = e.target.id?.startsWith('own-') ? e.target.id.slice(4) : null; if (!id) return; e.preventDefault();
+  const id = e.target.id?.startsWith('own-') ? e.target.id.slice(4) : null; if (!id) { drawCtx(e); return; } e.preventDefault();
   const i = LINES.findIndex(l => l.id === id); if (i < 0) return;
   ctxEl.innerHTML = `<b>${id} · ${moneyK(LINES[i].p * facLive())}</b><button data-c="off">${t('ownCtxOff')}</button><button data-c="del">${t('ownDel')}</button><button data-c="menu">${t('ownCtxMenu')}</button>`;
   ctxEl.style.left = Math.min(e.clientX, innerWidth - 200) + 'px'; ctxEl.style.top = Math.min(e.clientY, innerHeight - 140) + 'px'; ctxEl.classList.add('open');
@@ -2555,7 +2587,7 @@ function updLay() {
   $('offSigDd').textContent = $('offSigDd2').textContent = '▾'; $('offSigDd').title = $('offSigDd2').title = t('osTip'); $('frIDd').textContent = '▾'; $('frIDd').title = t('frDdTip');
   $('togLv1s').classList.toggle('on', !!(LV.p1.sig ?? LV.p1.show)); $('togLv2s').classList.toggle('on', !!(LV.p2.sig ?? LV.p2.show));
   $('togDiv').classList.toggle('on', !!LAY.div);
-  updCycle();
+  updCycle(); updLay21();
   // V15: Auswahl Kerzengröße und Heatmap-Quelle
   $('csSel').innerHTML = ['auto', '1m', '3m', '5m', '15m', '30m', '1h', '4h', '1d', '1w', '1mo', '1y'].map(v => `<option value="${v}" ${CS === v ? 'selected' : ''}>${t('csLbl')}: ${t('cs_' + v)}</option>`).join('');
   $('csSel').title = t('csTip');
@@ -2632,7 +2664,7 @@ $('lvSet').addEventListener('click', e => {
   if (q) { const [hi, lo] = q.dataset.lvq.split('/').map(Number); LV.p1.hi = hi; LV.p1.lo = lo; saveLV(); RUNCACHE = {}; SCACHE = {}; renderLevelSet(); render(); return; }
   const el = e.target.closest('.sw'); if (!el) return; const k = el.dataset.l; LV[k].show = !LV[k].show; el.classList.toggle('on', LV[k].show); saveLV(); renderCharts(); });
 // V16: Ton und Wiederholung je Alarmart
-const ALK = ['signal', 'off', 'div', 'cluster', 'react', 'lines', 'pivot', 'f50', 'cdl', 'sma', 'vwap', 'frac', 'ma', 'fib', 'idxal', 'clsig'];
+const ALK = ['signal', 'off', 'div', 'cluster', 'react', 'lines', 'pivot', 'f50', 'cdl', 'sma', 'vwap', 'frac', 'ma', 'fib', 'idxal', 'clsig', 'bos', 'lsob', 'imp'];
 function renderAlSnd() {
   const S = AL.snd || {}, R = AL.rep || {};
   $('alSnd').innerHTML = `<div class="sethead" style="margin-top:10px">${t('sndHead')}</div><p class="muted" style="font-size:12px;margin-top:4px">${t('sndSub')}</p>
@@ -2662,7 +2694,7 @@ $('alSnd').addEventListener('click', e => {
 });
 function renderAlertSet() {
   renderAlSnd();
-  $('alBrowser').innerHTML = ['sound', 'notify', 'p1', 'p2', 'turn', 'heat', 'react', 'lines', 'pivot', 'f50', 'cdl', 'sma', 'vwap', 'frac', 'ma', 'fib', 'idxal', 'clsig', 'div', 'off'].map(k => `<label><input type="checkbox" data-a="${k}" ${AL[k] ? 'checked' : ''}> ${t('al_' + k, { a: LV.p1.hi + '/' + LV.p1.lo, b: LV.p2.hi + '/' + LV.p2.lo })}</label>`).join('');
+  $('alBrowser').innerHTML = ['sound', 'notify', 'p1', 'p2', 'turn', 'heat', 'react', 'lines', 'pivot', 'f50', 'cdl', 'sma', 'vwap', 'frac', 'ma', 'fib', 'idxal', 'clsig', 'bos', 'lsob', 'imp', 'div', 'off'].map(k => `<label><input type="checkbox" data-a="${k}" ${AL[k] ? 'checked' : ''}> ${t('al_' + k, { a: LV.p1.hi + '/' + LV.p1.lo, b: LV.p2.hi + '/' + LV.p2.lo })}</label>`).join('');
 }
 $('alBrowser').addEventListener('change', async e => { const k = e.target.dataset.a; if (!k) return; AL[k] = e.target.checked; store.set('fg6_alerts', JSON.stringify(AL)); if (k === 'notify' && AL.notify && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission(); });
 $('alTest').onclick = async () => { if (AL.notify && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission(); fireAlert(t('alTestTitle'), t('alTestBody'), 'test'); };
@@ -3641,8 +3673,8 @@ function renderSigStats() {
     rows += `<tr><td><span style="color:${c};font-weight:800">${kind === 'turn' || kind === 'exit' ? (type === 'fear' ? '▲' : '▼') : (type === 'fear' ? '△' : '▽')}</span> ${t('sig_' + kind + '_' + type)} <span class="flat">(${lvl})</span></td><td class="r">${list.length}</td><td class="r">${pct(r7)}</td><td class="r">${avg(r7)}</td><td class="r">${pct(r30)}</td><td class="r">${avg(r30)}</td></tr>`;
   }
   // Methoden-Vergleich: große Wendepunkte = Kursbewegung ≥ 20 %, erkannt = passendes Signal innerhalb ±21 Tagen
-  const MT = memo(`mt${JSON.stringify(OFFSIG)}${JSON.stringify(FRC)}${X12.extBasis}${OFFAVG}${OFFSRC}${JSON.stringify(MA.i2)}${JSON.stringify(MA.i3)}${MODE}${WIN}${LV.p1.hi}${LV.p1.lo}${JSON.stringify(DIV)}${offLineInfo().col}${SIGT}${SIGD}${SIGTOL}${JSON.stringify(TREND)}${JSON.stringify(F50)}${JSON.stringify(CDL)}${JSON.stringify(SMA)}${AVGI}${SIGAVG}${JSON.stringify(VW.sig)}${VW.src}${H.length}`, () => {
-    const turns = majorTurns(H, 20, X12.extBasis || 'close'), from = H.find(r => r[idxCol()] != null)?.[0], E = s => evalSignals(s, H, turns, 21, from);
+  const MT = memo(`mt${MINV ? 'inv' : ''}${OBS ? JSON.stringify([OBS, STR, IMP]) : ''}${JSON.stringify(OFFSIG)}${JSON.stringify(FRC)}${X12.extBasis}${OFFAVG}${OFFSRC}${JSON.stringify(MA.i2)}${JSON.stringify(MA.i3)}${MODE}${WIN}${LV.p1.hi}${LV.p1.lo}${JSON.stringify(DIV)}${offLineInfo().col}${SIGT}${SIGD}${SIGTOL}${JSON.stringify(TREND)}${JSON.stringify(F50)}${JSON.stringify(CDL)}${JSON.stringify(SMA)}${AVGI}${SIGAVG}${JSON.stringify(VW.sig)}${VW.src}${H.length}`, () => {
+    const turns = majorTurns(H, 20, X12.extBasis || 'close'), from = H.find(r => r[idxCol()] != null)?.[0], E = s => evalSignals(MINV ? s.map(x => ({ ...x, up: !x.up })) : s, H, turns, 21, from);   // V21: „Strategie umkehren“ = jedes Signal mit der Gegenrichtung
     const up = s => ({ d: s.d, up: s.type === 'fear' }), dv = x => ({ d: x.conf, up: x.type.includes('bull') });
     const out = METHODS.map(m => ({ k: 'm_' + m, m, e: E(methodSignals(H, m, sigOpt('p1')).map(up)) }));
     out.push({ k: 'm_div', e: E(divergences(divRows(H, divCol()), DIV).map(dv)) });
@@ -3666,6 +3698,12 @@ function renderSigStats() {
       const c = idxCol(), fi = idxFracList(c); out.push({ k: 'm_fr_i', e: E(fi.map(f => ({ d: f.c, up: f.t === 'lo' }))) }, { k: 'm_fr_ib', e: E(fracBreaks(idxFracRows(c), fi).map(x => ({ d: x.d, up: x.up }))) }); }
     // V18: VWAP-Signale – jede Art × Anker einzeln ausgewertet (Trendfilter und Bestätigung wie eingestellt, Richtung beide)
     { const rows = vwClosed(); for (const ty of ['ema8', 'close']) for (const a of ['W', 'M', 'Q', 'Y']) { const c = ty + '_' + a; out.push({ k: 'm_vw_' + c, e: E(vwapSignals(rows, { ...VW.sig, src: VW.src, combos: [c], dir: 'both' }).map(x => ({ d: x.d, up: x.up }))) }); } }
+    // V21: neue Signale – LSOB (Ablehnung / Berührung), Fair Value Gap, Break of Structure, Trendlinien-Bruch, Impuls (Tageskerzen: X % in N Tagen)
+    if (OBS) { const R = dayRowsAll(), dd = i => R[i].d, swO = swings(R, OBS.sw, OBS.sw), swS = swings(R, STR.L, STR.R);
+      for (const [k, mode] of [['m_lsob', 'reject'], ['m_lsobT', 'touch']]) out.push({ k, e: E(lsobList(R, swO, { ...OBS, mode }).filter(b => b.sig).map(b => ({ d: dd(b.sig.i), up: b.up }))) });
+      out.push({ k: 'm_fvg', e: E(fvgList(R, OBS.fvgMin).map(f => ({ d: dd(f.i), up: f.up }))) });
+      out.push({ k: 'm_bos', e: E(bosList(R, swS).map(x => ({ d: dd(x.i), up: x.up }))) }, { k: 'm_tlb', e: E(tlBreaks(R, swS).map(x => ({ d: dd(x.i), up: x.up }))) });
+      out.push({ k: 'm_imp', e: E(impList(R, IMP.dPct, IMP.dN, IMP.mode).map(x => ({ d: dd(x.i), up: x.up }))) }); }
     return out;
   });
   // V18: Methoden-Vergleich – Spalte Ø 7T, Schalter je Zeile (an/aus direkt hier), die 3 besten (grün) / 3 schwächsten (rot) Ø-Werte, Sortieren per Klick auf die Überschrift
@@ -3682,11 +3720,13 @@ function renderSigStats() {
   }
   $('sigStats').innerHTML = `<div class="h" style="margin-top:4px"><span>${t('sigStatsTitle')}</span><small>${t('sigStatsNote')}</small></div><div class="tw"><table><tr><th>${t('sigCol')}</th><th class="r">${t('sigN')}</th><th class="r">7T ${t('sigUp')}</th><th class="r">Ø 7T</th><th class="r">30T ${t('sigUp')}</th><th class="r">Ø 30T</th></tr>${rows}</table></div>`;
   // V18: Methoden-Vergleich im eigenen Block (Anordnung A: eigenes Fenster, B: unter den Signalen)
-  $('mtStats').innerHTML = `<div class="h" style="margin-top:4px"><span>${t('mTitle')}</span><small>${t('mNote')}</small></div><div class="tw"><table class="mtab">${mt}</table></div><p class="muted" style="font-size:12px;margin-top:6px">${t('mHelp')}</p>`;
+  $('mtStats').innerHTML = `<div class="h" style="margin-top:4px"><span>${t('mTitle')}<label class="mtinv" title="${t('mInvTip')}"><input type="checkbox" id="mInv" ${MINV ? 'checked' : ''}> ${t('mInv')}</label></span><small>${MINV ? '⇄ ' + t('mInvOn') + ' · ' : ''}${t('mNote')}</small></div><div class="tw"><table class="mtab">${mt}</table></div><p class="muted" style="font-size:12px;margin-top:6px">${t('mHelp')}</p>`;
 }
 // V15: Richtungs-Kasten – aktuelle Bewegung (24 h oder Kurs über/unter EMA), nächstes Pivot-Ziel und größter Cluster in dieser Richtung
 function renderDir() {
   const el = $('dirBox'); if (!el) return;
+  // V21: Ziele (Pivots, Cluster) sind Bitcoin-Werte – bei einem anderen Asset nur ein Hinweis
+  if (SYM() !== 'BTCUSDT' && VSTYLE === 'vss') { el.style.borderColor = ''; el.innerHTML = `<span class="muted">${t('dirBtcOnly', { a: assetName() })}</span>`; return; }
   if (VSTYLE !== 'vss' || !D || !H.length) { el.innerHTML = ''; return; }
   const price = LIVE.price || D.btc.price; let up, why;
   if (DIRC.mode === 'ema') {
@@ -3816,6 +3856,7 @@ function checkTouchBrowser() {
       const a = alarmText('vwap', { vt: 'touch', anchor: an, up: now > 0, vw, ...S, price }, LANG); fireAlert(a.title, a.body, 'vwap'); }
   }
   try { checkClusterSignals(); } catch { }
+  try { checkStructAlarms(); } catch { }
   // V21: Mitte-Stufe gekreuzt (Menü „Cluster ▾“ → Alarm) – je Stufe höchstens alle 10 Minuten
   if (MIDO.al && D.heatmap) { const p = LIVE.price || D.btc.price; for (const m of midLevels(clusterSet(D.heatmap, { nearest: true, far: { pct: HEAT.farPct, range: HEAT.farRange } }), MIDO)) { const k = 'm' + m.f + ':' + Math.round(m.p), now = Math.sign(p - m.p), prev = FIBSIDE[k]; if (now) FIBSIDE[k] = now;
       if (!prev || !now || prev === now || Date.now() - (FIBSIDE[k + ':t'] || 0) < 600e3) continue; FIBSIDE[k + ':t'] = Date.now();
@@ -3838,6 +3879,15 @@ function renderCharts() {
   renderCharts1();
 }
 function renderCharts1() {
+  { const lb = document.querySelector('.legend [data-t="lgBtc"]'); if (lb) lb.textContent = SYM() === 'BTCUSDT' ? t('lgBtc') : assetName(); }   // V21: Legende zeigt das gewählte Asset
+  // V21: anderes Asset im Kurs-Chart – Ebenen, die aus Bitcoin-Kursen gerechnet sind (Heatmap, Cluster, Alarmlinien, Divergenzen, Tops/Böden, Fraktale, Kerzenmuster,
+  // VWAP-/MA-Signale), beim Zeichnen aus; Index-Signale, Pivots, Fibonacci, MAs, VWAP und die neuen Werkzeuge rechnen mit dem Asset
+  if (SYM() !== 'BTCUSDT' && VSTYLE === 'vss') { const L0 = { ...LAY }, O0 = { ...OPT }, F0 = OFFSIG.frac;
+    for (const k of ['cl', 'bell', 'mid', 'own', 'div', 'ext', 'frP', 'cdl', 'vwS', 'maSig']) LAY[k] = false; OPT.heat = false; OFFSIG.frac = false;
+    try { renderCharts2(); } finally { Object.assign(LAY, L0); Object.assign(OPT, O0); OFFSIG.frac = F0; } return; }
+  renderCharts2();
+}
+function renderCharts2() {
   renderCharts0();
   if (!COUPLE && VSTYLE === 'vss') { if (!VIEW2) VIEW2 = { ...VIEW }; const v = VIEW; VIEW = VIEW2; RC_IDX = true; try { renderCharts0(); } finally { VIEW2 = VIEW; VIEW = v; RC_IDX = false; } }
 }
@@ -3846,8 +3896,8 @@ function renderCharts0() {
   if (!D) return;
   const col = idxCol(), rcol = rawCol(), oc = offLineInfo().col, ST = style();
   $('offNote').textContent = VSTYLE === 'vss' && offLineInfo() !== offInfo() ? t('offFallback', { s: offInfo().name }) : '';
-  const all = H.filter(r => r[3] != null && r[col] != null);
-  if (!VIEW || ALL.col !== col) { ALL = all; ALL.col = col; resetView(); }
+  const all = assetRows(H.filter(r => r[3] != null && r[col] != null));   // V21: anderes Asset → dessen Tageskerzen (Index-Werte bleiben)
+  if (!VIEW || ALL.col !== col || ALL.sym !== all.sym) { ALL = all; ALL.col = col; resetView(); }
   else if (ALL.length !== all.length) { ALL = all; ALL.col = col; if (CHART.auto) toEnd(); }
   // V19: offizielle Linie mit der Mittelung des Index-Charts (wenn „mitmitteln“ an), sonst wie bisher 7-Tage-Mittel
   ALL = all; ALL.col = col; O7 = OFFAVG && VSTYLE === 'vss' && AVGI !== 7 ? (m => all.map(r => m.get(r[0]) ?? null))(offMap(oc, AVGI)) : off7(all, oc);
@@ -3864,7 +3914,7 @@ function renderCharts0() {
   const wideLbl = VSTYLE === 'vss' && ((D.heatmap && (LAY.cl || LAY.bell || LAY.own)) || LAY.pivot || LAY.fib);
   const P = { l: 4, r: wideLbl ? Math.max(124, PRW) : 78, t: 16, b: VSTYLE === 'vss' ? 30 : 8 }, iw = W - P.l - P.r, ih = H1 - P.t - P.b, bw = iw / (n + padR), xEnd = P.l + n * bw;
   const X = i => P.l + (i + 0.5) * bw;
-  const candles = CTYPE === 'candle' && VSTYLE === 'vss';
+  const candles = (CTYPE === 'candle' || CTYPE === 'ha') && VSTYLE === 'vss';
   // 7-Tage-Ansicht: Preis stündlich (wie im Video)
   const t0 = Date.parse(data[0][0]);
   // V15: Kerzengröße – Auto (bis 10 Tage Stundenkerzen, sonst Tageskerzen); 15m / 1h / 4h nur am aktuellen Ende, soweit die Daten zurückreichen; 1T; 1W
@@ -3875,12 +3925,12 @@ function renderCharts0() {
   const atEnd = lastI === all.length - 1, tEnd = Date.parse(data[n - 1][0]) + 864e5;
   if (CS === 'auto') {
     const iv = n <= 2 ? '5m' : n <= 3 ? '15m' : n <= 10 && !atEnd ? '1h' : null;
-    const rows = iv ? (atEnd ? intraRows(iv) : intraRange(iv, t0, tEnd)) : null;
+    const rows = iv ? (atEnd ? chartIntra(iv) : intraRange(iv, t0, tEnd)) : null;
     if (rows?.length && rows[0][0] <= t0 + 864e5) { hourly = rows.filter(h => h[0] >= t0 && h[0] < tEnd); IVMS = IV_MS[iv]; }
-    else hourly = n <= 10 && atEnd && D.hourly?.length ? D.hourly.filter(h => h[0] >= t0) : null;
+    else hourly = n <= 10 && atEnd && D.hourly?.length && SYM() === 'BTCUSDT' ? D.hourly.filter(h => h[0] >= t0) : null;
   }
   else if (IV_MS[CS]) {
-    let rows = intraRows(CS);
+    let rows = chartIntra(CS);
     if (!(rows?.length && rows[0][0] <= t0 + 864e5 && (atEnd || rows.at(-1)[0] >= tEnd - IV_MS[CS]))) rows = intraRange(CS, t0, tEnd) ?? (rows?.length ? null : rows);
     if (rows?.length && rows[0][0] <= t0 + 864e5) { hourly = rows.filter(h => h[0] >= t0 && h[0] < tEnd); IVMS = IV_MS[CS]; }
     else CSNOTE = (tEnd - t0) / IV_MS[CS] > INTRA_MAX ? t('csTooLong') : t('csLoad');
@@ -3889,9 +3939,9 @@ function renderCharts0() {
   const XT = t => P.l + (t - t0) / 864e5 * bw;
   // Preisreihe (Tage oder Stunden)
   // V17: Stundenkerzen mit dem Euro-Kurs IHRES Tages umrechnen – wie Tageskerzen und Pivots (vorher heutiger Kurs → Lücke zwischen Pivot-Linie und Docht)
-  const pts = hourly ? hourly.map(h => { const day = Math.floor((h[0] - t0) / 864e5), r = data[day]; return { x: XT(h[0] + IVMS / 2), c: conv(h[4], r), o: conv(h[1], r), h: conv(h[2], r), l: conv(h[3], r), day }; })
-    : data.map((r, i) => ({ x: X(i), c: conv(r[3], r), o: conv(r[9] ?? r[3], r), h: conv(r[10] ?? r[3], r), l: conv(r[11] ?? r[3], r), day: i }));
-  const lastLive = LIVE.price ? (CUR === 'eur' ? (LIVE.eur ? LIVE.price / LIVE.eur : null) : LIVE.price * facLive()) : null;
+  const pts = hourly ? hourly.map(h => { const day = Math.floor((h[0] - t0) / 864e5), r = data[day]; return { x: XT(h[0] + IVMS / 2), c: conv(h[4], r), o: conv(h[1], r), h: conv(h[2], r), l: conv(h[3], r), day, v: h[5] }; })
+    : data.map((r, i) => ({ x: X(i), c: conv(r[3], r), o: conv(r[9] ?? r[3], r), h: conv(r[10] ?? r[3], r), l: conv(r[11] ?? r[3], r), day: i, v: r[18] }));
+  const lastLive = SYM() !== 'BTCUSDT' ? (AM[SYM()]?.last ? conv(AM[SYM()].last) : null) : LIVE.price ? (CUR === 'eur' ? (LIVE.eur ? LIVE.price / LIVE.eur : null) : LIVE.price * facLive()) : null;
   if (hourly && lastLive && atEnd) pts.push({ x: Math.min(P.l + iw, XT(Date.now())), c: lastLive, o: lastLive, h: lastLive, l: lastLive, day: n - 1 });
   const lows = pts.map(p => candles ? p.l : p.c), highs = pts.map(p => candles ? p.h : p.c);
   const lo0 = Math.min(...lows), hi0 = Math.max(...highs), pad = (hi0 - lo0) * 0.1 || hi0 * 0.02;
@@ -3931,18 +3981,29 @@ function renderCharts0() {
     for (const r of HM.rows) { const p = conv(r[0]), q = Math.max(r[1], r[2]) / mx; if (p < yl || p > yh || q < 0.04) continue; g += `<rect x="${P.l}" y="${(Y(p) - bh / 2).toFixed(1)}" width="${iw}" height="${bh.toFixed(1)}" fill="${ramp(q)}" opacity="${(0.25 + q * 0.7).toFixed(2)}"/>`; }
     g += '</g>';
   }
+  // V21: Volumenprofil – Volumen der gezeigten Kerzen nach Preis verteilt; POC = Preis mit dem meisten Volumen, Value Area = Bereich mit 70 % des Volumens
+  if (VSTYLE === 'vss' && LAY.vp && VPO) { const nb = clamp(Math.round(VPO.bins), 10, 150), stp = (yh - yl) / nb, vol = new Array(nb).fill(0);
+    for (const p of pts) { const v = p.v || 0; if (!(v > 0)) continue; const b0 = clamp(Math.floor((p.l - yl) / stp), 0, nb - 1), b1 = clamp(Math.floor((p.h - yl) / stp), 0, nb - 1), sh = v / (b1 - b0 + 1); for (let b = b0; b <= b1; b++) vol[b] += sh; }
+    const mx = Math.max(...vol);
+    if (mx > 0) { const poc = vol.indexOf(mx), tot = vol.reduce((a, b) => a + b, 0); let lo = poc, hi = poc, acc = vol[poc];
+      while (acc < tot * VPO.va / 100 && (lo > 0 || hi < nb - 1)) { const a = lo > 0 ? vol[lo - 1] : -1, b = hi < nb - 1 ? vol[hi + 1] : -1; if (a >= b) acc += vol[--lo]; else acc += vol[++hi]; }
+      const wM = iw * clamp(VPO.w, 5, 60) / 100, right = VPO.side !== 'left';
+      for (let b = 0; b < nb; b++) { if (!vol[b]) continue; const w = vol[b] / mx * wM, yT = Y(yl + (b + 1) * stp), hh = Math.max(1, Y(yl + b * stp) - yT - 1), va = b >= lo && b <= hi;
+        g += `<rect x="${(right ? P.l + iw - w : P.l).toFixed(1)}" y="${yT.toFixed(1)}" width="${w.toFixed(1)}" height="${hh.toFixed(1)}" fill="${b === poc ? '#f6c453' : '#7aa7ff'}" opacity="${b === poc ? .6 : va ? .3 : .14}"/>`; }
+      const pp = yl + (poc + .5) * stp, yp = Y(pp);
+      g += `<line x1="${P.l}" x2="${P.l + iw}" y1="${yp.toFixed(1)}" y2="${yp.toFixed(1)}" stroke="#f6c453" stroke-width="1" stroke-dasharray="4 4" opacity=".55"/><text x="${right ? P.l + 6 : P.l + iw - 6}" y="${(yp - 4).toFixed(1)}" fill="#f6c453" font-size="10" font-weight="800" text-anchor="${right ? 'start' : 'end'}" paint-order="stroke" stroke="#160b1b" stroke-width="3">POC ${moneyK(pp)}</text>`; } }
   if (OPT.bands && VSTYLE === 'vss') g += `<g mask="url(#bmask)">` + data.map((d, i) => `<rect x="${(P.l + i * bw).toFixed(1)}" y="0" width="${(bw + .6).toFixed(1)}" height="${H1}" fill="${color(d[col])}" opacity=".32"/>`).join('') + `</g>`;
   if (candles && ['1w', '1mo', '1y'].includes(CS) && !hourly) {
     // Wochenkerzen: Tage einer Woche (ab Montag) zusammengefasst
     const wk = []; let cur = null;
     data.forEach((r, i) => { const d = new Date(r[0] + 'T12:00:00Z'), key = CS === '1w' ? Math.floor((d.getTime() / 864e5 + 3) / 7) : CS === '1mo' ? r[0].slice(0, 7) : r[0].slice(0, 4), p = pts[i]; if (!cur || cur.key !== key) { cur = { key, i0: i, i1: i, o: p.o, h: p.h, l: p.l, c: p.c }; wk.push(cur); } else { cur.i1 = i; cur.h = Math.max(cur.h, p.h); cur.l = Math.min(cur.l, p.l); cur.c = p.c; } });
-    for (const w of wk) {
+    for (const w of (CTYPE === 'ha' ? haOf(wk) : wk)) {
       const up = w.c >= w.o, c = up ? ST.candleUp : ST.candleDown, xc = (X(w.i0) + X(w.i1)) / 2, cw = Math.min(CWMAX(), Math.max(1.5, (w.i1 - w.i0 + 1) * bw * 0.7)), yT = Y(Math.max(w.o, w.c)), yB = Y(Math.min(w.o, w.c));
       g += `<line x1="${xc.toFixed(1)}" x2="${xc.toFixed(1)}" y1="${Y(w.h).toFixed(1)}" y2="${Y(w.l).toFixed(1)}" stroke="${c}" stroke-width="1.2"/><rect x="${(xc - cw / 2).toFixed(1)}" y="${yT.toFixed(1)}" width="${cw.toFixed(1)}" height="${Math.max(1, yB - yT).toFixed(1)}" fill="${c}"/>`;
     }
   } else if (candles) {
     const cw = Math.min(CWMAX(), Math.max(1, (hourly ? bw * IVMS / 864e5 : bw) * 0.62));   // V21: Kerzen nie breiter als eingestellt (wie TradingView)
-    for (const p of pts) {
+    for (const p of (CTYPE === 'ha' ? haOf(pts) : pts)) {   // V21: Heikin-Ashi nur in der Darstellung (Signale, Linien und Werte bleiben echte Kurse)
       const up = p.c >= p.o, c = up ? ST.candleUp : ST.candleDown, yT = Y(Math.max(p.o, p.c)), yB = Y(Math.min(p.o, p.c));
       g += `<line x1="${p.x.toFixed(1)}" x2="${p.x.toFixed(1)}" y1="${Y(p.h).toFixed(1)}" y2="${Y(p.l).toFixed(1)}" stroke="${c}" stroke-width="1"/><rect x="${(p.x - cw / 2).toFixed(1)}" y="${yT.toFixed(1)}" width="${cw.toFixed(1)}" height="${Math.max(1, yB - yT).toFixed(1)}" fill="${c}"/>`;
     }
@@ -3957,8 +4018,8 @@ function renderCharts0() {
   const gMaStart = g.length;   // V21: VWAP wird nachher hinter die MAs gelegt (VWAP hinten, langsame MAs hinter schnellen)
   if (VSTYLE === 'vss' && LAY.ma) for (const m of [...MAS].sort((a, b) => b.n - a.n)) {
     if (!m.on) continue;
-    const closes = memo(`cl${CUR}${col}${all.length}`, () => all.map(r => conv(r[3], r)));
-    const vals = memo(`ma${m.type}${m.n}${CUR}${col}${all.length}`, () => maCalc(closes, m.type, m.n));
+    const closes = memo(`cl${assetKey()}${CUR}${col}${all.length}`, () => all.map(r => conv(r[3], r)));
+    const vals = memo(`ma${m.type}${m.n}${assetKey()}${CUR}${col}${all.length}`, () => maCalc(closes, m.type, m.n));
     g += maSvg(vals, closes, VIEW.s, lastI, m, X, v => Y(v), `${m.type.toUpperCase()} ${m.n}`, P.l + iw - 3, { ...MAL, col: m.col || 'fixed', w: m.w ?? 1.8, ext: m.ext ?? 5 });
   }
   // V18: VWAP-Linien – größerer Zeitraum weiter hinten (Jahr, Quartal, Monat, Woche, Session); Session nur bei Stundenkerzen; bei Stundenkerzen fehlt ein Zeitraum, der vor den geladenen Kerzen beginnt
@@ -3972,7 +4033,7 @@ function renderCharts0() {
         // V21: glatt wie bei TradingView – abgeschlossene Tage des Zeitraums aus den Tageskerzen, der jeweilige Tag aus den gezeigten Kerzen (vorher Stundenwerte
         // unter Minutenkerzen → treppenartig „abgehackt“)
         const dayIdx = new Map(all.map((r, i) => [r[0], i])), tpOf = (o, h, l, c) => VW.src === 'close' ? c : VW.src === 'hl2' ? (h + l) / 2 : VW.src === 'ohlc4' ? (o + h + l + c) / 4 : (h + l + c) / 3;
-        const cumB = A === 'S' ? null : memo('vwC' + A + VW.src + CUR + all.length, () => { const out = new Array(all.length); let k0 = null, pv = 0, pv2 = 0, vv = 0;
+        const cumB = A === 'S' ? null : memo('vwC' + A + VW.src + CUR + assetKey() + all.length, () => { const out = new Array(all.length); let k0 = null, pv = 0, pv2 = 0, vv = 0;
           all.forEach((r, i) => { const k = VW_KEY[A](r[0]); if (k !== k0) { k0 = k; pv = pv2 = vv = 0; } out[i] = [pv, pv2, vv, k]; const v = r[18] || 0, tp = tpOf(conv(r[9] ?? r[3], r), conv(r[10] ?? r[3], r), conv(r[11] ?? r[3], r), conv(r[3], r)); if (v > 0 && tp > 0) { pv += tp * v; pv2 += tp * tp * v; vv += v; } }); return out; });
         let dCur = null, rpv = 0, rpv2 = 0, rvv = 0;
         for (const hr of hourly) { const tt = hr[0], d = new Date(tt).toISOString().slice(0, 10), i = dayIdx.get(d); if (i == null) continue; const r = all[i];
@@ -3981,7 +4042,7 @@ function renderCharts0() {
           const [bpv, bpv2, bvv, key] = cumB ? cumB[i] : [0, 0, 0, d], V = bvv + rvv; if (!(V > 0)) continue;
           const w = (bpv + rpv) / V; if (tt >= t0) segs.push({ x: XT(tt + IVMS / 2), w, sd: Math.sqrt(Math.max(0, (bpv2 + rpv2) / V - w * w)), key }); }
       } else {
-        const res = memo('vwD' + A + VW.src + CUR + all.length, () => vwapCalc(all.map(r => ({ d: r[0], o: conv(r[9] ?? r[3], r), h: conv(r[10] ?? r[3], r), l: conv(r[11] ?? r[3], r), c: conv(r[3], r), v: r[18] || 0 })), A, VW.src));
+        const res = memo('vwD' + A + VW.src + CUR + assetKey() + all.length, () => vwapCalc(all.map(r => ({ d: r[0], o: conv(r[9] ?? r[3], r), h: conv(r[10] ?? r[3], r), l: conv(r[11] ?? r[3], r), c: conv(r[3], r), v: r[18] || 0 })), A, VW.src));
         for (let i = VIEW.s; i <= lastI; i++) if (res.w[i] != null) segs.push({ x: X(i - VIEW.s), w: res.w[i], sd: res.sd[i], key: VW_KEY[A](all[i][0]) });
       }
       if (!segs.length) continue;
@@ -4155,6 +4216,28 @@ function renderCharts0() {
     const pr = priceAtDay(p.i); if (pr == null) continue;
     g += `<text x="${X(p.i)}" y="${Y(pr) + (p.t === 'H' ? -14 : 24)}" fill="${color(vals[p.i])}" font-size="13" font-weight="800" text-anchor="middle" paint-order="stroke" stroke="#160b1b" stroke-width="3">${vals[p.i]}</text>`;
   }
+  // V21: Struktur aus den gezeigten Kerzen – Fair Value Gaps, LSOB (Box nach einem Liquidity Sweep), Break of Structure, Trendlinien und ihre Brüche, Impuls-Signale
+  if (VSTYLE === 'vss' && OBS && (LAY.ob || LAY.fvg || LAY.bos || LAY.tl || LAY.imp)) {
+    const R = (hourly && atEnd && lastLive ? pts.slice(0, -1) : pts).map(p => ({ o: p.o, h: p.h, l: p.l, c: p.c, x: p.x })), xR = P.l + iw, half = Math.max(1.5, (R.length > 1 ? Math.abs(R[1].x - R[0].x) : bw) * 0.45);
+    if (R.length > 6) {
+      if (LAY.fvg) for (const f of fvgList(R, OBS.fvgMin).filter(f => !f.filled || OBS.fvgFilled).slice(-OBS.fvgMax)) { const c = f.up ? '#33d39a' : '#ff4d5e', x1 = R[f.i0].x - half, x2 = f.filled ? R[f.end].x : xR, y1 = Y(f.hi), y2 = Y(f.lo);
+        g += `<g><title>FVG ${f.up ? '▲ bull' : '▼ bear'} · ${moneyK(f.lo)} – ${moneyK(f.hi)}${f.filled ? ' · ' + t('fvgFilled') : ''}</title><rect x="${x1.toFixed(1)}" y="${y1.toFixed(1)}" width="${Math.max(2, x2 - x1).toFixed(1)}" height="${Math.max(1, y2 - y1).toFixed(1)}" fill="${c}" opacity="${f.filled ? .06 : .14}" stroke="${c}" stroke-opacity=".45" stroke-dasharray="3 3"/>${y2 - y1 > 11 ? `<text x="${(x1 + 3).toFixed(1)}" y="${(y1 + 10).toFixed(1)}" fill="${c}" font-size="9" font-weight="800" opacity=".9">FVG</text>` : ''}</g>`; }
+      if (LAY.ob) for (const B of lsobList(R, swings(R, OBS.sw, OBS.sw), OBS).slice(-OBS.max)) { const c = B.up ? '#2ee6c8' : '#ff8c42', act = !B.broken && B.end === R.length - 1, x1 = R[B.i].x - half, x2 = act ? xR : R[B.end].x + half, y1 = Y(B.hi), y2 = Y(B.lo);
+        g += `<g><title>LSOB ${B.up ? 'Long' : 'Short'} · ${t('lsobSw', { p: moneyK(B.sw) })} · Box ${moneyK(B.lo)} – ${moneyK(B.hi)}${B.broken ? ' · ' + t('lsobBroken') : ''}</title><rect x="${x1.toFixed(1)}" y="${y1.toFixed(1)}" width="${Math.max(2, x2 - x1).toFixed(1)}" height="${Math.max(1.5, y2 - y1).toFixed(1)}" fill="${c}" opacity="${B.broken ? .06 : .16}" stroke="${c}" stroke-width="1.2" stroke-opacity="${B.broken ? .35 : .85}"/><text x="${(x1 + 3).toFixed(1)}" y="${(B.up ? y2 - 3 : y1 + 10).toFixed(1)}" fill="${c}" font-size="9.5" font-weight="800">LSOB</text></g>`;
+        g += `<line x1="${R[B.swi].x.toFixed(1)}" x2="${R[B.i].x.toFixed(1)}" y1="${Y(B.sw).toFixed(1)}" y2="${Y(B.sw).toFixed(1)}" stroke="${c}" stroke-width="1" stroke-dasharray="2 3" opacity=".75"/>`;
+        if (OBS.sig && B.sig) { const s = B.sig, xx = R[s.i].x, tip = B.up ? Y(R[s.i].l) + 10 : Y(R[s.i].h) - 10, base = B.up ? tip + 13 : tip - 13;
+          g += `<g><title>LSOB · ${t(OBS.mode === 'touch' ? 'lsobTouch' : 'lsobRej')} · ${B.up ? 'Long' : 'Short'} · ${moneyK(s.p)}</title><path d="M${xx},${tip} L${xx + 7},${base} L${xx - 7},${base} Z" fill="${c}" stroke="#160b1b" stroke-width="1.2"/><text x="${xx}" y="${B.up ? base + 10 : base - 3}" fill="${c}" font-size="9" font-weight="900" text-anchor="middle" paint-order="stroke" stroke="#160b1b" stroke-width="3">LS</text></g>`; } }
+      if (LAY.bos || LAY.tl) { const sw = swings(R, STR.L, STR.R);
+        if (LAY.bos) for (const x of bosList(R, sw).slice(-STR.max)) { const c = x.up ? '#33d39a' : '#ff4d5e', y = Y(x.p), xa = R[x.from].x, xb = R[x.i].x;
+          g += `<g><title>BOS ${x.up ? '▲' : '▼'} · ${t(x.up ? 'bosHi' : 'bosLo')} ${moneyK(x.p)}</title><line x1="${xa.toFixed(1)}" x2="${xb.toFixed(1)}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${c}" stroke-width="1.3" stroke-dasharray="5 3"/><text x="${((xa + xb) / 2).toFixed(1)}" y="${(y + (x.up ? -4 : 11)).toFixed(1)}" fill="${c}" font-size="9.5" font-weight="800" text-anchor="middle" paint-order="stroke" stroke="#160b1b" stroke-width="3">BOS</text></g>`; }
+        if (LAY.tl) g += tlSvg(R, sw, Y, xR, v => moneyK(v)); }
+      if (LAY.imp) for (const x of impList(R, IMP.pct, IMP.n, IMP.mode)) { const up = IMP.inv ? !x.up : x.up, c = up ? '#33d39a' : '#ff4d5e', xx = R[x.i].x, y = up ? Y(R[x.i].l) + 16 : Y(R[x.i].h) - 8;
+        g += `<g><title>${t('impT', { p: sgn(x.ch, 2), n: IMP.n })} · ${up ? 'Long' : 'Short'}</title><text x="${xx.toFixed(1)}" y="${y.toFixed(1)}" font-size="13" text-anchor="middle" fill="${c}" paint-order="stroke" stroke="#160b1b" stroke-width="3">⚡</text></g>`; }
+    }
+  }
+  // V21: Zeichnungen (✏️) – mit Zeit und Kurs gespeichert, darum passen sie bei jedem Zoom und jeder Kerzengröße; je Asset eigene
+  if (VSTYLE === 'vss' && DRAW?.show && !RC_IDX) { const M = { XT, Y: v => Y(v * facLive()), x0: P.l, x1: P.l + iw, y0: 0, y1: H1 - P.b, fx: facLive() };
+    for (const it of DRAW.items) if ((it.sym || 'BTCUSDT') === SYM() && it.a && (it.b || !['trend', 'rect', 'fib'].includes(it.k))) g += drawItemSvg(it, M, DSEL === it.id || DRW?.it === it); }
   g += `</g>`;
   // ---- Cluster (L1/S1 stärkster, L2/S2 nächster, L3… weitere), Glocken-Linien (Alarmstufe), Mitte, eigene Alarmlinien ----
   // V21: wo Cluster-, Alarm- und eigene Linien beginnen (Zahnrad: 0 % = ganz links, 50 % = Mitte wie bisher)
@@ -4289,6 +4372,7 @@ function renderCharts0() {
   if (VSTYLE === 'vss') g += `<g id="xlb1" visibility="hidden"><rect x="-56" y="${H1 - P.b + 3}" width="112" height="${P.b - 6}" rx="5" fill="#f4eef8"/><text x="0" y="${H1 - P.b / 2 + 4}" fill="#160b1b" font-size="11.5" font-weight="800" text-anchor="middle"></text></g>`;
   g += `<line id="xh1" x1="0" x2="0" y1="0" y2="${H1}" stroke="#fff" stroke-opacity=".35" stroke-dasharray="3 4" visibility="hidden"/><circle id="hv1" r="5" fill="#fff" stroke="#160b1b" stroke-width="2" visibility="hidden"/>`;
   if (!RC_IDX) { const svg1 = $('priceChart'); svg1.setAttribute('viewBox', `0 0 ${W} ${H1}`); svg1.innerHTML = g; }
+  if (!RC_IDX) renderOsc({ W, P, iw, pts, all, hourly });   // V21: RSI / MACD unter Chart 1
 
   // ---- Index-Chart (7-Tage-Mittel): Balken wie im Video ----
   // V18: Mittelung des Index-Charts wählbar (7 = wie im Video); 50er-Signale, Divergenz und Zahlen nur, wenn sie zur angezeigten Reihe passen
@@ -4427,6 +4511,12 @@ function renderCharts0() {
     if (divCol() === colI) for (const x of divList()) draw(x, false);
     if (DIV.official && OPT.off) for (const x of divListOff()) draw(x, true);
   }
+  // V21: Break of Structure und Trendlinien auch im Index-Chart (Swings der gezeigten Index-Linie)
+  if (VZ && STR && (STR.idxBos || STR.idxTl)) { const R = []; data.forEach((d, i) => { const v = d[colI]; if (v != null) R.push({ o: v, h: v, l: v, c: v, x: X(i) }); });
+    if (R.length > 8) { const sw = swings(R, STR.L, STR.R);
+      if (STR.idxBos) for (const x of bosList(R, sw).slice(-STR.max)) { const c = x.up ? '#33d39a' : '#ff4d5e', y = Y2(x.p), xa = R[x.from].x, xb = R[x.i].x;
+        h += `<g><title>BOS ${x.up ? '▲' : '▼'} · Index ${fmt(x.p, 1)}</title><line x1="${xa.toFixed(1)}" x2="${xb.toFixed(1)}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${c}" stroke-width="1.3" stroke-dasharray="5 3"/><text x="${((xa + xb) / 2).toFixed(1)}" y="${(y + (x.up ? -4 : 11)).toFixed(1)}" fill="${c}" font-size="9.5" font-weight="800" text-anchor="middle" paint-order="stroke" stroke="#160b1b" stroke-width="3">BOS</text></g>`; }
+      if (STR.idxTl) h += tlSvg(R, sw, Y2, P.l + iw, v => 'Index ' + fmt(v, 1)); } }
   h += '</g>';
   // V19: waagerechte Linien (Stufen, 50er) über die Skala bis an den rechten Rand verlängert – Wert ganz rechts in Linienfarbe
   const extL = VZ ? [...lvLines.map(([v, c, k]) => [v, c, LV[k].w || 1.3, { dash: '5 5', dot: '2 3', solid: '' }[LV[k].st || 'dash'] ?? '5 5']), ...(LAY.f50 ? [[50, F50.c, F50.w, { dash: '7 4', dot: '2 3' }[F50.style] || '']] : []), ...(LAY.sigOffI && OFFSIG.ext ? [[OFFSIG.lo, ST.sigOffColor, 1.2, '3 4'], [OFFSIG.hi, ST.sigOffColor, 1.2, '3 4']] : [])] : [];
@@ -4488,7 +4578,7 @@ function hover0(e, svg) {
   if (svg.id === 'priceChart') {
     const my = (e.clientY - r.top) / r.height * G.H1, cand = G.hourly ? G.pts.reduce((b, p) => Math.abs(p.x - x) < Math.abs(b.x - x) ? p : b, G.pts[0]) : G.pts[i];
     if (cand) {
-      ohlc = [cand.o, cand.h, cand.l, cand.c]; const opts = CTYPE === 'candle' ? ohlc : [cand.c], nb = opts.reduce((b, w) => Math.abs(G.Y(w) - my) < Math.abs(G.Y(b) - my) ? w : b, opts[0]);
+      ohlc = [cand.o, cand.h, cand.l, cand.c]; const opts = CTYPE !== 'line' ? ohlc : [cand.c], nb = opts.reduce((b, w) => Math.abs(G.Y(w) - my) < Math.abs(G.Y(b) - my) ? w : b, opts[0]);
       if (MAG === 'strong' || (MAG === 'weak' && Math.abs(G.Y(nb) - my) <= 14)) { price = nb; py = G.Y(nb); } else { price = G.yl + (1 - (my - G.P.t) / G.ih) * (G.yh - G.yl); py = my; }
       freeY = py;
     }
@@ -4500,13 +4590,14 @@ function hover0(e, svg) {
   if (OPT.off && chartO7[i] != null) set('hv3', G.X(i), G.Y2(chartO7[i])); else $('hv3')?.setAttribute('visibility', 'hidden');
   $('hv1').setAttribute('fill', color(v));
   { const yl = $('yh1'), lb = $('ylb1'); if (freeY != null && yl && lb) { yl.setAttribute('y1', freeY); yl.setAttribute('y2', freeY); yl.setAttribute('visibility', 'visible'); lb.setAttribute('transform', `translate(0,${freeY.toFixed(1)})`); lb.querySelector('text').textContent = fmt(price, 0); lb.setAttribute('visibility', 'visible'); } else { yl?.setAttribute('visibility', 'hidden'); lb?.setAttribute('visibility', 'hidden'); } }
+  if (svg.id === 'priceChart' && freeY != null) qmenuShow(svg, freeY, price);
   const exAll = activeSigLv().map(k => [k, runsFor(k).find(x => d[0] >= x.from && d[0] <= x.to)]).filter(x => x[1]);
   const ex = exAll[0]?.[1];
   const ox = officialRuns(o.col).find(x => d[0] >= x.from && d[0] <= x.to);
   const tt = $('tt'); tt.style.display = 'block';
   tt.innerHTML = `<b>${title}</b>
-    <div><span class="k">Bitcoin</span> <b>${curFmt(price, 0)}</b></div>
-    ${ohlc && CTYPE === 'candle' && VSTYLE === 'vss' ? `<div><span class="k">O</span> ${fmt(ohlc[0], 0)} <span class="k">H</span> ${fmt(ohlc[1], 0)} <span class="k">L</span> ${fmt(ohlc[2], 0)} <span class="k">C</span> ${fmt(ohlc[3], 0)}</div>` : ''}
+    <div><span class="k">${assetName()}</span> <b>${curFmt(price, price < 10 ? 4 : price < 1000 ? 2 : 0)}</b></div>
+    ${ohlc && CTYPE !== 'line' && VSTYLE === 'vss' ? `<div><span class="k">O</span> ${fmt(ohlc[0], 0)} <span class="k">H</span> ${fmt(ohlc[1], 0)} <span class="k">L</span> ${fmt(ohlc[2], 0)} <span class="k">C</span> ${fmt(ohlc[3], 0)}</div>` : ''}
     <div><span class="k">Index</span> <b style="color:${color(v)}">${v}</b> <span class="k">· ${t(zoneOf(v).k)}</span></div>
     <div><span class="k">${t('official')}</span> <b>${offV ?? '–'}</b>${VSTYLE === 'vss' && OFFS.length && o.k !== 'alt' ? ` <span class="k">(${o.name})</span>` : ''}</div>
     ${exAll.map(([k, x]) => `<div style="color:${x.type === 'xfear' ? LV[k].dLo : LV[k].dHi};font-weight:700">${t(x.type)}${k === 'p2' ? ` (${x.type === 'xfear' ? LV.p2.lo : LV.p2.hi})` : ''} <span style="color:var(--muted);font-weight:500">${dmy(x.from)} – ${x.ongoing ? t('running') : dmy(x.to)} · ${t('peak')} ${x.peak}${x.ongoing ? ' · ' + t('provisional') : ''}</span></div>`).join('')}
@@ -4539,7 +4630,7 @@ function daySignals(day) {
   } catch { }
   return out;
 }
-const hideHover = () => { $('tt').style.display = 'none'; ['xh1', 'xh2', 'hv1', 'hv2', 'hv3', 'yh1', 'ylb1', 'yh2', 'ylb2', 'xlb1', 'xlb2'].forEach(x => $(x)?.setAttribute('visibility', 'hidden')); };
+const hideHover = () => { $('tt').style.display = 'none'; ['xh1', 'xh2', 'xh3', 'hv1', 'hv2', 'hv3', 'yh1', 'ylb1', 'yh2', 'ylb2', 'xlb1', 'xlb2'].forEach(x => $(x)?.setAttribute('visibility', 'hidden')); };
 // V21: Fadenkreuz frei im ganzen Chart (wie TradingView) – Wert an der Skala (Kurs oben, Index unten) und Zeit an der Zeitleiste
 function crossLabels(e, svg, px, title) {
   const G = chartGeom; if (!G) return; const r = svg.getBoundingClientRect();
@@ -4549,8 +4640,347 @@ function crossLabels(e, svg, px, title) {
     const my = (e.clientY - r.top) / r.height * G.H2, v = G.lo2 + (1 - (my - G.Qt) / G.ih2) * (G.hi2 - G.lo2), yl = $('yh2'), lb = $('ylb2');
     if (yl && lb && my >= G.Qt && my <= G.H2 - G.Qb) { yl.setAttribute('y1', my); yl.setAttribute('y2', my); yl.setAttribute('visibility', 'visible'); lb.setAttribute('transform', `translate(0,${my.toFixed(1)})`); lb.querySelector('text').textContent = fmt(v, 1); lb.setAttribute('visibility', 'visible'); }
   } else ['yh2', 'ylb2'].forEach(x => $(x)?.setAttribute('visibility', 'hidden'));
+  if (svg.id === 'idxChart' && G.ih2) { const my = (e.clientY - r.top) / r.height * G.H2; if (my >= G.Qt && my <= G.H2 - G.Qb) qmenuShow(svg, my, G.lo2 + (1 - (my - G.Qt) / G.ih2) * (G.hi2 - G.lo2)); }
 }
-function qmenuShow() { }   // V21: Schnellmenü am Preis – wird weiter unten (Zeichenwerkzeuge) ersetzt
+// ======================= V21 Teil D: Asset, Heikin-Ashi, Struktur (LSOB, FVG, BOS, Trendlinien), Volumenprofil, RSI/MACD, Zeichenwerkzeuge, Schnellmenü, Impuls-Signal =======================
+// var statt let/const: renderCharts und renderSigStats können theoretisch vor dieser Stelle laufen
+var AM = {}, ASSET = null, OBS = null, STR = null, IMP = null, OSC = null, VPO = null, DRAW = null, DRW = null, DSEL = null, MINV = false, QMT = 0, SSEEN = null, DRAWT = 0;
+// Asset im Kurs-Chart: Tageskerzen (und Minuten-/Stundenkerzen) von Binance; der Index, die Heatmap, die Cluster und die Liquidationen bleiben Bitcoin
+const ASSETS = [['BTCUSDT', 'Bitcoin'], ['ETHUSDT', 'Ethereum'], ['SOLUSDT', 'Solana'], ['BNBUSDT', 'BNB'], ['XRPUSDT', 'XRP'], ['PAXGUSDT', 'Gold (PAXG)']];
+ASSET = (s => { const a = ASSETS.find(x => x[0] === s); return a ? { sym: a[0], name: a[1] } : null; })(store.get('fg21_asset', 'BTCUSDT'));
+function assetName() { return ASSET?.name || 'Bitcoin'; }
+function assetKey() { const s = SYM(); return s === 'BTCUSDT' ? '' : s + (AM[s]?.v || 0); }
+function assetRows(rows) {
+  const s = SYM(), A = AM[s]; if (s === 'BTCUSDT' || !A?.rows?.size) { rows.sym = 'BTCUSDT'; return rows; }
+  const k = s + A.v + ':' + rows.length + ':' + (rows.at(-1) || []).join(); if (assetRows.k === k) return assetRows.r;
+  const out = []; for (const r of rows) { const a = A.rows.get(r[0]); if (!a) continue; const x = r.slice(); x[9] = a[0]; x[10] = a[1]; x[11] = a[2]; x[3] = a[3]; x[18] = a[4]; out.push(x); }
+  out.sym = s; assetRows.k = k; assetRows.r = out; return out;
+}
+async function loadAssetDaily(sym, recent) {
+  const A = AM[sym] || (AM[sym] = { rows: new Map(), v: 0, busy: false }); if (A.busy) return; A.busy = true;
+  try { let s = recent && A.rows.size ? Date.now() - 3 * 864e5 : Date.parse('2017-08-01T00:00:00Z');
+    for (let k = 0; k < 6; k++) { const j = await (await fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=1d&limit=1000&startTime=${s}`)).json();
+      if (!Array.isArray(j) || !j.length) break; for (const x of j) A.rows.set(new Date(x[0]).toISOString().slice(0, 10), [+x[1], +x[2], +x[3], +x[4], +x[7]]); s = j.at(-1)[0] + 864e5; if (j.length < 1000) break; }
+    A.last = [...A.rows.values()].at(-1)?.[3]; A.v++; } catch { }
+  A.busy = false; if (SYM() === sym) { SCACHE = {}; rerender(); }
+}
+function setAsset(sym) {
+  const a = ASSETS.find(x => x[0] === sym) || ASSETS[0]; ASSET = { sym: a[0], name: a[1] }; store.set('fg21_asset', a[0]); SCACHE = {}; DSEL = null;
+  if (a[0] !== 'BTCUSDT') { if (!AM[a[0]]?.rows?.size) loadAssetDaily(a[0]); toast(t('assetNote', { a: a[1] })); }
+  rerender();
+}
+selCtl('assetSel', () => ASSETS.map(([s, n]) => [s, n]), () => SYM(), v => setAsset(v));
+if (SYM() !== 'BTCUSDT') loadAssetDaily(SYM());
+setInterval(() => { if (SYM() !== 'BTCUSDT' && !document.hidden) loadAssetDaily(SYM(), true); }, 60e3);
+// Minuten-/Stundenkerzen fürs Chart: Bitcoin wie bisher (intraRows), andere Assets in eigenem Speicher (die Bitcoin-Alarme lesen weiter Bitcoin)
+function chartIntra(iv) { const sym = SYM(); if (sym === 'BTCUSDT') return intraRows(iv); const k = sym + '|' + iv, c = INTRA[k]; if (!c || Date.now() - c.t > 60e3) fetchIntraA(iv, sym); return c?.rows || null; }
+async function fetchIntraA(iv, sym) {
+  const k = sym + '|' + iv; if (INTRA[k]?.busy) return; INTRA[k] = { ...(INTRA[k] || {}), busy: true };
+  const get = async end => { const j = await (await fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${iv}&limit=1000${end ? '&endTime=' + end : ''}`)).json(); return Array.isArray(j) ? j.map(x => [x[0], +x[1], +x[2], +x[3], +x[4], +x[5]]) : []; };
+  try { let rows = INTRA[k]?.rows;
+    if (!rows?.length || !INTRA[k].full) { rows = await get(); for (let p = 1; p < 3 && rows.length; p++) { const older = await get(rows[0][0] - 1); if (!older.length) break; rows = older.concat(rows); if (older.length < 1000) break; } }
+    else { const fresh = await get(); if (fresh.length) rows = rows.filter(r => r[0] < fresh[0][0]).concat(fresh); }
+    INTRA[k] = { t: Date.now(), rows, full: true }; rerender(); } catch { INTRA[k] = { t: Date.now(), rows: INTRA[k]?.rows || null, full: INTRA[k]?.full }; }
+}
+// Heikin-Ashi: Schluss = (O+H+L+C)/4, Eröffnung = Mitte der vorigen HA-Kerze – nur Darstellung
+function haOf(P0) { const out = []; let po = null, pc = null; for (const p of P0) { const c = (p.o + p.h + p.l + p.c) / 4, o = po == null ? (p.o + p.c) / 2 : (po + pc) / 2; out.push({ ...p, o, c, h: Math.max(p.h, o, c), l: Math.min(p.l, o, c) }); po = o; pc = c; } return out; }
+// Einstellungen
+OBS = jget('fg21_ob', { sw: 5, win: 5, mode: 'reject', maxAge: 80, max: 12, sig: true, fvgMin: 0.1, fvgMax: 20, fvgFilled: false, al: false, alTf: '1h' });
+STR = jget('fg21_str', { L: 3, R: 3, max: 10, tlN: 2, tlBrk: true, idxBos: false, idxTl: false, al: false, alTf: ['4h'], alTl: false });
+IMP = jget('fg21_imp', { tf: '15m', btTf: '15m', pct: 2, n: 4, mode: 'follow', tp: 2, sl: 1, hold: 48, inv: false, al: false, dPct: 8, dN: 3 });
+OSC = jget('fg21_osc', { rsi: true, macd: false, rsiN: 14, f: 12, s: 26, g: 9, h: 100, lo: 30, hi: 70 });
+VPO = jget('fg21_vp', { bins: 48, w: 22, va: 70, side: 'right' });
+DRAW = (() => { try { const s = JSON.parse(store.get('fg21_draw', '{}')) || {}; return { show: s.show !== false, col: s.col || '#f6c453', items: Array.isArray(s.items) ? s.items : [], tool: null }; } catch { return { show: true, col: '#f6c453', items: [], tool: null }; } })();
+MINV = store.get('fg21_minv', '0') === '1';
+const saveDraw = () => store.set('fg21_draw', JSON.stringify({ show: DRAW.show, col: DRAW.col, items: DRAW.items }));
+// ---- Berechnungen (Zeilen R mit o/h/l/c) ----
+// Swings wie Fraktale: Hoch/Tief höher bzw. tiefer als L Kerzen links und R Kerzen rechts; bekannt erst nach R Kerzen (c = Bestätigung)
+function swings(R, L, Rr) { const out = []; for (let i = L; i < R.length - Rr; i++) { let hi = true, lo = true; for (let k = i - L; k <= i + Rr; k++) { if (k === i) continue; if (R[k].h >= R[i].h) hi = false; if (R[k].l <= R[i].l) lo = false; if (!hi && !lo) break; } if (hi) out.push({ i, t: 'hi', p: R[i].h, c: i + Rr }); if (lo) out.push({ i, t: 'lo', p: R[i].l, c: i + Rr }); } return out; }
+// Break of Structure: Schluss über dem letzten bestätigten Swing-Hoch (▲) bzw. unter dem letzten Swing-Tief (▼), je Swing einmal
+function bosList(R, sw) { const out = [], S = sw.slice().sort((a, b) => a.c - b.c); let hi = null, lo = null, k = 0;
+  for (let j = 0; j < R.length; j++) { while (k < S.length && S[k].c < j) { const s = S[k++]; if (s.t === 'hi') hi = { ...s, done: false }; else lo = { ...s, done: false }; }
+    if (hi && !hi.done && R[j].c > hi.p) { out.push({ i: j, from: hi.i, p: hi.p, up: true }); hi.done = true; }
+    if (lo && !lo.done && R[j].c < lo.p) { out.push({ i: j, from: lo.i, p: lo.p, up: false }); lo.done = true; } }
+  return out; }
+// Trendlinien: zwei fallende Swing-Hochs (Widerstand) bzw. zwei steigende Swing-Tiefs (Unterstützung); Bruch = Schluss kreuzt die aktuelle Linie
+function tlPairs(sw) { const out = []; for (const ty of ['hi', 'lo']) { const S = sw.filter(s => s.t === ty).sort((a, b) => a.i - b.i);
+    for (let k = 1; k < S.length; k++) { const a = S[k - 1], b = S[k]; if (ty === 'hi' ? b.p < a.p : b.p > a.p) out.push({ t: ty, a, b, end: S[k + 1] ? S[k + 1].c : null }); } }
+  return out.sort((p, q) => p.b.i - q.b.i); }
+function tlBreaks(R, sw) { const out = [], S = sw.slice().sort((a, b) => a.c - b.c), HS = [], LS = [], val = (a, b, j) => a.p + (b.p - a.p) * (j - a.i) / (b.i - a.i); let k = 0, dH = '', dL = '';
+  for (let j = 1; j < R.length; j++) { while (k < S.length && S[k].c < j) { const s = S[k++]; (s.t === 'hi' ? HS : LS).push(s); }
+    const a = HS.at(-2), b = HS.at(-1); if (a && b && b.p < a.p && j > b.c && dH !== a.i + ':' + b.i) { const v = val(a, b, j); if (R[j].c > v && R[j - 1].c <= val(a, b, j - 1)) { out.push({ i: j, up: true, p: v, a, b }); dH = a.i + ':' + b.i; } }
+    const c = LS.at(-2), d = LS.at(-1); if (c && d && d.p > c.p && j > d.c && dL !== c.i + ':' + d.i) { const v = val(c, d, j); if (R[j].c < v && R[j - 1].c >= val(c, d, j - 1)) { out.push({ i: j, up: false, p: v, a: c, b: d }); dL = c.i + ':' + d.i; } } }
+  return out; }
+function tlSvg(R, sw, Yf, xR, lab) { let s = ''; const brk = STR.tlBrk ? tlBreaks(R, sw) : [], prs = tlPairs(sw);
+  for (const ty of ['hi', 'lo']) for (const pr of prs.filter(p => p.t === ty).slice(-STR.tlN)) {
+    const { a, b } = pr, x1 = R[a.i].x, y1 = Yf(a.p), x2 = R[b.i].x, y2 = Yf(b.p); if (x2 === x1) continue; const bk = brk.find(q => q.a.i === a.i && q.b.i === b.i);
+    const xe = bk ? R[bk.i].x : pr.end != null ? R[Math.min(R.length - 1, pr.end)].x : xR, ye = y1 + (y2 - y1) * (xe - x1) / (x2 - x1), c = ty === 'hi' ? '#ff7a8a' : '#5fe3b0';
+    s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${xe.toFixed(1)}" y2="${ye.toFixed(1)}" stroke="${c}" stroke-width="1.5"${pr.end != null && !bk ? ' stroke-dasharray="6 4" opacity=".6"' : ''}/>`;
+    if (bk) s += `<g><title>${t('tlBrk')} · ${bk.up ? 'Long' : 'Short'} · ${lab(bk.p)}</title><circle cx="${xe.toFixed(1)}" cy="${ye.toFixed(1)}" r="6.5" fill="${bk.up ? '#33d39a' : '#ff4d5e'}" stroke="#160b1b" stroke-width="1.3"/><text x="${xe.toFixed(1)}" y="${(ye + 2.8).toFixed(1)}" fill="#0b0b10" font-size="7.5" font-weight="900" text-anchor="middle">TL</text></g>`; }
+  return s; }
+// LSOB (Liquidity Sweep Order Block): Tief unter das letzte Swing-Tief, innerhalb von „win“ Kerzen Schluss wieder darüber = Sweep → Box um die tiefste Kerze (Short umgekehrt).
+// Signal beim ersten Rücklauf in die Box: „Ablehnung“ = Docht in die Box, Schluss wieder außerhalb; „Berührung“ = Einstieg schon beim Antippen. Box gebrochen = Schluss durch die Box.
+function lsobList(R, sw, o) { const boxes = [], S = sw.slice().sort((a, b) => a.c - b.c); let k = 0, lo = null, hi = null;
+  for (let j = 0; j < R.length; j++) { while (k < S.length && S[k].c < j) { const s = S[k++]; if (s.t === 'lo') lo = { ...s, used: false }; else hi = { ...s, used: false }; }
+    if (lo && !lo.used && R[j].l < lo.p) { lo.used = true; let m = -1; for (let q = j; q < Math.min(R.length, j + o.win); q++) if (R[q].c > lo.p) { m = q; break; }
+      if (m >= 0) { let b = j; for (let q = j; q <= m; q++) if (R[q].l < R[b].l) b = q; boxes.push({ up: true, i: b, conf: m, hi: R[b].h, lo: R[b].l, sw: lo.p, swi: lo.i }); } }
+    if (hi && !hi.used && R[j].h > hi.p) { hi.used = true; let m = -1; for (let q = j; q < Math.min(R.length, j + o.win); q++) if (R[q].c < hi.p) { m = q; break; }
+      if (m >= 0) { let b = j; for (let q = j; q <= m; q++) if (R[q].h > R[b].h) b = q; boxes.push({ up: false, i: b, conf: m, hi: R[b].h, lo: R[b].l, sw: hi.p, swi: hi.i }); } } }
+  for (const B of boxes) { const last = Math.min(R.length - 1, B.conf + o.maxAge); B.end = last; B.sig = null; B.broken = false;
+    for (let q = B.conf + 1; q <= last; q++) { const r = R[q];
+      if (B.up ? r.c < B.lo : r.c > B.hi) { B.end = q; B.broken = true; break; }
+      if (!B.sig && (B.up ? r.l <= B.hi : r.h >= B.lo) && (o.mode === 'touch' || (B.up ? r.c > B.hi : r.c < B.lo))) B.sig = { i: q, up: B.up, p: o.mode === 'touch' ? (B.up ? B.hi : B.lo) : r.c }; } }
+  return boxes; }
+// Fair Value Gap: Lücke zwischen Kerze 1 und Kerze 3 (Tief 3 über Hoch 1 = bullisch, Hoch 3 unter Tief 1 = bärisch), gefüllt = Kurs läuft ganz hindurch
+function fvgList(R, minPct) { const out = [];
+  for (let i = 2; i < R.length; i++) { const a = R[i - 2], c = R[i];
+    if (c.l > a.h && (c.l - a.h) / a.h * 100 >= minPct) out.push({ up: true, i0: i - 2, i, lo: a.h, hi: c.l });
+    if (c.h < a.l && (a.l - c.h) / a.l * 100 >= minPct) out.push({ up: false, i0: i - 2, i, lo: c.h, hi: a.l }); }
+  for (const f of out) { f.end = R.length - 1; f.filled = false; for (let q = f.i + 1; q < R.length; q++) if (f.up ? R[q].l <= f.lo : R[q].h >= f.hi) { f.end = q; f.filled = true; break; } }
+  return out; }
+// Impuls: Kurs steigt/fällt innerhalb von N Kerzen um mindestens X % → mitgehen (Standard) oder dagegen; danach N−1 Kerzen Pause
+function impList(R, pct, n, mode) { const out = []; let cool = -1;
+  for (let i = n; i < R.length; i++) { if (i <= cool) continue; const ch = (R[i].c / R[i - n].c - 1) * 100; if (!(Math.abs(ch) >= pct)) continue; out.push({ i, ch, up: mode === 'revert' ? ch < 0 : ch > 0 }); cool = i + n - 1; }
+  return out; }
+// Backtest mit TP/SL in %: Einstieg zum Schluss der Signal-Kerze; berühren TP und SL dieselbe Kerze, zählt der Stop (vorsichtig); ohne Gebühren
+function impBacktest(R, o) { const tr = []; let cool = -1;
+  for (const s of impList(R, o.pct, o.n, o.mode)) { if (s.i <= cool) continue; const up = o.inv ? !s.up : s.up, e = R[s.i].c, tp = e * (1 + (up ? 1 : -1) * o.tp / 100), sl = e * (1 - (up ? 1 : -1) * o.sl / 100); let res = null, how = 'time', j = s.i + 1;
+    for (; j < Math.min(R.length, s.i + 1 + o.hold); j++) { const r = R[j]; if (up ? r.l <= sl : r.h >= sl) { res = -o.sl; how = 'SL'; break; } if (up ? r.h >= tp : r.l <= tp) { res = o.tp; how = 'TP'; break; } }
+    if (res == null) { j = Math.min(R.length - 1, s.i + o.hold); res = (R[j].c / e - 1) * 100 * (up ? 1 : -1); }
+    tr.push({ t: R[s.i].t, up, r: res, how }); cool = j; }
+  const n = tr.length, w = tr.filter(x => x.r > 0).length, gw = tr.filter(x => x.r > 0).reduce((a, x) => a + x.r, 0), gl = -tr.filter(x => x.r < 0).reduce((a, x) => a + x.r, 0);
+  return { n, win: n ? w / n * 100 : 0, avg: n ? (gw - gl) / n : 0, sum: gw - gl, pf: gl > 0 ? gw / gl : gw > 0 ? 99 : 0, tr }; }
+const dayRowsAll = () => memo('dra' + H.length + new Date().toISOString().slice(0, 10), () => { const td = new Date().toISOString().slice(0, 10); return H.filter(r => r[0] < td && r[3] != null).map(r => ({ d: r[0], t: Date.parse(r[0]), o: r[9] ?? r[3], h: r[10] ?? r[3], l: r[11] ?? r[3], c: r[3] })); });
+// ---- RSI / MACD unter Chart 1 (volle Breite, gleiche Zeitachse) ----
+function rsiCalc(c, n) { const out = new Array(c.length).fill(null); let g = 0, l = 0;
+  for (let i = 1; i < c.length; i++) { const d = c[i] - c[i - 1], up = Math.max(d, 0), dn = Math.max(-d, 0);
+    if (i <= n) { g += up; l += dn; if (i === n) { g /= n; l /= n; out[i] = l === 0 ? 100 : 100 - 100 / (1 + g / l); } }
+    else { g = (g * (n - 1) + up) / n; l = (l * (n - 1) + dn) / n; out[i] = l === 0 ? 100 : 100 - 100 / (1 + g / l); } }
+  return out; }
+function emaArr(c, n) { const k = 2 / (n + 1), out = []; let e = null; for (const v of c) { if (v == null) { out.push(e); continue; } e = e == null ? v : v * k + e * (1 - k); out.push(e); } return out; }
+function macdCalc(c, f, s, g) { const a = emaArr(c, f), b = emaArr(c, s), m = c.map((_, i) => a[i] - b[i]), sg = emaArr(m, g); return { m, s: sg, h: m.map((v, i) => v - sg[i]) }; }
+function renderOsc(C) {
+  const wrap = $('oscWrap'), svg = $('oscChart'); if (!wrap || !svg) return;
+  const on = VSTYLE === 'vss' && LAY.osc && OSC && (OSC.rsi || OSC.macd); wrap.hidden = !on; if (!on) { svg.innerHTML = ''; return; }
+  const { W, P, iw, pts } = C, PH = OSC.h, H3 = PH * ((OSC.rsi ? 1 : 0) + (OSC.macd ? 1 : 0)), N = pts.length, xs = pts.map(p => p.x);
+  // Tageskerzen: aus dem ganzen Verlauf gerechnet (richtige Werte auch am linken Rand); Minuten-/Stundenkerzen: aus den gezeigten Kerzen
+  const closes = C.hourly ? pts.map(p => p.c) : C.all.map(r => conv(r[3], r)), off = C.hourly ? 0 : VIEW.s, fd = v => fmt(v, Math.abs(v) >= 100 ? 0 : Math.abs(v) >= 1 ? 2 : 4);
+  const path = (vals, Yf) => { let d = '', pen = false; for (let i = 0; i < N; i++) { const v = vals[i + off]; if (v == null || !isFinite(v)) { pen = false; continue; } d += (pen ? 'L' : 'M') + xs[i].toFixed(1) + ',' + Yf(v).toFixed(1); pen = true; } return d; };
+  const lbl = (y, txt, c) => `<text x="${P.l + 6}" y="${y + 14}" fill="${c}" font-size="11" font-weight="800" paint-order="stroke" stroke="#160b1b" stroke-width="3">${txt}</text>`;
+  const ax = (y, v) => `<text x="${P.l + iw + P.r / 2}" y="${(y + 4).toFixed(1)}" fill="#cdbfd8" font-size="10.5" text-anchor="middle">${v}</text>`;
+  let s = '', y0 = 0;
+  if (OSC.rsi) { const r = rsiCalc(closes, OSC.rsiN), Yr = v => y0 + 6 + (1 - v / 100) * (PH - 12), last = r[off + N - 1];
+    s += `<rect x="${P.l}" y="${Yr(OSC.hi).toFixed(1)}" width="${iw}" height="${(Yr(OSC.lo) - Yr(OSC.hi)).toFixed(1)}" fill="#b48cff" opacity=".07"/>`;
+    for (const v of [OSC.hi, 50, OSC.lo]) s += `<line x1="${P.l}" x2="${P.l + iw}" y1="${Yr(v).toFixed(1)}" y2="${Yr(v).toFixed(1)}" stroke="#fff" stroke-opacity="${v === 50 ? .12 : .3}" stroke-dasharray="4 4"/>` + ax(Yr(v), v);
+    s += `<path d="${path(r, Yr)}" fill="none" stroke="#b48cff" stroke-width="1.5"/>` + lbl(y0, `RSI ${OSC.rsiN}${last != null ? ' · ' + fmt(last, 1) : ''}`, '#b48cff');
+    y0 += PH; if (OSC.macd) s += `<line class="fsep" x1="0" x2="${W}" y1="${y0}" y2="${y0}"/>`; }
+  if (OSC.macd) { const m = macdCalc(closes, OSC.f, OSC.s, OSC.g); let mx = 1e-12;
+    for (let i = 0; i < N; i++) for (const a of [m.m, m.s, m.h]) { const v = a[i + off]; if (v != null && isFinite(v)) mx = Math.max(mx, Math.abs(v)); }
+    const Ym = v => y0 + PH / 2 - v / mx * (PH / 2 - 8), bwp = Math.max(1, (N > 1 ? Math.abs(xs[1] - xs[0]) : 4) * 0.6);
+    s += `<line x1="${P.l}" x2="${P.l + iw}" y1="${Ym(0).toFixed(1)}" y2="${Ym(0).toFixed(1)}" stroke="#fff" stroke-opacity=".2"/>`;
+    for (let i = 0; i < N; i++) { const v = m.h[i + off]; if (v == null || !isFinite(v)) continue; const y = Ym(v), yz = Ym(0); s += `<rect x="${(xs[i] - bwp / 2).toFixed(1)}" y="${Math.min(y, yz).toFixed(1)}" width="${bwp.toFixed(1)}" height="${Math.max(.5, Math.abs(yz - y)).toFixed(1)}" fill="${v >= 0 ? '#33d39a' : '#ff4d5e'}" opacity=".55"/>`; }
+    const lm = m.m[off + N - 1], ls = m.s[off + N - 1];
+    s += `<path d="${path(m.m, Ym)}" fill="none" stroke="#5aa9ff" stroke-width="1.4"/><path d="${path(m.s, Ym)}" fill="none" stroke="#ff9f43" stroke-width="1.3"/>` + lbl(y0, `MACD ${OSC.f} ${OSC.s} ${OSC.g}${lm != null && isFinite(lm) ? ' · ' + fd(lm) + ' / ' + fd(ls) : ''}`, '#5aa9ff') + ax(Ym(0), 0); }
+  s += `<line class="fsep" x1="${P.l + iw}" x2="${P.l + iw}" y1="0" y2="${H3}"/><line id="xh3" x1="0" x2="0" y1="0" y2="${H3}" stroke="#fff" stroke-opacity=".35" stroke-dasharray="3 4" visibility="hidden"/>`;
+  svg.style.height = H3 + 'px'; svg.setAttribute('viewBox', `0 0 ${W} ${H3}`); svg.innerHTML = s;
+}
+// senkrechte Fadenkreuz-Linie auch im RSI/MACD-Fenster
+for (const id of ['priceChart', 'idxChart']) $(id).addEventListener('pointermove', () => { const a = $('xh1'), b = $('xh3'); if (!a || !b) return; if (a.getAttribute('visibility') === 'visible') { b.setAttribute('x1', a.getAttribute('x1')); b.setAttribute('x2', a.getAttribute('x1')); b.setAttribute('visibility', 'visible'); } else b.setAttribute('visibility', 'hidden'); });
+// ---- Zeichenwerkzeuge (✏️): waagerechte Linie, Strahl, senkrechte Linie, Trendlinie, Rechteck, Fibonacci ----
+const DTOOLS = [['hline', '―'], ['hray', '→'], ['vline', '│'], ['trend', '╱'], ['rect', '▭'], ['fib', 'Fib']];
+const DPAL = ['#f6c453', '#ff4d5e', '#33d39a', '#5aa9ff', '#b48cff', '#ff9f43', '#2ee6c8', '#ffffff'];
+const FIBD = [0, 23.6, 38.2, 50, 61.8, 78.6, 100];
+function drawItemSvg(it, M, sel) {
+  const c = it.c || '#f6c453', xa = M.XT(it.a.t), ya = M.Y(it.a.p), hasB = !!it.b, xb = hasB ? M.XT(it.b.t) : xa, yb = hasB ? M.Y(it.b.p) : ya, f1 = v => v.toFixed(1);
+  const txt = (x, y, s, anc = 'start') => `<text x="${f1(x)}" y="${f1(y)}" fill="${c}" font-size="10.5" font-weight="800" text-anchor="${anc}" paint-order="stroke" stroke="#160b1b" stroke-width="3">${s}</text>`;
+  let vis = '', hit = '';
+  if (it.k === 'hline') { vis = `<line x1="${M.x0}" x2="${M.x1}" y1="${f1(ya)}" y2="${f1(ya)}" stroke="${c}" stroke-width="1.6"/>` + txt(M.x1 - 6, ya - 4, moneyK(it.a.p * M.fx), 'end'); hit = `M${M.x0},${f1(ya)}H${M.x1}`; }
+  else if (it.k === 'hray') { vis = `<line x1="${f1(xa)}" x2="${M.x1}" y1="${f1(ya)}" y2="${f1(ya)}" stroke="${c}" stroke-width="1.6"/><circle cx="${f1(xa)}" cy="${f1(ya)}" r="3" fill="${c}"/>` + txt(xa + 6, ya - 4, moneyK(it.a.p * M.fx)); hit = `M${f1(xa)},${f1(ya)}H${M.x1}`; }
+  else if (it.k === 'vline') { vis = `<line x1="${f1(xa)}" x2="${f1(xa)}" y1="${M.y0}" y2="${M.y1}" stroke="${c}" stroke-width="1.4"/>`; hit = `M${f1(xa)},${M.y0}V${M.y1}`; }
+  else if (it.k === 'trend') { vis = `<line x1="${f1(xa)}" y1="${f1(ya)}" x2="${f1(xb)}" y2="${f1(yb)}" stroke="${c}" stroke-width="1.8"/>`; hit = `M${f1(xa)},${f1(ya)}L${f1(xb)},${f1(yb)}`; }
+  else if (it.k === 'rect') { const x = Math.min(xa, xb), y = Math.min(ya, yb); vis = `<rect x="${f1(x)}" y="${f1(y)}" width="${f1(Math.max(1, Math.abs(xb - xa)))}" height="${f1(Math.max(1, Math.abs(yb - ya)))}" fill="${c}" fill-opacity=".14" stroke="${c}" stroke-width="1.4"/>`; }
+  else if (it.k === 'fib') { const xl = Math.min(xa, xb); vis = `<line x1="${f1(xa)}" y1="${f1(ya)}" x2="${f1(xb)}" y2="${f1(yb)}" stroke="${c}" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>`; hit = `M${f1(xa)},${f1(ya)}L${f1(xb)},${f1(yb)}`;
+    // wie TradingView: 100 % am ersten Punkt, 0 % am zweiten
+    for (const f of FIBD) { const p = it.b.p + (it.a.p - it.b.p) * f / 100, y = M.Y(p); vis += `<line x1="${f1(xl)}" x2="${M.x1}" y1="${f1(y)}" y2="${f1(y)}" stroke="${c}" stroke-width="${f === 50 || f === 61.8 ? 1.4 : 1}" opacity="${f === 0 || f === 100 ? .9 : .75}"/>` + txt(xl + 4, y - 3, `${fmt(f, f % 1 ? 1 : 0)} % · ${moneyK(p * M.fx)}`); hit += `M${f1(xl)},${f1(y)}H${M.x1}`; } }
+  const hitS = it.k === 'rect' ? '' : `<path d="${hit}" stroke="transparent" stroke-width="12" fill="none"/>`;
+  const hd = sel ? [['a', xa, ya], ...(hasB ? [['b', xb, yb]] : [])].map(([k, x, y]) => `<circle data-drh="${it.id}:${k}" cx="${f1(x)}" cy="${f1(y)}" r="5" fill="#160b1b" stroke="${c}" stroke-width="2" style="cursor:grab"/>`).join('') : '';
+  return `<g data-dr="${it.id}" style="cursor:${LOCK ? 'default' : 'move'}"><title>${t('dt_' + it.k)} · ${t('drawCtxTip')}</title>${vis}${hitS}</g>${hd}`;
+}
+// Mausposition → Zeit und Kurs (in Dollar); Magnet rastet wie das Fadenkreuz auf Eröffnung/Hoch/Tief/Schluss ein
+function drawPt(e, snap) {
+  const G = chartGeom, r = $('priceChart').getBoundingClientRect(), mx = (e.clientX - r.left) / r.width * G.W, my = (e.clientY - r.top) / r.height * G.H1;
+  let pv = G.yl + (1 - (my - G.P.t) / G.ih) * (G.yh - G.yl);
+  if (snap && MAG !== 'off' && G.pts?.length) { const cand = G.pts.reduce((b, p) => Math.abs(p.x - mx) < Math.abs(b.x - mx) ? p : b, G.pts[0]), nb = [cand.o, cand.h, cand.l, cand.c].reduce((b, w) => Math.abs(G.Y(w) - my) < Math.abs(G.Y(b) - my) ? w : b, cand.c);
+    if (MAG === 'strong' || Math.abs(G.Y(nb) - my) <= 12) pv = nb; }
+  return { t: G.t0 + (mx - G.P.l) / G.bw * 864e5, p: pv / facLive() };
+}
+function drawDown(e, svg) {
+  if (!chartGeom || e.button !== 0 || VSTYLE !== 'vss') return false;
+  const h = e.target.closest?.('[data-drh]'), gEl = e.target.closest?.('[data-dr]');
+  if (DRAW.tool) { const pt = drawPt(e, true); DRAWT = Date.now();
+    if (DRW?.phase === 2) { DRW.it.b = pt; drawFinish(); return true; }
+    const it = { id: 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), k: DRAW.tool, a: pt, c: DRAW.col, sym: SYM() };
+    if (['hline', 'hray', 'vline'].includes(it.k)) { DRAW.items.push(it); DSEL = it.id; drawFinish(); return true; }
+    it.b = { ...pt }; DRAW.items.push(it); DRW = { mode: 'new', it, x: e.clientX, y: e.clientY, phase: 1 }; svg.setPointerCapture(e.pointerId); rerender(); return true; }
+  if (h && !LOCK) { const [id, k] = h.dataset.drh.split(':'), it = DRAW.items.find(x => x.id === id); if (!it) return false; DRW = { mode: 'pt', it, k }; svg.setPointerCapture(e.pointerId); return true; }
+  if (gEl && !LOCK) { const it = DRAW.items.find(x => x.id === gEl.dataset.dr); if (!it) return false; DSEL = it.id; DRW = { mode: 'move', it, p0: drawPt(e, false), o: JSON.parse(JSON.stringify(it)) }; svg.setPointerCapture(e.pointerId); rerender(); return true; }
+  if (DSEL) { DSEL = null; rerender(); }
+  return false;
+}
+function drawMove(e) {
+  if (!DRW || !chartGeom) return; const pt = drawPt(e, DRW.mode !== 'move');
+  if (DRW.mode === 'new') { DRW.it.b = pt; if (Math.abs(e.clientX - DRW.x) + Math.abs(e.clientY - DRW.y) > 5) DRW.moved = true; }
+  else if (DRW.mode === 'pt') DRW.it[DRW.k] = pt;
+  else { const dt = pt.t - DRW.p0.t, dp = pt.p - DRW.p0.p; for (const k of ['a', 'b']) if (DRW.o[k]) DRW.it[k] = { t: DRW.o[k].t + dt, p: DRW.o[k].p + dp }; }
+  rerender();
+}
+function drawUp() { if (!DRW) return; if (DRW.mode === 'new') { if (DRW.moved) drawFinish(); else DRW.phase = 2; return; } DRW = null; DRAWT = Date.now(); saveDraw(); }
+function drawFinish() { DRW = null; DRAW.tool = null; DRAWT = Date.now(); saveDraw(); updDrawBtn(); rerender(); }
+$('priceChart').addEventListener('pointermove', e => { if (DRW) drawMove(e); });
+$('priceChart').addEventListener('pointerup', e => { if (DRW) drawUp(e); });
+document.addEventListener('keydown', e => { if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName || '')) return;
+  if (e.key === 'Escape' && (DRAW.tool || DRW)) { if (DRW?.mode === 'new') DRAW.items = DRAW.items.filter(x => x !== DRW.it); DRW = null; DRAW.tool = null; updDrawBtn(); rerender(); }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && DSEL && !DRW) { DRAW.items = DRAW.items.filter(x => x.id !== DSEL); DSEL = null; saveDraw(); rerender(); } });
+function updDrawBtn() { const b = $('drawDd'); if (!b) return; b.classList.toggle('on', !!DRAW.tool); b.textContent = DRAW.tool ? '✏️' + (DTOOLS.find(x => x[0] === DRAW.tool)?.[1] || '') : '✏️'; b.title = t('drawTip'); $('priceChart').classList.toggle('drawing', !!DRAW.tool); }
+const drawMenuHtml = () => { const n = DRAW.items.filter(x => (x.sym || 'BTCUSDT') === SYM()).length;
+  return `<div class="lh">${t('drawHead')}</div><div class="drawtools">${DTOOLS.map(([k, ic]) => `<button data-dt="${k}" class="${DRAW.tool === k ? 'on' : ''}" title="${t('dt_' + k)}">${ic}</button>`).join('')}</div>
+  <div class="dpal">${DPAL.map(c => `<i data-dc="${c}" style="background:${c}" class="${DRAW.col === c ? 'on' : ''}"></i>`).join('')}</div>
+  <label><input type="checkbox" data-ds="1" ${DRAW.show ? 'checked' : ''}> ${t('drawShow')}</label>
+  <button class="btn sm" data-dclr="1" ${n ? '' : 'disabled'}>${t('drawClr', { n })}</button>
+  <p class="muted" style="font-size:11.5px;margin:6px 0 0;white-space:normal;max-width:260px">${t('drawNote')}</p>`; };
+ddMenu('drawDd', 'drawMenu', drawMenuHtml, el => { if (el.dataset.ds) { DRAW.show = el.checked; saveDraw(); updDrawBtn(); rerender(); } });
+$('drawMenu').addEventListener('click', e => { const b = e.target.closest('[data-dt],[data-dc],[data-dclr]'); if (!b) return;
+  if (b.dataset.dt) { DRAW.tool = DRAW.tool === b.dataset.dt ? null : b.dataset.dt; DRAW.show = true; DRW = null; $('drawMenu').classList.remove('open'); updDrawBtn(); if (DRAW.tool) toast(t('drawHint', { k: t('dt_' + DRAW.tool) })); return; }
+  if (b.dataset.dc) { DRAW.col = b.dataset.dc; const it = DSEL && DRAW.items.find(x => x.id === DSEL); if (it) it.c = DRAW.col; saveDraw(); rerender(); }
+  if (b.dataset.dclr && confirm(t('drawClrQ'))) { DRAW.items = DRAW.items.filter(x => (x.sym || 'BTCUSDT') !== SYM()); DSEL = null; saveDraw(); rerender(); }
+  $('drawMenu').innerHTML = drawMenuHtml(); });
+// ---- Schnellmenü „+“ am Fadenkreuz-Preis (Chart 1) bzw. -Wert (Chart 2) und Rechtsklick ----
+const ctxAt = (x, y) => { ctxEl.style.left = Math.min(x, innerWidth - 250) + 'px'; ctxEl.style.top = Math.min(y, innerHeight - 230) + 'px'; ctxEl.classList.add('open'); };
+function qmenuShow(svg, my, val) {
+  if (VSTYLE !== 'vss' || !svg || my == null || !isFinite(val)) return; const isI = svg.id === 'idxChart', b = $(isI ? 'qplus2' : 'qplus'), G = chartGeom; if (!b || !G) return;
+  const r = svg.getBoundingClientRect(), sx = r.width / G.W, sy = r.height / (isI ? G.H2 : G.H1);
+  b.style.left = ((G.P.l + G.iw) * sx - 23) + 'px'; b.style.top = (my * sy - 10) + 'px'; b.hidden = false; b.dataset.v = val;
+  if (!isI) { const x = +($('xh1')?.getAttribute('x1') || 0); b.dataset.t = G.t0 + (x - G.P.l) / G.bw * 864e5; }
+  clearTimeout(QMT); QMT = setTimeout(() => { for (const id of ['qplus', 'qplus2']) { const q = $(id); if (q && !q.matches(':hover')) q.hidden = true; } }, 2200);
+}
+function qmenuOpen(cx, cy, w, pt) {
+  if (w === 'i') { const v = Math.round(pt * 2) / 2; if (!(v >= 0 && v <= 100)) return;
+    ctxEl.innerHTML = `<b>Index · ${fmt(v, 1)}</b><button data-c="ial">🔔 ${t('idxAlHere', { v: fmt(v, 1) })}</button><button data-c="imenu">${t('idxAlHead')} …</button>`;
+    ctxEl.onclick = ev => { const c = ev.target.dataset?.c; if (!c) return; ev.stopPropagation(); ctxEl.classList.remove('open'); if (c === 'ial') addIdxAl(v, 'i'); if (c === 'imenu') setTimeout(() => $('idxAlDd').click(), 0); };
+    ctxAt(cx, cy); return; }
+  const fx = facLive(), txt = moneyK(pt.p * fx), btc = SYM() === 'BTCUSDT';
+  ctxEl.innerHTML = `<b>${txt}</b><button data-c="hl">― ${t('qmLine', { p: txt })}</button>${btc ? `<button data-c="own">🔔 ${t('qmOwn', { p: txt })}</button>` : ''}<button data-c="box">▭ ${t('qmBox')}</button><button data-c="vl">│ ${t('qmVl')}</button><button data-c="tools">✏️ ${t('qmTools')}</button>`;
+  ctxEl.onclick = ev => { const c = ev.target.dataset?.c; if (!c) return; ev.stopPropagation(); ctxEl.classList.remove('open');
+    const add = it => { const n = { id: 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), c: DRAW.col, sym: SYM(), ...it }; DRAW.items.push(n); DSEL = n.id; DRAW.show = true; saveDraw(); updDrawBtn(); rerender(); };
+    if (c === 'hl') add({ k: 'hline', a: { t: pt.t, p: pt.p } });
+    if (c === 'vl') add({ k: 'vline', a: { t: pt.t, p: pt.p } });
+    if (c === 'box') { const G = chartGeom; if (!G?.pts?.length) return; const px = G.XT(pt.t), cand = G.pts.reduce((b, q) => Math.abs(q.x - px) < Math.abs(b.x - px) ? q : b, G.pts[0]), step = G.pts.length > 1 ? Math.abs(G.pts[1].x - G.pts[0].x) : G.bw, dt = step / G.bw * 864e5, tc = G.t0 + (cand.x - G.P.l) / G.bw * 864e5;
+      add({ k: 'rect', a: { t: tc - dt / 2, p: cand.h / fx }, b: { t: tc + dt * 10, p: cand.l / fx } }); }
+    if (c === 'own') { const num = Math.max(0, ...LINES.map(l => +l.id.slice(1) || 0)) + 1; LINES.push({ id: 'A' + num, p: Math.round(pt.p / 10) * 10, on: true }); LAY.own = true; saveLay(); saveLines(); updLay(); renderCharts(); renderHeatInfo(); }
+    if (c === 'tools') setTimeout(() => $('drawDd').click(), 0); };
+  ctxAt(cx, cy);
+}
+// Rechtsklick in Chart 1: auf eine Zeichnung = Farbe/Löschen, sonst Schnellmenü an dieser Stelle
+function drawCtx(e) {
+  if (VSTYLE !== 'vss' || !chartGeom) return; const gEl = e.target.closest?.('[data-dr]'); e.preventDefault();
+  if (gEl) { const it = DRAW.items.find(x => x.id === gEl.dataset.dr); if (!it) return; DSEL = it.id; rerender();
+    ctxEl.innerHTML = `<b>${t('dt_' + it.k)}</b><div class="dpal">${DPAL.map(c => `<i data-c2="${c}" style="background:${c}" class="${it.c === c ? 'on' : ''}"></i>`).join('')}</div><button data-c="del">✕ ${t('drawDel')}</button>`;
+    ctxEl.onclick = ev => { const c2 = ev.target.dataset?.c2, c = ev.target.dataset?.c; if (!c2 && !c) return; ev.stopPropagation(); if (c2) it.c = c2; if (c === 'del') { DRAW.items = DRAW.items.filter(x => x !== it); DSEL = null; } ctxEl.classList.remove('open'); saveDraw(); rerender(); };
+    ctxAt(e.clientX, e.clientY); return; }
+  qmenuOpen(e.clientX, e.clientY, 'p', drawPt(e, true));
+}
+$('qplus').addEventListener('click', e => { e.stopPropagation(); const b = e.currentTarget; qmenuOpen(e.clientX, e.clientY, 'p', { t: +b.dataset.t || Date.now(), p: +b.dataset.v / facLive() }); });
+$('qplus2').addEventListener('click', e => { e.stopPropagation(); qmenuOpen(e.clientX, e.clientY, 'i', +e.currentTarget.dataset.v); });
+for (const id of ['qplus', 'qplus2']) $(id).addEventListener('mouseleave', e => { clearTimeout(QMT); const q = e.currentTarget; QMT = setTimeout(() => { q.hidden = true; }, 900); });
+// ---- Menüs: LSOB/FVG ▾, Struktur ▾ (BOS, Trendlinien, Index, Alarme), Indikatoren ▾ (Volumenprofil, RSI/MACD, Impuls) ----
+const ddn = (k, attr, v, mn, mx, st = 1, w) => `<div class="ddnum"><span>${t(k)}</span><input type="number" ${attr} min="${mn}" max="${mx}" step="${st}" value="${v}"${w ? ` style="width:${w}px"` : ''}></div>`;
+const mnote = k => `<p class="muted" style="font-size:11.5px;margin:6px 0 0;white-space:normal;max-width:340px">${t(k)}</p>`;
+const tfSel = (attr, cur, list) => `<select ${attr}>${list.map(v => `<option value="${v}" ${cur === v ? 'selected' : ''}>${v}</option>`).join('')}</select>`;
+const obMenuHtml = () => `<div class="lh">LSOB · Liquidity Sweep Order Block</div>${ddn('obSw', 'data-ob="sw"', OBS.sw, 2, 20)}${ddn('obWin', 'data-ob="win"', OBS.win, 1, 20)}${ddn('obAge', 'data-ob="maxAge"', OBS.maxAge, 5, 500, 5)}${ddn('obMax', 'data-ob="max"', OBS.max, 1, 60)}
+  <div class="vwrow">${['reject', 'touch'].map(m => `<label title="${t('obmH_' + m)}"><input type="radio" name="obm" data-obm="${m}" ${OBS.mode === m ? 'checked' : ''}> ${t('obm_' + m)}</label>`).join('')}</div>
+  <label><input type="checkbox" data-obc="sig" ${OBS.sig ? 'checked' : ''}> ${t('obSig')}</label><label><input type="checkbox" data-obc="al" ${OBS.al ? 'checked' : ''}> ${t('obAl')}</label>
+  <div class="ddnum"><span>${t('alTfLbl')}</span>${tfSel('data-obs="alTf"', OBS.alTf, ['15m', '1h', '4h', '1d'])}</div>
+  <div class="lh">FVG · Fair Value Gap</div>${ddn('fvgMin', 'data-ob="fvgMin"', OBS.fvgMin, 0, 5, 0.05)}${ddn('fvgMax', 'data-ob="fvgMax"', OBS.fvgMax, 1, 100)}
+  <label><input type="checkbox" data-obc="fvgFilled" ${OBS.fvgFilled ? 'checked' : ''}> ${t('fvgShowFilled')}</label>${mnote('obNote')}`;
+ddMenu('obDd', 'obMenu', obMenuHtml, el => { const d = el.dataset; if (d.ob) { const v = +el.value; if (el.value !== '' && v >= +el.min && v <= +el.max) OBS[d.ob] = v; } if (d.obm) OBS.mode = d.obm; if (d.obc) OBS[d.obc] = el.checked; if (d.obs) OBS[d.obs] = el.value;
+  if ((d.ob || d.obm || d.obc === 'sig') && !LAY.ob && !LAY.fvg) { LAY[d.ob?.startsWith('fvg') || d.obc === 'fvgFilled' ? 'fvg' : 'ob'] = true; saveLay(); updLay(); } store.set('fg21_ob', JSON.stringify(OBS)); rerender(); renderSigStats(); });
+const strMenuHtml = () => `<div class="lh">${t('strHead')}</div>${ddn('strL', 'data-st="L"', STR.L, 1, 20)}${ddn('strR', 'data-st="R"', STR.R, 1, 20)}${ddn('strMax', 'data-st="max"', STR.max, 1, 60)}${ddn('strTlN', 'data-st="tlN"', STR.tlN, 1, 10)}
+  <label><input type="checkbox" data-stc="tlBrk" ${STR.tlBrk ? 'checked' : ''}> ${t('strTlBrk')}</label>
+  <div class="lh">${t('strIdx')}</div><label><input type="checkbox" data-stc="idxBos" ${STR.idxBos ? 'checked' : ''}> ${t('strIdxBos')}</label><label><input type="checkbox" data-stc="idxTl" ${STR.idxTl ? 'checked' : ''}> ${t('strIdxTl')}</label>
+  <div class="lh">${t('strAlHead')}</div><label><input type="checkbox" data-stc="al" ${STR.al ? 'checked' : ''}> ${t('strAl')}</label>
+  <div class="vwrow">${['15m', '1h', '4h', '1d'].map(v => `<label><input type="checkbox" data-sttf="${v}" ${(STR.alTf || []).includes(v) ? 'checked' : ''}> ${v}</label>`).join('')}</div>
+  <label><input type="checkbox" data-stc="alTl" ${STR.alTl ? 'checked' : ''}> ${t('strAlTl')}</label>${mnote('strNote')}`;
+ddMenu('strDd', 'strMenu', strMenuHtml, el => { const d = el.dataset; if (d.st) { const v = +el.value; if (el.value !== '' && v >= +el.min && v <= +el.max) STR[d.st] = Math.round(v); } if (d.stc) STR[d.stc] = el.checked;
+  if (d.sttf) { const s = new Set(STR.alTf || []); el.checked ? s.add(d.sttf) : s.delete(d.sttf); STR.alTf = ['15m', '1h', '4h', '1d'].filter(x => s.has(x)); }
+  store.set('fg21_str', JSON.stringify(STR)); updLay21(); rerender(); renderSigStats(); });
+const indMenuHtml = () => `<div class="lh">${t('vpHead')}</div>${ddn('vpBins', 'data-vp="bins"', VPO.bins, 10, 150, 2)}${ddn('vpW', 'data-vp="w"', VPO.w, 5, 60)}${ddn('vpVa', 'data-vp="va"', VPO.va, 50, 95, 5)}
+  <div class="vwrow">${['right', 'left'].map(v => `<label><input type="radio" name="vps" data-vps="${v}" ${VPO.side === v ? 'checked' : ''}> ${t('vps_' + v)}</label>`).join('')}</div>
+  <div class="lh">${t('oscHead')}</div><label><input type="checkbox" data-osc="rsi" ${OSC.rsi ? 'checked' : ''}> RSI</label>${ddn('rsiN', 'data-oscn="rsiN"', OSC.rsiN, 2, 100)}
+  <label><input type="checkbox" data-osc="macd" ${OSC.macd ? 'checked' : ''}> MACD</label><div class="ddnum"><span>${t('macdP')}</span><input type="number" data-oscn="f" min="2" max="100" step="1" value="${OSC.f}" style="width:50px"><input type="number" data-oscn="s" min="3" max="200" step="1" value="${OSC.s}" style="width:50px"><input type="number" data-oscn="g" min="2" max="100" step="1" value="${OSC.g}" style="width:50px"></div>
+  ${ddn('oscH', 'data-oscn="h"', OSC.h, 60, 300, 10)}
+  <div class="lh">${t('impHead')}</div><label><input type="checkbox" data-impl="1" ${LAY.imp ? 'checked' : ''}> ${t('impShow')}</label>${ddn('impPct', 'data-imp="pct"', IMP.pct, 0.1, 50, 0.1)}${ddn('impN', 'data-imp="n"', IMP.n, 1, 200)}
+  <div class="vwrow">${['follow', 'revert'].map(v => `<label><input type="radio" name="impm" data-impm="${v}" ${IMP.mode === v ? 'checked' : ''}> ${t('impm_' + v)}</label>`).join('')}</div>
+  <label><input type="checkbox" data-impc="inv" ${IMP.inv ? 'checked' : ''}> ${t('mInv')}</label>
+  <label><input type="checkbox" data-impc="al" ${IMP.al ? 'checked' : ''}> ${t('impAl')}</label><div class="ddnum"><span>${t('alTfLbl')}</span>${tfSel('data-imps="tf"', IMP.tf, ['5m', '15m', '30m', '1h', '4h'])}</div>
+  ${ddn('impDPct', 'data-imp="dPct"', IMP.dPct, 1, 50, 0.5)}${ddn('impDN', 'data-imp="dN"', IMP.dN, 1, 30)}
+  <button class="btn sm" data-impbt="1" style="margin-top:6px">📊 ${t('impBtOpen')}</button>${mnote('impNote')}`;
+ddMenu('indDd', 'indMenu', indMenuHtml, el => { const d = el.dataset, v = +el.value, ok = el.value !== '' && v >= +el.min && v <= +el.max;
+  if (d.vp && ok) VPO[d.vp] = v; if (d.vps) VPO.side = d.vps; if (d.osc) OSC[d.osc] = el.checked; if (d.oscn && ok) OSC[d.oscn] = Math.round(v);
+  if (d.impl) { LAY.imp = el.checked; saveLay(); } if (d.imp && ok) IMP[d.imp] = v; if (d.impm) IMP.mode = d.impm; if (d.impc) IMP[d.impc] = el.checked; if (d.imps) IMP[d.imps] = el.value;
+  if ((d.osc || d.oscn) && !LAY.osc) { LAY.osc = true; saveLay(); updLay(); } if ((d.vp || d.vps) && !LAY.vp) { LAY.vp = true; saveLay(); updLay(); }
+  store.set('fg21_vp', JSON.stringify(VPO)); store.set('fg21_osc', JSON.stringify(OSC)); store.set('fg21_imp', JSON.stringify(IMP)); updLay21(); rerender(); renderSigStats(); });
+$('indMenu').addEventListener('click', e => { if (e.target.closest('[data-impbt]')) { $('indMenu').classList.remove('open'); openImpBt(); } });
+for (const [id, k] of [['togBosI', 'idxBos'], ['togTlI', 'idxTl']]) $(id).onclick = () => { STR[k] = !STR[k]; store.set('fg21_str', JSON.stringify(STR)); updLay21(); rerender(); };
+$('mtStats').addEventListener('change', e => { if (e.target.id === 'mInv') { MINV = e.target.checked; store.set('fg21_minv', MINV ? '1' : '0'); renderSigStats(); } });
+function updLay21() {
+  if (!OSC) return; const o = $('togOsc'); if (o) o.textContent = [OSC.rsi && 'RSI', OSC.macd && 'MACD'].filter(Boolean).join(' · ') || 'RSI';
+  for (const [id, k] of [['togBosI', 'idxBos'], ['togTlI', 'idxTl']]) $(id)?.classList.toggle('on', !!STR[k]);
+  for (const [id, k] of [['togOb', 'obTip'], ['togFvg', 'fvgTip'], ['togBos', 'bosTip'], ['togTl', 'tlTip'], ['togVp', 'vpTip'], ['togOsc', 'oscTip'], ['togBosI', 'bosTipI'], ['togTlI', 'tlTipI'], ['assetSel', 'assetTip'], ['obDd', 'obDdTip'], ['strDd', 'strDdTip'], ['indDd', 'indDdTip']]) { const b = $(id); if (b) b.title = t(k); }
+  updDrawBtn();
+}
+updLay21();
+// ---- Impuls-Backtest (Fenster) ----
+function impRowsFor(tf) {
+  if (tf === '1d') { if (SYM() === 'BTCUSDT') return dayRowsAll(); const A = AM[SYM()]; return A ? [...A.rows.entries()].slice(0, -1).map(([d, a]) => ({ t: Date.parse(d), o: a[0], h: a[1], l: a[2], c: a[3] })) : null; }
+  const rows = chartIntra(tf); return rows ? rows.slice(0, -1).map(x => ({ t: x[0], o: x[1], h: x[2], l: x[3], c: x[4] })) : null;
+}
+function openImpBt() { $('impTitle').textContent = t('impBtTitle', { a: assetName() }); $('impModal').classList.add('open'); renderImpBt(); }
+function renderImpBt() {
+  const body = $('impBody'), o = IMP, tf = o.btTf || o.tf, R = impRowsFor(tf), num = (k, v, mn, mx, st) => `<label>${t(k)} <input type="number" data-ib="${k === 'impPct' ? 'pct' : k === 'impN' ? 'n' : k === 'impTp' ? 'tp' : k === 'impSl' ? 'sl' : 'hold'}" min="${mn}" max="${mx}" step="${st}" value="${v}"></label>`;
+  const f = `<div class="impform"><label>${t('impBtTf')} ${tfSel('data-ib="btTf"', tf, ['5m', '15m', '30m', '1h', '4h', '1d'])}</label>${num('impPct', o.pct, 0.1, 50, 0.1)}${num('impN', o.n, 1, 200, 1)}${num('impTp', o.tp, 0.1, 50, 0.1)}${num('impSl', o.sl, 0.1, 50, 0.1)}${num('impHold', o.hold, 1, 1000, 1)}
+    <label><select data-ib="mode">${['follow', 'revert'].map(v => `<option value="${v}" ${o.mode === v ? 'selected' : ''}>${t('impm_' + v)}</option>`).join('')}</select></label><label><input type="checkbox" data-ibc="inv" ${o.inv ? 'checked' : ''}> ${t('mInv')}</label></div>`;
+  if (!R) { body.innerHTML = f + `<p class="muted">${t('impBtLoad')}</p>`; setTimeout(() => { if ($('impModal').classList.contains('open')) renderImpBt(); }, 1500); return; }
+  if (R.length < 50) { body.innerHTML = f + `<p class="muted">${t('impBtFew')}</p>`; return; }
+  const run = (pct, n, mode, inv) => impBacktest(R, { ...o, pct, n, mode, inv }), res = run(o.pct, o.n, o.mode, o.inv), resI = run(o.pct, o.n, o.mode, !o.inv);
+  const pr = (v, d = 2) => `<span style="color:${v >= 0 ? '#33d39a' : '#ff4d5e'}">${sgn(v, d)} %</span>`, dts = ms => { const d = new Date(ms); return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getFullYear()).slice(2)}${tf === '1d' ? '' : ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')}`; };
+  const sum = (r, lbl) => `<tr><td>${lbl}</td><td class="r">${r.n}</td><td class="r">${r.n ? fmt(r.win, 0) + ' %' : '–'}</td><td class="r">${r.n ? pr(r.avg) : '–'}</td><td class="r">${r.n ? pr(r.sum, 1) : '–'}</td><td class="r">${r.n ? fmt(r.pf, 2) : '–'}</td></tr>`;
+  const PS = [...new Set([o.pct * 0.5, o.pct * 0.75, o.pct, o.pct * 1.5, o.pct * 2].map(v => Math.round(v * 10) / 10))].filter(v => v > 0), NS = [...new Set([1, 2, 3, 4, 6, 8, 12, o.n])].sort((a, b) => a - b);
+  let grid = `<table class="ctab impgrid"><tr><th>X % \\ N</th>${NS.map(n => `<th>${n}</th>`).join('')}</tr>`;
+  for (const p of PS) { grid += `<tr><th>${fmt(p, 1)} %</th>`; for (const n of NS) { const r = run(p, n, o.mode, o.inv); grid += `<td class="${r.n >= 5 && Math.abs(r.avg) >= 0.005 ? (r.avg > 0 ? 'g' : 'r') : ''}" title="${r.n} Trades · ${fmt(r.win, 0)} % · PF ${fmt(r.pf, 2)}">${r.n ? sgn(r.avg, 2) + ' <small class="muted">(' + r.n + ')</small>' : '–'}</td>`; } grid += '</tr>'; }
+  grid += '</table>';
+  const last = res.tr.slice(-12).reverse().map(x => `<tr><td>${dts(x.t)}</td><td>${x.up ? '▲ Long' : '▼ Short'}</td><td class="r">${pr(x.r)}</td><td>${x.how === 'time' ? t('impTime') : x.how}</td></tr>`).join('');
+  body.innerHTML = f + `<p class="muted">${t('impBtRange', { a: dts(R[0].t), b: dts(R.at(-1).t), n: R.length, tf, s: assetName() })}</p>
+    <table class="ctab"><tr><th></th><th class="r">Trades</th><th class="r">${t('impWin')}</th><th class="r">${t('impAvg')}</th><th class="r">${t('impSum')}</th><th class="r" title="${t('impPfTip')}">PF</th></tr>${sum(res, t('impThis'))}${sum(resI, t('impInvRow'))}</table>
+    <h3 style="margin-top:12px">${t('impGrid')}</h3>${grid}<h3 style="margin-top:12px">${t('impLast')}</h3><table class="ctab">${last || '<tr><td class="muted">–</td></tr>'}</table>
+    <p class="muted" style="margin-top:10px">${t('impBtWarn')}</p>`;
+}
+$('impBody').addEventListener('change', e => { const d = e.target.dataset; if (d.ib) { if (e.target.tagName === 'SELECT') IMP[d.ib] = e.target.value; else { const v = +e.target.value; if (v > 0) IMP[d.ib] = v; } } if (d.ibc) IMP[d.ibc] = e.target.checked;
+  store.set('fg21_imp', JSON.stringify(IMP)); renderImpBt(); rerender(); });
+// ---- Alarme (Browser, solange die Seite offen ist): BOS / Trendlinien-Bruch mit Kerzenschluss, LSOB-Signal, Impuls ----
+function checkStructAlarms() {
+  if (!OBS || !D || !H.length) return; const now = Date.now(); SSEEN = SSEEN || (() => { try { return JSON.parse(store.get('fg21_sseen', '{}')) || {}; } catch { return {}; } })();
+  const once = (k, f) => { if (SSEEN[k]) return; SSEEN[k] = now; f(); }, P = v => money(v, 0);
+  const rowsOf = tf => { if (tf === '1d') return dayRowsAll(); const rr = intraRows(tf); return rr ? rr.slice(0, -1).map(x => ({ t: x[0], o: x[1], h: x[2], l: x[3], c: x[4] })) : null; };
+  if (STR.al && AL.bos !== false) for (const tf of STR.alTf || []) { const R = rowsOf(tf); if (!R || R.length < 30) continue; const sw = swings(R, STR.L, STR.R), L = R.length - 1;
+    for (const x of bosList(R, sw).filter(x => x.i === L)) once(`bos:${tf}:${R[L].t}:${x.up}`, () => fireAlert(t('bosAlT', { tf, d: x.up ? '▲' : '▼' }), t('bosAlB', { tf, c: P(R[L].c), p: P(x.p), s: t(x.up ? 'bosHi' : 'bosLo') }), 'bos'));
+    if (STR.alTl) for (const x of tlBreaks(R, sw).filter(x => x.i === L)) once(`tl:${tf}:${R[L].t}:${x.up}`, () => fireAlert(t('tlAlT', { tf, d: x.up ? '▲' : '▼' }), t('tlAlB', { tf, c: P(R[L].c), p: P(x.p), s: x.up ? 'Long' : 'Short' }), 'bos')); }
+  if (OBS.al && AL.lsob !== false) { const R = rowsOf(OBS.alTf); if (R && R.length > 30) { const L = R.length - 1;
+    for (const B of lsobList(R, swings(R, OBS.sw, OBS.sw), OBS)) if (B.sig?.i === L) once(`ls:${OBS.alTf}:${R[L].t}:${B.up}`, () => fireAlert(t('lsAlT', { tf: OBS.alTf, d: B.up ? '🟢' : '🔴', s: B.up ? 'Long' : 'Short' }), t('lsAlB', { tf: OBS.alTf, lo: P(B.lo), hi: P(B.hi), sw: P(B.sw), c: P(R[L].c), m: t(OBS.mode === 'touch' ? 'lsobTouch' : 'lsobRej') }), 'lsob')); } }
+  if (IMP.al && AL.imp !== false) { const R = rowsOf(IMP.tf); if (R && R.length > IMP.n + 2) { const L = R.length - 1, ch = (R[L].c / R[L - IMP.n].c - 1) * 100, gap = IMP.n * (IV_MS[IMP.tf] || 864e5);
+    if (Math.abs(ch) >= IMP.pct && now - (SSEEN['impLast:' + IMP.tf] || 0) >= gap) { let up = IMP.mode === 'revert' ? ch < 0 : ch > 0; if (IMP.inv) up = !up;
+      once(`imp:${IMP.tf}:${R[L].t}`, () => { SSEEN['impLast:' + IMP.tf] = now; fireAlert(t('impAlT', { d: up ? '🟢' : '🔴', s: up ? 'Long' : 'Short', tf: IMP.tf }), t('impAlB', { p: sgn(ch, 2), n: IMP.n, tf: IMP.tf, c: P(R[L].c), m: t('impm_' + IMP.mode) + (IMP.inv ? ' · ' + t('mInv') : '') }), 'imp'); }); } } }
+  for (const k of Object.keys(SSEEN)) if (now - SSEEN[k] > 5 * 864e5) delete SSEEN[k]; store.set('fg21_sseen', JSON.stringify(SSEEN));
+}
 function freeCross(e, svg, x) {
   const G = chartGeom; $('tt').style.display = 'none'; ['hv1', 'hv2', 'hv3'].forEach(k => $(k)?.setAttribute('visibility', 'hidden'));
   for (const id of ['xh1', 'xh2']) { const el = $(id); if (el) { el.setAttribute('x1', x); el.setAttribute('x2', x); el.setAttribute('visibility', 'visible'); } }
@@ -4573,6 +5003,7 @@ for (const id of ['priceChart', 'idxChart']) {
     if (PTRS.size === 2) { const [a, b] = [...PTRS.values()], dec = !COUPLE && VSTYLE === 'vss' && !isPrice, v0 = { ...(dec ? VIEW2 || VIEW : VIEW) };
       PINCH = { dec, dx: Math.max(30, Math.abs(a.x - b.x)), dy: Math.max(30, Math.abs(a.y - b.y)), cx: (a.x + b.x) / 2, view: v0, zoom: yZoom, r2: Y2R.hi - Y2R.lo, c2: (Y2R.hi + Y2R.lo) / 2, isPrice, rect: svg.getBoundingClientRect() };
       drag = null; hideHover(); svg.setPointerCapture(e.pointerId); return; }
+    if (isPrice && drawDown(e, svg)) return;   // V21: Zeichenwerkzeug aktiv bzw. Zeichnung angefasst
     const tid = e.target.id;
     const dec = !COUPLE && VSTYLE === 'vss' && !isPrice;
     drag = { dec, x: e.clientX, y: e.clientY, view: { ...(dec ? VIEW2 || VIEW : VIEW) }, zoom: yZoom, shift: yShift, mode: tid === 'axisGrab' ? 'y' : tid === 'axisGrab2' ? 'y2' : tid === 'xGrab' || tid === 'xGrabP' ? 'x' : tid === 'shiftGrab' ? 'shift' : tid.startsWith('own-') ? 'line' : 'pan', line: tid.startsWith('own-') ? tid.slice(4) : null, r2: Y2R.hi - Y2R.lo, c2: (Y2R.hi + Y2R.lo) / 2, rect: svg.getBoundingClientRect(), price: isPrice, span: chartGeom.ySpan || 1, moved: false };
@@ -4613,7 +5044,7 @@ for (const id of ['priceChart', 'idxChart']) {
   const end = () => { if (drag?.mode === 'line' && drag.moved) { delete LSIDE[drag.line]; saveLines(); renderHeatInfo(); if ($('setModal').classList.contains('open')) renderLineSet(); } drag = null; };
   svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
   svg.addEventListener('mouseleave', () => { if (!drag) hideHover(); });
-  svg.addEventListener('dblclick', () => { resetView(); renderCharts(); });
+  svg.addEventListener('dblclick', () => { if (DRAW?.tool || DRW || Date.now() - DRAWT < 700) return; resetView(); renderCharts(); });
   svg.addEventListener('wheel', e => {
     if (!chartGeom) return;
     e.preventDefault();
@@ -4639,9 +5070,9 @@ for (const [id, isIdx] of [['splitter', false], ['splitter2', true]]) { const sp
   sp.addEventListener('dblclick', () => { if (VSTYLE !== 'vss') { CH1 = 360; CH2 = 200; } else if (isIdx) CH2 = 200; else CH1 = 360; store.set('fg6_h1', CH1); store.set('fg6_h2', CH2); renderCharts(); }); }
 
 /* ================= Alarme im Browser ================= */
-const AL_DEF = { sound: true, notify: true, p1: true, p2: true, turn: true, heat: true, react: true, lines: true, div: true, off: false, pivot: true, f50: true, cdl: true, sma: true, vwap: true, frac: true, ma: true, fib: true, idxal: true, clsig: true,
-  snd: { signal: 'bell', off: 'soft', div: 'down', cluster: 'double', react: 'up', lines: 'soft', pivot: 'alarm', f50: 'up', cdl: 'chime', sma: 'up', vwap: 'ping', frac: 'chime', ma: 'double', fib: 'ping', idxal: 'chime', clsig: 'alarm', test: 'bell' },
-  rep: { signal: { iv: 0, max: 3 }, off: { iv: 0, max: 3 }, div: { iv: 0, max: 3 }, cluster: { iv: 0, max: 3 }, react: { iv: 0, max: 3 }, lines: { iv: 0, max: 3 }, pivot: { iv: 120, max: 5 }, f50: { iv: 0, max: 3 }, cdl: { iv: 0, max: 3 }, sma: { iv: 0, max: 3 }, vwap: { iv: 0, max: 3 }, frac: { iv: 0, max: 3 }, ma: { iv: 0, max: 3 }, fib: { iv: 0, max: 3 }, idxal: { iv: 0, max: 3 }, clsig: { iv: 0, max: 3 } } };
+const AL_DEF = { sound: true, notify: true, p1: true, p2: true, turn: true, heat: true, react: true, lines: true, div: true, off: false, pivot: true, f50: true, cdl: true, sma: true, vwap: true, frac: true, ma: true, fib: true, idxal: true, clsig: true, bos: true, lsob: true, imp: true,
+  snd: { bos: 'double', lsob: 'chime', imp: 'alarm', signal: 'bell', off: 'soft', div: 'down', cluster: 'double', react: 'up', lines: 'soft', pivot: 'alarm', f50: 'up', cdl: 'chime', sma: 'up', vwap: 'ping', frac: 'chime', ma: 'double', fib: 'ping', idxal: 'chime', clsig: 'alarm', test: 'bell' },
+  rep: { signal: { iv: 0, max: 3 }, off: { iv: 0, max: 3 }, div: { iv: 0, max: 3 }, cluster: { iv: 0, max: 3 }, react: { iv: 0, max: 3 }, lines: { iv: 0, max: 3 }, pivot: { iv: 120, max: 5 }, f50: { iv: 0, max: 3 }, cdl: { iv: 0, max: 3 }, sma: { iv: 0, max: 3 }, vwap: { iv: 0, max: 3 }, frac: { iv: 0, max: 3 }, ma: { iv: 0, max: 3 }, fib: { iv: 0, max: 3 }, idxal: { iv: 0, max: 3 }, clsig: { iv: 0, max: 3 }, bos: { iv: 0, max: 3 }, lsob: { iv: 0, max: 3 }, imp: { iv: 0, max: 3 } } };
 let AL = jget('fg6_alerts', AL_DEF);
 // V16: verschiedene Töne je Alarmart
 const SOUNDS = { bell: [[880, 0], [1175, .18], [1568, .36]], double: [[988, 0], [988, .24]], up: [[523, 0], [659, .12], [784, .24], [1047, .36]], down: [[1047, 0], [784, .14], [587, .28]], alarm: [[880, 0], [660, .2], [880, .4], [660, .6], [880, .8]], soft: [[660, 0]], chime: [[784, 0], [1175, .16], [784, .32], [1175, .48]], ping: [[1319, 0], [1760, .12], [1319, .24]] };
@@ -4669,7 +5100,7 @@ function toast(txt) { const el = $('toast'); el.innerHTML = txt; el.classList.re
 const ALOG = (() => { try { const a = JSON.parse(store.get('fg16_alog', '[]')); return Array.isArray(a) ? a : []; } catch { return []; } })();
 const saveAlog = () => { ALOG.splice(200); store.set('fg16_alog', JSON.stringify(ALOG)); updAlogBtn(); };
 // V20: snd = eigener Ton (z. B. je eigener Alarmlinie), sonst der Ton der Alarmart
-const PLAN_KINDS = ['signal', 'off', 'div', 'sma', 'vwap', 'frac', 'ma', 'cdl', 'f50', 'pivot', 'react', 'clsig', 'fib'];
+const PLAN_KINDS = ['signal', 'off', 'div', 'sma', 'vwap', 'frac', 'ma', 'cdl', 'f50', 'pivot', 'react', 'clsig', 'fib', 'bos', 'lsob', 'imp'];
 function fireAlert(title, txt, kind = 'other', again = null, snd = null) {
   // V21: Handelsplan anhängen (Long/Short aus dem Titel; SL hinter dem nächsten eigenen Cluster, TP = nächste Cluster der Gegenseite)
   if (!again && TPLAN.on && PLAN_KINDS.includes(kind) && D?.heatmap) { const up = /🟢|▲|Long/.test(title) && !/🔴|▼|Short/.test(title), dn = /🔴|▼|Short/.test(title);
