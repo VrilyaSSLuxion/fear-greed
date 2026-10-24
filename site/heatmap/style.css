@@ -134,7 +134,20 @@ button, select, input { font: inherit; color: inherit; }
 .apptabs > .on { background: #f6c453; color: #160b1b; }
 .apptabs > a:hover { background: #2a1a33; color: #fff; }
 .apptabs > .fgchip { font-weight: 700; color: var(--muted); border-left: 1px solid var(--line); border-radius: 0 9px 9px 0; margin-left: 6px; }
-.layout { height: calc(100vh - 66px - 64px - 44px); }
+.layout { height: calc(100vh - 66px - 64px - 50px); }
+/* V21: deutlichere Rahmen, Rechtsklick-Menü, Regler, Link-Kasten, Index-Anzeige neben der Leiste */
+.card, .chart-card { border: 2px solid var(--frame, rgba(255, 255, 255, .55)) !important; }
+.hmctx { position: fixed; z-index: 300; display: none; flex-direction: column; gap: 4px; background: #1a0e20; border: 2px solid var(--gold); border-radius: 10px; padding: 8px; min-width: 210px; box-shadow: 0 8px 24px #0009; }
+.hmctx.open { display: flex; }
+.hmctx b { font-size: 12.5px; color: var(--gold2); margin-bottom: 2px; }
+.hmctx button { background: #241530; border: 1px solid #4a3556; color: #eee; border-radius: 7px; padding: 6px 10px; text-align: left; cursor: pointer; font: inherit; font-size: 13px; }
+.hmctx button:hover { border-color: var(--gold); }
+.rng { width: 100%; accent-color: var(--gold); }
+.numin { width: 110px; background: #120916; border: 1px solid #4a3556; color: var(--text); border-radius: 8px; padding: 5px 8px; font: inherit; }
+.links { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+.links a { color: #8fe3c9; text-decoration: none; font-weight: 600; }
+.links a:hover { text-decoration: underline; }
+#fgChip { display: inline-block; margin: 8px 0 0 10px; padding: 6px 12px; border: 2px solid var(--frame, #fff); border-radius: 10px; color: var(--muted); text-decoration: none; font-weight: 700; vertical-align: top; }
 .tg { margin-top: 12px; font-size: 12px; }
 .tg summary { cursor: pointer; color: var(--muted); }
 .tg label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); margin: 8px 0; }

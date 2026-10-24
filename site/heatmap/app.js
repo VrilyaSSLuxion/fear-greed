@@ -10,6 +10,10 @@ const S = {
   mouse: null, heatImg: null, activeInput: null, dir: "buy",
 };
 const COLORS = { green: "#22d3a6", red: "#ff4d6d", teal: "#2de0c8", gold: "#ffb23f", gold2: "#ffd36b", violet: "#b48cff" };
+// V21: Einstellungen der Seite (bleiben im Browser): Raster (Standard aus), Farbstärke der Heatmap, Breite des Volumenprofils, Schwellen für Bubbles und Orderwände
+const LS = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } };
+const LSset = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+S.grid = LS("hm_grid", "0") === "1"; S.inten = +LS("hm_inten", "1") || 1; S.profW = +LS("hm_profw", "110") || 110;
 const AXIS_W = 70, PROF_W = 150, BOTTOM_H = 28;
 const DAYS = ["So.", "Mo.", "Di.", "Mi.", "Do.", "Fr.", "Sa."];
 
@@ -110,7 +114,8 @@ function buildHeatImage() {
   const cv = document.createElement("canvas"); cv.width = h.cols; cv.height = h.rows;
   const cx = cv.getContext("2d"); const img = cx.createImageData(h.cols, h.rows);
   // Daten sind zeilenweise (rows x cols), Zeile 0 = oben
-  for (let i = 0; i < bytes.length; i++) { const q = bytes[i] * 4; const o = i * 4; img.data[o] = LUT[q]; img.data[o + 1] = LUT[q + 1]; img.data[o + 2] = LUT[q + 2]; img.data[o + 3] = LUT[q + 3]; }
+  const fI = S.inten || 1;
+  for (let i = 0; i < bytes.length; i++) { const q = Math.min(255, Math.round(bytes[i] * fI)) * 4; const o = i * 4; img.data[o] = LUT[q]; img.data[o + 1] = LUT[q + 1]; img.data[o + 2] = LUT[q + 2]; img.data[o + 3] = LUT[q + 3]; }
   cx.putImageData(img, 0, 0);
   S.heatImg = cv;
 }
@@ -258,6 +263,7 @@ function priceLabel(x, y, price) {
 }
 
 function drawGrid(r) {
+  if (!S.grid) return;
   ctx.strokeStyle = "rgba(255,255,255,.04)"; ctx.lineWidth = 1;
   for (const p of priceTicks()) { const y = Math.round(yOf(p)) + 0.5; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(r.w, y); ctx.stroke(); }
 }
@@ -295,7 +301,7 @@ function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.a
 function rowY(row) { const d = S.data; return yOf(d.pmax - (row + 0.5) / d.rows * (d.pmax - d.pmin)); }
 function drawVolumeProfile(r) {
   const vp = S.data.volume; if (!vp) return;
-  const rows = S.data.rows, maxW = Math.min(110, r.w * 0.12);
+  const rows = S.data.rows, maxW = Math.min(S.profW || 110, r.w * 0.3);
   let mx = 0; for (let i = 0; i < rows; i++) mx = Math.max(mx, vp.buy[i] + vp.sell[i]);
   if (!mx) return;
   const rh = Math.max(1, Math.abs(yOf(S.data.pmin) - yOf(S.data.pmax)) / rows);
@@ -528,11 +534,36 @@ function setup() {
     if (!S.autoY) reloadSoon();
     draw();
   }, { passive: false });
+  // V21: Finger-Gesten (Handy/Tablet): ein Finger = verschieben, zwei Finger = zusammenschieben/auseinanderziehen (waagerecht = Zeit, senkrecht = Preis)
+  cv.style.touchAction = "none"; let T = null;
+  const tpos = (t) => { const rc = cv.getBoundingClientRect(); return { x: t.clientX - rc.left, y: t.clientY - rc.top }; };
+  cv.addEventListener("touchstart", (e) => { if (!S.data) return; e.preventDefault(); const ts = [...e.touches].map(tpos);
+    if (ts.length === 1) { const z = zoneAt(ts[0].x, ts[0].y); T = { one: true, zone: z, x: ts[0].x, y: ts[0].y, v: { ...S.view } }; }
+    else if (ts.length >= 2) { T = { one: false, dx: Math.max(20, Math.abs(ts[0].x - ts[1].x)), dy: Math.max(20, Math.abs(ts[0].y - ts[1].y)), cx: (ts[0].x + ts[1].x) / 2, cy: (ts[0].y + ts[1].y) / 2, v: { ...S.view } }; } }, { passive: false });
+  cv.addEventListener("touchmove", (e) => { if (!T || !S.data) return; e.preventDefault(); const ts = [...e.touches].map(tpos), r = plotRect(), v = T.v, n = S.data.candles.t.length;
+    if (T.one && ts.length === 1) { const dx = ts[0].x - T.x, dy = ts[0].y - T.y;
+      if (T.zone === "yaxis") { autoOff(); const f = Math.exp(dy * 0.006), mid = (v.p0 + v.p1) / 2, half = (v.p1 - v.p0) / 2 * f; S.view.p0 = mid - half; S.view.p1 = mid + half; }
+      else if (T.zone === "xaxis") { const f = Math.exp(-dx * 0.005), w = Math.max(10, Math.min(n * 1.5 + 20, (v.x1 - v.x0) * f)); S.view.x1 = v.x1; S.view.x0 = v.x1 - w; if (S.autoY) autoFitY(); }
+      else { const sx = dx / r.w * (v.x1 - v.x0); S.view.x0 = v.x0 - sx; S.view.x1 = v.x1 - sx; S.follow = S.view.x1 >= n - 1;
+        if (!S.autoY) { const sy = dy / r.h * (v.p1 - v.p0); S.view.p0 = v.p0 + sy; S.view.p1 = v.p1 + sy; } else autoFitY(); } }
+    else if (!T.one && ts.length >= 2) { const sx = T.dx / Math.max(20, Math.abs(ts[0].x - ts[1].x)), sy = T.dy / Math.max(20, Math.abs(ts[0].y - ts[1].y));
+      const i0 = v.x0 + T.cx / r.w * (v.x1 - v.x0), w = Math.max(10, Math.min(n * 1.5 + 20, (v.x1 - v.x0) * sx)), f = T.cx / r.w; S.view.x0 = i0 - f * w; S.view.x1 = i0 + (1 - f) * w;
+      if (Math.abs(ts[0].y - ts[1].y) > 40) { autoOff(); const p = v.p1 - T.cy / r.h * (v.p1 - v.p0); S.view.p0 = p - (p - v.p0) * sy; S.view.p1 = p + (v.p1 - p) * sy; } else if (S.autoY) autoFitY(); }
+    draw(); }, { passive: false });
+  cv.addEventListener("touchend", (e) => { if (!e.touches.length) { T = null; if (!S.autoY) reloadSoon(); } else if (e.touches.length === 1) { const p = tpos(e.touches[0]); T = { one: true, zone: zoneAt(p.x, p.y), x: p.x, y: p.y, v: { ...S.view } }; } });
+  // V21: Rechtsklick in den Chart = Alarm an dieser Stelle (Formular wird mit dem Preis vorbelegt)
+  const ctxM = document.createElement("div"); ctxM.className = "hmctx"; document.body.appendChild(ctxM);
+  document.addEventListener("click", () => ctxM.classList.remove("open"));
+  cv.addEventListener("contextmenu", (e) => { if (!S.data) return; setMouse(e); const r = plotRect(); if (S.mouse.x > r.w || S.mouse.y > r.h) return; e.preventDefault();
+    const p = pOf(S.mouse.y), cur = S.data.price;
+    ctxM.innerHTML = `<b>${fmtPrice(p)} $</b><button data-a="buy">🟢 Kauf-Alarm hier</button><button data-a="sell">🔴 Verkauf-Alarm hier</button><button data-a="price">🔔 Preis-Alarm (${p > cur ? "über" : "unter"} ${fmtPrice(p)})</button>`;
+    ctxM.style.left = Math.min(e.clientX, innerWidth - 230) + "px"; ctxM.style.top = Math.min(e.clientY, innerHeight - 150) + "px"; ctxM.classList.add("open");
+    ctxM.onclick = (ev) => { const a = ev.target.dataset && ev.target.dataset.a; if (!a) return; ev.stopPropagation(); ctxM.classList.remove("open"); openAlertAt(a, p); }; });
   cv.addEventListener("dblclick", () => { const z = S.mouse ? zoneAt(S.mouse.x, S.mouse.y) : "plot";
     if (z === "yaxis") { S.autoY = true; $("autoBtn").classList.add("on"); autoFitY(); draw(); } else $("fitBtn").click(); });
   window.addEventListener("resize", () => { size(); if (S.data && S.autoY) autoFitY(); draw(); });
 
-  setupAlertForm();
+  setupAlertForm(); setupV21();
 }
 let reloadTimer = null;
 function reloadSoon() { // Heatmap passend zum sichtbaren Preisbereich neu laden, sobald der Nutzer kurz pausiert
@@ -549,6 +580,24 @@ function zoomX(f, mx) {
 }
 
 // ---------------------------------------------------------------- Alarm-Formular
+// V21: Alarm-Formular öffnen und mit Preis und Richtung vorbelegen (Rechtsklick im Chart)
+function openAlertAt(kind, p) {
+  const f = $("alertForm"); f.classList.remove("hidden");
+  const dir = kind === "sell" ? "sell" : "buy", b = f.querySelector(`.chips button[data-dir="${dir}"]`); if (b) b.click();
+  f.trigger.value = p > (S.data ? S.data.price : p) ? "price_above" : "price_below"; f.trigger.dispatchEvent(new Event("change"));
+  const v = String(Math.round(p)); f.tvalue.value = v; if (kind !== "price") f.entry.value = v; updateRR();
+  f.scrollIntoView({ behavior: "smooth", block: "nearest" }); f.tvalue.focus();
+}
+// V21: weitere Einstellungen (Raster, Farbstärke, Volumenprofil, Schwellen)
+function setupV21() {
+  const g = $("gridChips"); if (g) { g.querySelectorAll("button").forEach((b) => b.classList.toggle("on", (b.dataset.grid === "1") === S.grid));
+    g.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; S.grid = b.dataset.grid === "1"; LSset("hm_grid", S.grid ? "1" : "0"); g.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); draw(); }); }
+  const rng = (id, key, sk, fn) => { const el = $(id); if (!el) return; el.value = S[sk]; const out = $(id + "V"); const show = () => { if (out) out.textContent = fn ? fn(+el.value) : el.value; }; show();
+    el.addEventListener("input", () => { S[sk] = +el.value; LSset(key, el.value); show(); if (sk === "inten" && S.data) buildHeatImage(); draw(); }); };
+  rng("intenR", "hm_inten", "inten", (v) => Math.round(v * 100) + " %"); rng("profR", "hm_profw", "profW", (v) => v + " px");
+  for (const [id, key, d] of [["wallIn", "hm_wall", "1.5"], ["bubIn", "hm_bub", "0.25"]]) { const el = $(id); if (!el) continue; el.value = LS(key, d);
+    el.addEventListener("change", () => { const v = parseFloat(String(el.value).replace(",", ".")); if (v > 0) LSset(key, String(v)); }); }
+}
 function setupAlertForm() {
   const f = $("alertForm");
   const showTv = () => { const t = f.trigger.value; f.querySelectorAll(".tv").forEach((l) => l.classList.toggle("hidden", !l.dataset.for.split(" ").includes(t))); };

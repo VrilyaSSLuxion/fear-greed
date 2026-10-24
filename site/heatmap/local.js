@@ -31,13 +31,23 @@ const Local = (() => {
     }
   }
   const post = (url, body) => getJson(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }, 2);
+  // V21: Zwischenspeicher im Browser (IndexedDB) – der Verlauf wird nicht mehr bei jedem Öffnen komplett neu geladen, nur das Fehlende
+  const IDB = (() => { let dbp = null; const open = () => dbp || (dbp = new Promise((res, rej) => { const r = indexedDB.open("hmcache", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }));
+    return { get: async (k) => { try { const db = await open(); return await new Promise((res) => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); } catch (e) { return null; } },
+      set: async (k, v) => { try { const db = await open(); await new Promise((res) => { const tx = db.transaction("kv", "readwrite"); tx.objectStore("kv").put(v, k); tx.oncomplete = res; tx.onerror = res; }); } catch (e) {} } }; })();
+  // V21: Schwellen aus den Einstellungen der Seite (Mio. $), sonst wie bisher je Coin
+  const setNum = (k) => { try { const v = parseFloat(localStorage.getItem(k)); return v > 0 ? v * 1e6 : null; } catch (e) { return null; } };
 
   // ------------------------------------------------------------------ Binance Historie
   async function binanceHistory(coin, days) {
     const sym = coin + "USDT";
     const end = Math.floor(Date.now() / 60000) * 60000, start = end - days * 86400000;
-    const chunks = []; for (let t = start; t < end; t += 1500 * 60000) chunks.push(t);
-    const klines = []; let done = 0;
+    // V21: was schon im Zwischenspeicher liegt, nicht noch einmal holen
+    const ck = await IDB.get("k1m:" + coin), cached = (ck && Array.isArray(ck.rows) ? ck.rows : []).filter((k) => k[0] >= start);
+    const from = cached.length ? Math.max(start, cached[cached.length - 1][0] + 60000) : start;
+    if (cached.length) statusText = `Lade ${coin}-Historie aus dem Zwischenspeicher …`;
+    const chunks = []; for (let t = from; t < end; t += 1500 * 60000) chunks.push(t);
+    const klines = cached.slice(); let done = 0;
     const worker = async () => {
       while (chunks.length) {
         const t = chunks.shift();
@@ -48,7 +58,11 @@ const Local = (() => {
     };
     await Promise.all([worker(), worker(), worker(), worker()]);
     klines.sort((a, b) => a[0] - b[0]);
+    { const seenK = new Set(), uniq = klines.filter((k) => !seenK.has(k[0]) && seenK.add(k[0])); klines.length = 0; klines.push(...uniq); }
+    IDB.set("k1m:" + coin, { t: Date.now(), rows: klines.filter((k) => +k[6] < end) });
     const oi = new Map();
+    const oc = await IDB.get("oi5m:" + coin); if (oc && Array.isArray(oc.rows)) for (const [mm, v] of oc.rows) if (mm * 60000 >= start) oi.set(mm, v);
+    const oiHave = oi.size ? Math.max(...oi.keys()) * 60000 : 0;
     let oiEnd = end; const oiStart = Math.max(start, end - 30 * 86400000 + 600000);
     statusText = `Lade ${coin}-Open-Interest …`;
     while (oiEnd > oiStart) {
@@ -56,8 +70,9 @@ const Local = (() => {
       try { b = await getJson(`${FAPI}/futures/data/openInterestHist?symbol=${sym}&period=5m&limit=500&endTime=${oiEnd}`); } catch (e) { console.warn("OI-Historie", e); break; }
       if (!b || !b.length) break;
       for (const p of b) oi.set(Math.floor(p.timestamp / 60000), +p.sumOpenInterestValue);
-      const first = +b[0].timestamp; if (first >= oiEnd) break; oiEnd = first - 1;
+      const first = +b[0].timestamp; if (first >= oiEnd || first <= oiHave) break; oiEnd = first - 1;
     }
+    IDB.set("oi5m:" + coin, { t: Date.now(), rows: [...oi.entries()] });
     const rows = []; let last = -1;
     for (const k of klines) {
       if (+k[6] >= end) continue;
@@ -71,7 +86,7 @@ const Local = (() => {
   function binanceStream(coin) {
     const m = model(coin), s = coin.toLowerCase() + "usdt";
     let agg = null, legacy = false, fails = 0;
-    const bubbleMin = BUBBLE_MIN[coin] || 100000, liqMin = LIQ_BUBBLE_MIN[coin] || 20000, wallMin = WALL_MIN[coin] || 500000;
+    const liqMin = LIQ_BUBBLE_MIN[coin] || 20000, bubMinOf = () => setNum("hm_bub") || BUBBLE_MIN[coin] || 100000, wallMinOf = () => setNum("hm_wall") || WALL_MIN[coin] || 500000;
     const onMsg = (ev) => {
       const msg = JSON.parse(ev.data), st = msg.stream || "", d = msg.data || {};
       if (st.endsWith("@kline_1m")) {
@@ -84,13 +99,15 @@ const Local = (() => {
         const price = +d.p, usd = price * +d.q, side = d.m ? SHORT : LONG, ts = d.T;
         if (agg && agg.side === side && ts - agg.last <= 100) { agg.usd += usd; agg.pv += price * usd; agg.last = ts; return; }
         const done = agg; agg = { t: ts, last: ts, usd, pv: price * usd, side };
-        if (done && done.usd >= bubbleMin) {
+        if (done && done.usd >= bubMinOf()) {
           const b = { t: done.t, price: done.pv / done.usd, usd: done.usd, side: done.side === LONG ? "buy" : "sell", kind: "trade" };
           m.bubbles.push(b); Alerts.onBubble(coin, b); emit({ type: "bubble", coin, bubble: b });
         }
       } else if (st.includes("@depth")) {
-        const walls = [];
-        for (const [key, side] of [["b", "bid"], ["a", "ask"]]) for (const [p, q] of d[key] || []) { const usd = +p * +q; if (usd >= wallMin) walls.push({ price: +p, usd, side }); }
+        // V21: die tiefe Orderbuch-Abfrage (alle 15 s) hat Vorrang – die 20 nächsten Stufen allein waren fast nie groß genug für eine „Wand“
+        if (Date.now() - (m.wallsRestT || 0) < 30000) return;
+        const walls = [], wm = wallMinOf();
+        for (const [key, side] of [["b", "bid"], ["a", "ask"]]) for (const [p, q] of d[key] || []) { const usd = +p * +q; if (usd >= wm) walls.push({ price: +p, usd, side }); }
         m.walls = walls;
       } else if (st.endsWith("@forceOrder")) {
         const o = d.o, price = +(o.ap || o.p), usd = price * +(o.z || o.q), side = o.S === "SELL" ? LONG : SHORT;
@@ -122,6 +139,19 @@ const Local = (() => {
     if (m.bubbles.length > 20000) m.bubbles.splice(0, m.bubbles.length - 20000);
   }
 
+  // V21: tiefes Orderbuch (1000 Stufen) alle 15 s – Stufen in Preis-Fächern (0,05 %) zusammengefasst, Wand = Fach ab der eingestellten Größe
+  async function depthLoop(coin) {
+    for (;;) {
+      try {
+        const m = model(coin), j = await getJson(`${FAPI}/fapi/v1/depth?symbol=${coin}USDT&limit=1000`, {}, 1), p0 = m.price || +j.bids?.[0]?.[0];
+        if (p0) { const bin = p0 * 0.0005, wm = wallMinCoin(coin), acc = new Map();
+          for (const [key, side] of [["bids", "bid"], ["asks", "ask"]]) for (const [p, q] of j[key] || []) { const b = Math.round(+p / bin) * bin, k = side + b, x = acc.get(k) || { price: b, usd: 0, side }; x.usd += +p * +q; acc.set(k, x); }
+          m.walls = [...acc.values()].filter((w) => w.usd >= wm).sort((a, b) => b.usd - a.usd).slice(0, 40); m.wallsRestT = Date.now(); }
+      } catch (e) {}
+      await sleep(15000);
+    }
+  }
+  const wallMinCoin = (c) => setNum("hm_wall") || WALL_MIN[c] || 500000;
   // ------------------------------------------------------------------ Open Interest mehrerer Börsen
   async function refreshOiAll(coin) {
     const m = model(coin), p = m.price; if (!p) return;
@@ -130,6 +160,12 @@ const Local = (() => {
       Bybit: async () => +(await getJson(`https://api.bybit.com/v5/market/tickers?category=linear&symbol=${coin}USDT`, {}, 1)).result.list[0].openInterestValue,
       OKX: async () => { const d = (await getJson(`https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=${coin}-USDT-SWAP`, {}, 1)).data[0]; return d.oiUsd ? +d.oiUsd : +d.oiCcy * p; },
       Hyperliquid: async () => { const [meta, ctx] = await post(HL, { type: "metaAndAssetCtxs" }); const i = meta.universe.findIndex((u) => u.name === coin); return +ctx[i].openInterest * +ctx[i].markPx; },
+      // V21: weitere Börsen (nur wenn sie vom Browser aus erreichbar sind; sonst fallen sie still weg)
+      "Binance COIN-M": async () => coin === "BTC" ? +(await getJson("https://dapi.binance.com/dapi/v1/openInterest?symbol=BTCUSD_PERP", {}, 1)).openInterest * 100 : null,
+      "Bybit invers": async () => coin === "BTC" ? +(await getJson("https://api.bybit.com/v5/market/tickers?category=inverse&symbol=BTCUSD", {}, 1)).result.list[0].openInterest : null,
+      Bitget: async () => +(await getJson(`https://api.bitget.com/api/v2/mix/market/open-interest?symbol=${coin}USDT&productType=USDT-FUTURES`, {}, 1)).data.openInterestList[0].size * p,
+      Deribit: async () => coin === "BTC" ? +(await getJson("https://www.deribit.com/api/v2/public/get_book_summary_by_instrument?instrument_name=BTC-PERPETUAL", {}, 1)).result[0].open_interest : null,
+      Gate: async () => { const a = await getJson(`https://api.gateio.ws/api/v4/futures/usdt/contract_stats?contract=${coin}_USDT&interval=1h&limit=1`, {}, 1); return +a[a.length - 1].open_interest_usd; },
     };
     const parts = {};
     await Promise.all(Object.entries(src).map(async ([k, fn]) => { try { const v = await fn(); if (v > 0) parts[k] = v; } catch (e) {} }));
@@ -245,7 +281,7 @@ const Local = (() => {
         const rows = await binanceHistory(coin, HISTORY_DAYS);
         statusText = `Berechne ${coin}-Heatmap …`; await sleep(30);
         m.bootstrap(rows);
-        binanceStream(coin);
+        binanceStream(coin); depthLoop(coin);
         refreshOiAll(coin); setInterval(() => refreshOiAll(coin), 60000);
       }
       ready[coin] = true; Alerts.onMinute(coin);
