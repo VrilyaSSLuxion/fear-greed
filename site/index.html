@@ -908,7 +908,40 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
     .ticker .tfl>*{display:flex;align-items:center;padding:0 8px}
     .ticker .tfl>span{justify-content:flex-start}
   }
+  /* V21: Reiter-Leiste kommt aus ../nav.css */
+  /* V21: Seitenbreite einstellbar (Standard volle Breite), Knöpfe in Chart 1 flacher (wie im Index-Chart) und mit fester Breite – keine neue Zeile mehr,
+     wenn sich ein Text ändert; blasse Beschriftungen kräftiger; Richtungs-Kasten mit eigener Schriftgröße */
+  .page{max-width:var(--pagew,none)!important}
+  :root{--muted:#bcb0c8;--dim:#958aa1}
+  .ctools{--cth:34px;gap:6px!important}
+  .ctools .tog,.ctools .seg>button,.ctools .csel{font-size:13px!important}
+  .ctools>.tog,.ctools>.tgrp>.tog,.ctools>.tgrp>.ddwrap>.tog,.ctools>.ddwrap>.tog,.ctools>.layers>.tog{padding-left:10px!important;padding-right:10px!important;border-radius:9px}
+  .ctools>.tgrp,.ctools>.seg{border-radius:11px;padding:2px!important;gap:3px}
+  .ctools .iconb{min-width:var(--cth);font-size:16px}
+  .ctools .fixw{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block!important;line-height:calc(var(--cth) - 6px);text-align:center}
+  #heatDd.fixw{width:7.6em} #cdlDd.fixw{width:9.4em} #frDd.fixw{width:9.4em} #pvDd.fixw{width:8.8em} #maDd.fixw{width:7.8em} #vwDd.fixw{width:7.2em}
+  #togDiv.fixw{width:13.2em} #togExt.fixw{width:10.4em} #togCl.fixw{width:8.6em} #togSig.fixw{width:7.6em} #togCdl.fixw{width:7.2em} #togVw.fixw{width:6.6em} #togSigOff.fixw{width:9.6em}
+  .dirbox{font-size:var(--dirfs,12.5px)!important}
+  .seglbl{color:#fff!important}
+  .csvg text{paint-order:stroke}
+  #shiftGrab:hover{fill:#ffe08a}
+  /* V21: Spalten-Auswahl der 7-Tage-Tabelle, Auswahl der Mittelung bei „Was das jetzt heißt“ */
+  .days .h #dcolBtn{margin-left:auto;padding:3px 10px;font-size:12px}
+  .dcolrow{display:flex;flex-wrap:wrap;gap:6px 14px;margin:6px 0 4px;font-size:13px}
+  .days td.dx{color:#d9cfe2;font-variant-numeric:tabular-nums}
+  #actAvgSel{margin-left:8px;height:26px;font-size:12px;padding:0 22px 0 8px}
+  /* V21: Index-Alarme an der Leiste und im Menü */
+  .idxalrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .idxalrow .tog.sm{padding:4px 10px;font-size:12.5px}
+  .mk.ial{top:-16px;font-size:13px;line-height:1;transform:translateX(-50%);pointer-events:auto;cursor:help}
+  .ownrow.ialrow{grid-template-columns:22px 72px 120px 110px 34px}
+  /* V21: Kombinations-Suche */
+  #comboBody h3{margin:12px 0 6px;font-size:15px}
+  .ctab{width:100%;border-collapse:collapse;font-size:13px}
+  .ctab th,.ctab td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:left}
+  .ctab .r{text-align:right;font-variant-numeric:tabular-nums}
 </style>
+<link rel="stylesheet" href="../nav.css">
 </head>
 <body>
 <div class="loading" id="loading"><div class="spin"></div><div id="loadTxt">Lade Daten…</div></div>
@@ -916,8 +949,9 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
 <div class="page">
   <div class="rothint hidden" id="rotHint"><span>📱↻ <span data-t="rotTxt"></span></span><button id="rotClose" aria-label="Schliessen">✕</button></div>
   <div class="newver hidden" id="newVer"></div>
-  <!-- V20: Reiter oben – zwischen Fear & Greed und der Liquidation Heatmap wechseln -->
-  <nav class="apptabs xh"><span class="on">Fear &amp; Greed</span><a id="tabHm" href="heatmap/">Liquidation Heatmap</a></nav>
+  <!-- V21: gemeinsame Reiter-Leiste der Website (nav.js); ohne nav.js (Einzeldatei) bleiben die Links zur Website -->
+  <nav class="apptabs xh" id="siteNav" data-page="fear-greed" data-nolang><a href="https://vrilyassluxion.github.io/">Start</a><span class="on">Fear &amp; Greed</span><a href="https://vrilyassluxion.github.io/heatmap/">Liquidation Heatmap</a></nav>
+  <script src="../nav.js"></script>
   <!-- ======= Bedienleiste (beide Ansichten) ======= -->
   <div class="toolbar">
     <div class="seg" id="viewSeg" title="Ansicht"><button data-v="smc">SMC</button><button data-v="smc2">SMC 2</button><button data-v="vss">VrilyaSS</button></div>
@@ -984,9 +1018,11 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
         <div class="mk off" id="offMk"></div>
         <div class="mlabel off" id="offLbl"></div>
         <div id="offMulti"></div>
+        <div id="idxAlMk"></div>
       </div>
       <div class="zones" id="zones"></div>
       <div class="chips vss" id="chips"></div>
+      <div class="idxalrow vss"><span class="ddwrap"><button class="tog sm" id="idxAlDd"></button><span class="ddmenu" id="idxAlMenu"></span></span><small class="muted" id="idxAlTxt"></small></div>
       <div class="past" id="past"></div>
       <div class="days vss" id="days"></div>
     </div>
@@ -1008,7 +1044,7 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
         </div>
       </div>
       <div class="card">
-        <div class="h"><span data-t="meaning"></span><small data-t="fromZone"></small></div>
+        <div class="h"><span data-t="meaning"></span><small id="actFrom"></small><select class="csel vss" id="actAvgSel"></select></div>
         <div class="actrow"><div class="action" id="action"><i></i><span id="actionTxt">–</span></div><div class="action tend vss" id="tend"></div></div>
         <div class="tendTxt vss" id="tendTxt"></div>
         <div class="bt" id="bt"></div>
@@ -1059,7 +1095,7 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
         <div class="ddwrap vss"><button class="tog" id="setsDd"></button><div class="ddmenu" id="setsMenu"></div></div>
         <i id="phOff" hidden></i><button class="tog on" id="togOff" data-t="btnOff"></button>
         <div class="seg" id="rangeSeg"><span class="seglbl" id="rangeLbl" data-t="rangeLbl"></span><button data-v="1" data-t="r1d"></button><button data-v="5" data-t="r5d"></button><button data-v="30" data-t="r1m"></button><button data-v="91" data-t="r3"></button><button data-v="182" data-t="r6"></button><button data-v="ytd" data-t="rYtd"></button><button data-v="365" data-t="r12"></button><button data-v="all" data-t="rAll"></button><span class="ddwrap"><button data-v="custom" id="rngBtn" data-t="rCustom"></button><span class="ddmenu" id="rngMenu"></span></span></div>
-        <div class="endbtns vss"><button class="tog iconb" id="lockBtn">🔓</button><button class="tog iconb" id="magBtn">🧲</button></div>
+        <div class="endbtns vss"><button class="tog iconb" id="hideBtn">👁</button><button class="tog iconb" id="lockBtn">🔓</button><button class="tog iconb" id="magBtn">🧲</button></div>
       </div>
     </div>
     <div class="cwrap"><svg class="csvg" id="priceChart"></svg><span class="axisHint vss" data-t="axisHint"></span></div>
@@ -1067,7 +1103,7 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
   </div>
   <!-- V18: Index-Chart als eigenes Fenster (eigene Höhe, eigene Knöpfe; Zeitachse gekoppelt oder frei) -->
   <div class="card chart chart2" id="idxCard">
-    <div class="ihead"><div class="clabel" id="idxLbl" data-t="idxChart"></div><select class="csel avgsel" id="avgISel"></select><div class="itools vss" id="itools"><div class="tgrp vss"><button class="tog vss" id="tog50" data-t="btn50"></button><button class="tog vss" id="tog50s" data-t="btnSigS"></button></div><div class="tgrp vss"><button class="tog vss" id="togMAi"></button><button class="tog vss" id="togSma" data-t="btnSigS"></button></div><div class="tgrp vss"><button class="tog vss" id="togI2"></button><button class="tog vss" id="togI2s" data-t="btnSigS"></button></div><div class="tgrp vss"><button class="tog vss" id="togI3"></button><button class="tog vss" id="togI3s" data-t="btnSigS"></button></div><div class="ddwrap vss"><button class="tog" id="ilnDd"></button><div class="ddmenu tall" id="ilnMenu"></div></div><div class="tgrp vss"><button class="tog vss" id="togFrI" data-t="btnFrac"></button><span class="ddwrap"><button class="tog" id="frIDd"></button><span class="ddmenu tall" id="frIMenu"></span></span></div><div class="tgrp vss" id="lvGrp1"><i id="phLv1" hidden></i><button class="tog vss" id="togLv1s" data-t="btnSigS"></button></div><div class="tgrp vss" id="lvGrp2"><i id="phLv2" hidden></i><button class="tog vss" id="togLv2s" data-t="btnSigS"></button></div><div class="tgrp vss" id="offGrp"><button class="tog vss" id="togOffS" data-t="btnSigS"></button><span class="ddwrap"><button class="tog" id="offSigDd"></button><span class="ddmenu tall" id="offSigMenu"></span></span></div></div></div>
+    <div class="ihead"><div class="clabel" id="idxLbl" data-t="idxChart"></div><select class="csel avgsel" id="avgISel"></select><select class="csel vss" id="idxTfSel"></select><button class="tog vss" id="coupleBtn"></button><div class="itools vss" id="itools"><div class="tgrp vss"><button class="tog vss" id="tog50" data-t="btn50"></button><button class="tog vss" id="tog50s" data-t="btnSigS"></button></div><div class="tgrp vss"><button class="tog vss" id="togMAi"></button><button class="tog vss" id="togSma" data-t="btnSigS"></button></div><div class="tgrp vss"><button class="tog vss" id="togI2"></button><button class="tog vss" id="togI2s" data-t="btnSigS"></button></div><div class="tgrp vss"><button class="tog vss" id="togI3"></button><button class="tog vss" id="togI3s" data-t="btnSigS"></button></div><div class="ddwrap vss"><button class="tog" id="ilnDd"></button><div class="ddmenu tall" id="ilnMenu"></div></div><div class="tgrp vss"><button class="tog vss" id="togFrI" data-t="btnFrac"></button><span class="ddwrap"><button class="tog" id="frIDd"></button><span class="ddmenu tall" id="frIMenu"></span></span></div><div class="tgrp vss" id="lvGrp1"><i id="phLv1" hidden></i><button class="tog vss" id="togLv1s" data-t="btnSigS"></button><span class="ddwrap"><button class="tog vss" id="lvDd1">▾</button><span class="ddmenu" id="lvMenu1"></span></span></div><div class="tgrp vss" id="lvGrp2"><i id="phLv2" hidden></i><button class="tog vss" id="togLv2s" data-t="btnSigS"></button><span class="ddwrap"><button class="tog vss" id="lvDd2">▾</button><span class="ddmenu" id="lvMenu2"></span></span></div><div class="tgrp vss" id="offGrp"><button class="tog vss" id="togOffS" data-t="btnSigS"></button><span class="ddwrap"><button class="tog" id="offSigDd"></button><span class="ddmenu tall" id="offSigMenu"></span></span></div><div class="tgrp vss"><span class="ddwrap"><button class="tog vss" id="isetDd"></button><span class="ddmenu tall" id="isetMenu"></span></span><button class="tog vss" id="comboBtn"></button></div></div></div>
     <div class="cwrap"><svg class="csvg" id="idxChart"></svg></div>
     <div class="splitter" id="splitter2"><span></span></div>
     <div class="heatinfo vss hidden" id="heatInfo"></div>
@@ -1136,6 +1172,7 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
 <div class="tip" id="tip"></div>
 <div class="toast hidden" id="toast"></div>
 <div class="alstack" id="alStack"></div>
+<div class="modal" id="comboModal"><div class="dlg wide"><h2 id="comboTitle"></h2><div id="comboBody"></div><div class="btns"><button class="btn pri" data-close data-t="close"></button></div></div></div>
 <div class="modal" id="alLogModal"><div class="dlg wide"><h2 data-t="alLogTitle"></h2><div class="alog" id="alLog"></div><div class="btns"><button class="btn sm" id="alLogClear" data-t="alLogClear"></button><button class="btn pri" data-close data-t="close"></button></div></div></div>
 <div class="tt" id="tt"></div>
 
@@ -1517,6 +1554,14 @@ Object.assign(T.ar, {"introHtml":"<p class=\"lead\">مرحباً بك في <b>Vr
 Object.assign(T.de, {"tks_arr":"Pfeil „24 H“"});
 Object.assign(T.en, {"tks_arr":"“24 H” arrow"});
 Object.assign(T.ar, {"tks_arr":"سهم «24 H»"});
+// V21 Teil A: Texte
+Object.assign(T.de, {"csTooLong":"Zeitraum zu lang für diese Kerzengröße – kürzeren Zeitraum wählen","itf_auto":"Kerze: wie oben","itf_1h":"Kerze: 1 Std.","itf_1d":"Kerze: Tag","itf_1w":"Kerze: Woche","itf_1mo":"Kerze: Monat","itfTip":"Kerzengröße des Index-Charts. „wie oben“ = gleiche Kerzengröße wie das Kurs-Chart, solange beide gekoppelt sind. Stundenkerzen gibt es aus dem Live-Mitschnitt für die letzten 7 Tage (ohne Mittelung), davor Tageskerzen.","coupleOnS":"gekoppelt","coupleOffS":"frei","hideOn":"Alles ausgeblendet – klicken zeigt Signale, Linien, Indikatoren und Zeichnungen wieder","hideOff":"Alles ausblenden: Signale, Linien, Indikatoren und Zeichnungen (Einstellungen bleiben erhalten)","shiftTri":"Dreieck zum Verschieben (wie MT4)","shiftTip":"Dreieck oben am Ende der Kerzen ziehen = Abstand zwischen der letzten Kerze und dem rechten Rand","v21Look":"Darstellung (V21)","pageW":"Seitenbreite","pageWSub":"volle Breite wie der Ticker oder begrenzt","pw_full":"volle Breite","pw_1920":"1920 px","pw_1600":"1600 px","pw_1400":"1400 px (wie bisher)","cwMaxSet":"Kerzen höchstens so breit (px)","cwMaxSub":"beim Hineinzoomen werden die Kerzen nicht riesig – gilt für beide Charts","dirFsSet":"Schrift Richtungs-Kasten („Bewegung nach unten …“) in px","lineFromSet":"Cluster-, Alarm- und eigene Linien beginnen bei … % der Chartbreite","lineFromSub":"0 = ganz links, 50 = Mitte (wie bisher)"});
+Object.assign(T.en, {"csTooLong":"Range too long for this candle size – choose a shorter range","itf_auto":"Candle: as above","itf_1h":"Candle: 1 h","itf_1d":"Candle: day","itf_1w":"Candle: week","itf_1mo":"Candle: month","itfTip":"Candle size of the index chart. “as above” = same candle size as the price chart while both are coupled. Hourly candles come from the live recording for the last 7 days (not averaged), daily candles before that.","coupleOnS":"coupled","coupleOffS":"free","hideOn":"Everything hidden – click to show signals, lines, indicators and drawings again","hideOff":"Hide everything: signals, lines, indicators and drawings (settings are kept)","shiftTri":"Shift triangle (like MT4)","shiftTip":"Drag the triangle at the top at the end of the candles = gap between the last candle and the right edge","v21Look":"Appearance (V21)","pageW":"Page width","pageWSub":"full width like the ticker or limited","pw_full":"full width","pw_1920":"1920 px","pw_1600":"1600 px","pw_1400":"1400 px (as before)","cwMaxSet":"Maximum candle width (px)","cwMaxSub":"candles do not become huge when zooming in – applies to both charts","dirFsSet":"Font of the direction box (“Moving down …”) in px","lineFromSet":"Cluster, alert and own lines start at … % of the chart width","lineFromSub":"0 = far left, 50 = middle (as before)"});
+Object.assign(T.ar, {"csTooLong":"الفترة طويلة جداً لحجم الشمعة هذا – اختر فترة أقصر","itf_auto":"الشمعة: كما في الأعلى","itf_1h":"الشمعة: ساعة","itf_1d":"الشمعة: يوم","itf_1w":"الشمعة: أسبوع","itf_1mo":"الشمعة: شهر","itfTip":"حجم شمعة رسم المؤشر. «كما في الأعلى» = نفس حجم شمعة رسم السعر طالما الرسمان مرتبطان. الشموع الساعية من التسجيل المباشر لآخر 7 أيام (بدون متوسط)، وقبلها شموع يومية.","coupleOnS":"مرتبط","coupleOffS":"حر","hideOn":"كل شيء مخفي – انقر لإظهار الإشارات والخطوط والمؤشرات والرسومات مجدداً","hideOff":"إخفاء كل شيء: الإشارات والخطوط والمؤشرات والرسومات (الإعدادات تبقى)","shiftTri":"مثلث الإزاحة (كما في MT4)","shiftTip":"اسحب المثلث في الأعلى عند نهاية الشموع = المسافة بين آخر شمعة والحافة اليمنى","v21Look":"العرض (V21)","pageW":"عرض الصفحة","pageWSub":"عرض كامل مثل الشريط أو محدود","pw_full":"عرض كامل","pw_1920":"1920 بكسل","pw_1600":"1600 بكسل","pw_1400":"1400 بكسل (كما سابقاً)","cwMaxSet":"أقصى عرض للشمعة (بكسل)","cwMaxSub":"الشموع لا تصبح ضخمة عند التكبير – للرسمين","dirFsSet":"خط مربع الاتجاه («حركة للأسفل …») بالبكسل","lineFromSet":"خطوط التجمعات والتنبيه والخطوط الخاصة تبدأ عند … % من عرض الرسم","lineFromSub":"0 = أقصى اليسار، 50 = المنتصف (كما سابقاً)"});
+// V21 Teil B: Texte
+Object.assign(T.de, {"actCircle":"wie Kreis ({n})","actAvgTip":"Mit welcher Mittelung „Was das jetzt heißt“ und die Empfehlung rechnen – Standard wie am Kreis eingestellt","fromZoneN":"aus der Zone des Index · {n} = {v}","dcolBtn":"Spalten","dcolTip":"Zusätzliche Spalten ein- oder ausblenden","dcol_avg":"Ø-Preis","dcol_typ":"Typical","dcol_vwap":"VWAP","dcol_twap":"TWAP","dcolH_avg":"Durchschnittspreis des Tages: (Eröffnung + Hoch + Tief + Schluss) / 4","dcolH_typ":"Typical Price: (Hoch + Tief + Schluss) / 3","dcolH_vwap":"VWAP des Tages: Preis gewichtet mit dem Volumen, aus Stundenkerzen (letzte ~8 Tage)","dcolH_twap":"TWAP des Tages: Mittel der Stunden-Schlusskurse (letzte ~8 Tage)","m1Help":"Kreuz der Linie, während der Index-Tageswert im Extrem ist (≤ 21,4 bzw. ≥ 78,6)","m2Help":"Kreuz im Mittelbereich: 7-Tage-Mittel unter 38,2 bzw. über 61,8, dazu die Lage zur 50","m3Help":"Unser und der offizielle Index waren im Extrem, danach Schluss über bzw. unter der Linie – ein Signal je Extrem","etf5":"5 Tage","lvMenuH":"Stufe {a}/{b} ändern","lvMenuNote":"Gilt für Linie, Signale und Alarme dieser Stufe (wie im Zahnrad → Stufen).","idxAlBtn":"Index-Alarm","idxAlHelp":"Alarm, wenn der Index einen Wert kreuzt – am Kreis (Mittelung am Kreis) oder im Index-Chart (Mittelung des Index-Charts)","idxAlRc":"Rechtsklick auf die Leiste oder ins Index-Chart = Alarm an dieser Stelle","idxAlHead":"Index-Alarme","idxAlNone":"Noch keine Index-Alarme.","idxAlTip":"Index-Alarm bei {v}","idxAlAdded":"Index-Alarm bei {v} ({s}) angelegt","idxAlHere":"Alarm bei {v}","idxAlDel":"Alarm {v} löschen","ia_c":"Kreis","ia_i":"Index-Chart","iad_both":"beide Richtungen","iad_up":"nur nach oben","iad_down":"nur nach unten","iaUp":"nach oben","iaDn":"nach unten","idxAlNote":"Gilt im Browser, solange die Seite offen ist. „Kreis“ vergleicht mit dem Wert am Kreis, „Index-Chart“ mit der Linie im Index-Chart (jeweils mit deren Mittelung). Im Index-Chart erscheinen die Alarme als gestrichelte 🔔-Linien.","idxAlT":"🔔 Index {d} {v}","idxAlB":"Der Index ({s}, {n}) hat {v} {d} gekreuzt – jetzt {c}.","alk_idxal":"Index-Alarm","al_idxal":"Index-Alarme (Index kreuzt einen eingestellten Wert)","offStyleH":"Darstellung offizieller Index","offst_line":"Linie","offst_candle":"Kerzen","ivwHead":"VWAP im Index-Chart","ivwOn":"Index-VWAP zeigen","ivwTip":"Index-VWAP ({a}): Index gewichtet mit dem Bitcoin-Volumen je Tag – der Index selbst hat kein Volumen, daher nur zur Orientierung","etfSet":"ETF-Zuflüsse anzeigen in","etfSub":"Summe der letzten 5 Handelstage","etfu_mrd":"Mrd. $","etfu_mio":"Mio. $","etfDSet":"Nachkommastellen (bei Mrd.)","isetBtn":"Sets","isetTip":"Einstellungen des Index-Charts speichern und laden","isetHead":"Index-Sets (nur Index-Chart)","isetNone":"Noch keine gespeicherten Index-Sets.","isetName":"Name, z. B. „EMA 8 × SMA 20“","isetSave":"Jetzigen Stand speichern","isetLoad":"Laden","isetDefName":"Index-Set {n}","isetSaved":"„{n}“ gespeichert","isetLoaded":"„{n}“ geladen – Seite lädt neu","isetNote":"Gespeichert werden Index-Linien, Methoden, Kreuze, Stufen, offizieller Index, 50er, Fraktale, Mittelung und Kerzengröße. Die übrigen Einstellungen bleiben.","comboBtn":"Kombis","comboTip":"Gute Signal-Kombinationen suchen (Rückblick)","comboTitle":"Kombinations-Suche (Rückblick)","comboBusy":"Rechne …","comboIntro":"{n} Kombinationen getestet mit dem Index-Chart ({a}). Gezählt wird, wo Bitcoin 30 Tage nach dem Signal stand. Zum Vergleich: an allen Tagen im Schnitt {b} %. Nur Kombinationen mit mindestens 5 Signalen.","comboCol":"Kombination","comboN":"Signale","comboHit":"Treffer","comboAvg":"Ø 30 Tage","comboUse":"Übernehmen","comboUsed":"„{n}“ übernommen","comboWarn":"Rückblick, keine Vorhersage. Wer viele Kombinationen durchprobiert, findet immer einige, die zufällig gut aussahen – mit wenigen Signalen besonders vorsichtig sein."});
+Object.assign(T.en, {"actCircle":"as circle ({n})","actAvgTip":"Which averaging “What this means now” and the recommendation use – default as set at the circle","fromZoneN":"from the index zone · {n} = {v}","dcolBtn":"Columns","dcolTip":"Show or hide extra columns","dcol_avg":"Avg price","dcol_typ":"Typical","dcol_vwap":"VWAP","dcol_twap":"TWAP","dcolH_avg":"Average price of the day: (open + high + low + close) / 4","dcolH_typ":"Typical price: (high + low + close) / 3","dcolH_vwap":"VWAP of the day: price weighted by volume, from hourly candles (last ~8 days)","dcolH_twap":"TWAP of the day: mean of the hourly closes (last ~8 days)","m1Help":"Line cross while the daily index value is extreme (≤ 21.4 or ≥ 78.6)","m2Help":"Cross in the middle range: 7-day mean below 38.2 or above 61.8, plus the position to 50","m3Help":"Our and the official index were extreme, then a close above or below the line – one signal per extreme","etf5":"5 days","lvMenuH":"Change level {a}/{b}","lvMenuNote":"Applies to line, signals and alerts of this level (as in gear → levels).","idxAlBtn":"Index alert","idxAlHelp":"Alert when the index crosses a value – at the circle (circle averaging) or in the index chart (index chart averaging)","idxAlRc":"Right-click the bar or the index chart = alert at that spot","idxAlHead":"Index alerts","idxAlNone":"No index alerts yet.","idxAlTip":"Index alert at {v}","idxAlAdded":"Index alert at {v} ({s}) created","idxAlHere":"Alert at {v}","idxAlDel":"Delete alert {v}","ia_c":"Circle","ia_i":"Index chart","iad_both":"both directions","iad_up":"upwards only","iad_down":"downwards only","iaUp":"upwards","iaDn":"downwards","idxAlNote":"Works in the browser while the page is open. “Circle” compares with the value at the circle, “Index chart” with the line in the index chart (each with its averaging). In the index chart the alerts appear as dashed 🔔 lines.","idxAlT":"🔔 Index {d} {v}","idxAlB":"The index ({s}, {n}) crossed {v} {d} – now {c}.","alk_idxal":"Index alert","al_idxal":"Index alerts (index crosses a set value)","offStyleH":"Official index display","offst_line":"Line","offst_candle":"Candles","ivwHead":"VWAP in the index chart","ivwOn":"Show index VWAP","ivwTip":"Index VWAP ({a}): index weighted by the daily Bitcoin volume – the index itself has no volume, so for orientation only","etfSet":"Show ETF flows in","etfSub":"Sum of the last 5 trading days","etfu_mrd":"bn $","etfu_mio":"M $","etfDSet":"Decimals (for bn)","isetBtn":"Sets","isetTip":"Save and load index chart settings","isetHead":"Index sets (index chart only)","isetNone":"No saved index sets yet.","isetName":"Name, e.g. “EMA 8 × SMA 20”","isetSave":"Save current state","isetLoad":"Load","isetDefName":"Index set {n}","isetSaved":"“{n}” saved","isetLoaded":"“{n}” loaded – page reloads","isetNote":"Saved: index lines, methods, crosses, levels, official index, 50 line, fractals, averaging and candle size. Other settings stay.","comboBtn":"Combos","comboTip":"Find good signal combinations (look back)","comboTitle":"Combination search (look back)","comboBusy":"Calculating …","comboIntro":"{n} combinations tested with the index chart ({a}). Counted is where Bitcoin stood 30 days after the signal. For comparison: on all days {b} % on average. Only combinations with at least 5 signals.","comboCol":"Combination","comboN":"Signals","comboHit":"Hits","comboAvg":"Avg 30 days","comboUse":"Apply","comboUsed":"“{n}” applied","comboWarn":"Look back, not a forecast. Trying many combinations always finds some that looked good by chance – be especially careful with few signals."});
+Object.assign(T.ar, {"actCircle":"كما في الدائرة ({n})","actAvgTip":"بأي متوسط يُحسب «ماذا يعني هذا الآن» والتوصية – افتراضياً كما في الدائرة","fromZoneN":"من منطقة المؤشر · {n} = {v}","dcolBtn":"الأعمدة","dcolTip":"إظهار أو إخفاء أعمدة إضافية","dcol_avg":"متوسط السعر","dcol_typ":"السعر النموذجي","dcol_vwap":"VWAP","dcol_twap":"TWAP","dcolH_avg":"متوسط سعر اليوم: (الافتتاح + الأعلى + الأدنى + الإغلاق) / 4","dcolH_typ":"السعر النموذجي: (الأعلى + الأدنى + الإغلاق) / 3","dcolH_vwap":"VWAP اليوم: السعر موزوناً بالحجم، من الشموع الساعية (آخر ~8 أيام)","dcolH_twap":"TWAP اليوم: متوسط إغلاقات الساعات (آخر ~8 أيام)","m1Help":"تقاطع الخط بينما قيمة المؤشر اليومية في منطقة قصوى (≤ 21.4 أو ≥ 78.6)","m2Help":"تقاطع في المنطقة الوسطى: متوسط 7 أيام تحت 38.2 أو فوق 61.8، مع الموقع بالنسبة لـ 50","m3Help":"كان مؤشرنا والمؤشر الرسمي في منطقة قصوى، ثم إغلاق فوق أو تحت الخط – إشارة واحدة لكل منطقة قصوى","etf5":"5 أيام","lvMenuH":"تغيير المستوى {a}/{b}","lvMenuNote":"يسري على خط هذا المستوى وإشاراته وتنبيهاته (كما في الترس ← المستويات).","idxAlBtn":"تنبيه المؤشر","idxAlHelp":"تنبيه عندما يقطع المؤشر قيمة – عند الدائرة (متوسط الدائرة) أو في رسم المؤشر (متوسط رسم المؤشر)","idxAlRc":"النقر بالزر الأيمن على الشريط أو في رسم المؤشر = تنبيه في هذا الموضع","idxAlHead":"تنبيهات المؤشر","idxAlNone":"لا توجد تنبيهات للمؤشر بعد.","idxAlTip":"تنبيه المؤشر عند {v}","idxAlAdded":"تم إنشاء تنبيه المؤشر عند {v} ({s})","idxAlHere":"تنبيه عند {v}","idxAlDel":"حذف التنبيه {v}","ia_c":"الدائرة","ia_i":"رسم المؤشر","iad_both":"الاتجاهان","iad_up":"للأعلى فقط","iad_down":"للأسفل فقط","iaUp":"للأعلى","iaDn":"للأسفل","idxAlNote":"يعمل في المتصفح طالما الصفحة مفتوحة. «الدائرة» تقارن بالقيمة عند الدائرة، و«رسم المؤشر» بالخط في رسم المؤشر (كل منهما بمتوسطه). تظهر التنبيهات في رسم المؤشر كخطوط 🔔 متقطعة.","idxAlT":"🔔 المؤشر {d} {v}","idxAlB":"المؤشر ({s}، {n}) قطع {v} {d} – الآن {c}.","alk_idxal":"تنبيه المؤشر","al_idxal":"تنبيهات المؤشر (المؤشر يقطع قيمة محددة)","offStyleH":"عرض المؤشر الرسمي","offst_line":"خط","offst_candle":"شموع","ivwHead":"VWAP في رسم المؤشر","ivwOn":"إظهار VWAP للمؤشر","ivwTip":"VWAP للمؤشر ({a}): المؤشر موزوناً بحجم بيتكوين اليومي – المؤشر نفسه بلا حجم، لذا للاسترشاد فقط","etfSet":"عرض تدفقات ETF بـ","etfSub":"مجموع آخر 5 أيام تداول","etfu_mrd":"مليار $","etfu_mio":"مليون $","etfDSet":"المنازل العشرية (للمليار)","isetBtn":"مجموعات","isetTip":"حفظ وتحميل إعدادات رسم المؤشر","isetHead":"مجموعات المؤشر (رسم المؤشر فقط)","isetNone":"لا توجد مجموعات محفوظة بعد.","isetName":"الاسم، مثلاً «EMA 8 × SMA 20»","isetSave":"حفظ الحالة الحالية","isetLoad":"تحميل","isetDefName":"مجموعة المؤشر {n}","isetSaved":"تم حفظ «{n}»","isetLoaded":"تم تحميل «{n}» – تُعاد تحميل الصفحة","isetNote":"يُحفظ: خطوط المؤشر والطرق والتقاطعات والمستويات والمؤشر الرسمي وخط 50 والفراكتال والمتوسط وحجم الشمعة. تبقى الإعدادات الأخرى.","comboBtn":"تركيبات","comboTip":"البحث عن تركيبات إشارات جيدة (نظرة إلى الوراء)","comboTitle":"البحث عن التركيبات (نظرة إلى الوراء)","comboBusy":"جارٍ الحساب …","comboIntro":"تم اختبار {n} تركيبة مع رسم المؤشر ({a}). يُحسب أين كان بيتكوين بعد 30 يوماً من الإشارة. للمقارنة: كل الأيام بالمتوسط {b} %. فقط التركيبات التي لها 5 إشارات على الأقل.","comboCol":"التركيبة","comboN":"الإشارات","comboHit":"الإصابات","comboAvg":"متوسط 30 يوماً","comboUse":"تطبيق","comboUsed":"تم تطبيق «{n}»","comboWarn":"نظرة إلى الوراء وليست توقعاً. من يجرب تركيبات كثيرة يجد دائماً بعضها بدا جيداً بالصدفة – احذر خاصة مع قلة الإشارات."});
 
 /* ================= Zustand ================= */
 const $ = id => document.getElementById(id);
@@ -1537,6 +1582,8 @@ if (QS.get('bands')) OPT.bands = QS.get('bands') === '1';
 if (QS.get('heat')) OPT.heat = QS.get('heat') === '1';
 if (QS.get('sig')) OPT.sig = QS.get('sig') === '1';
 if (QS.get('mode')) MODE = QS.get('mode');
+// V21: oben gewählte Sprache gilt für alle Seiten der Website, solange der Browser offen ist (Start-Sprache bleibt fg9_deflang)
+try { const sl = sessionStorage.getItem('site_lang'); if (sl && ['de', 'en', 'ar'].includes(sl)) LANG = sl; } catch { }
 if (QS.get('lang')) LANG = QS.get('lang');
 let D = null, H = [], STANDALONE = false, LIVE = { price: null, ch: null, dir: 0, eur: null };
 let CUR = QS.get('cur') || store.get('fg6_cur', 'usd'), OFFSRC = QS.get('off') || store.get('fg6_off', 'alt');
@@ -1553,7 +1600,16 @@ const idxCol7 = () => vcolsOf(mkey()).d7;
 // V18: Mittelung – Kreis (AVGC) und Index-Chart (AVGI) getrennt, 7 = wie im Video; Schalter SIGAVG: alle Signale/Alarme/Rückblicke mit der Mittelung des Index-Charts
 // V19: 1 = Tageswert ohne Mittelung; 0 = 4-Stunden-Mittel (nur Kreis, aus dem stündlich mitgeschriebenen Live-Index)
 // V20: mehr Stufen; am Kreis negative Werte = Stunden (−4 = 4 Std., −12 = 12 Std.) aus dem stündlich mitgeschriebenen Live-Index
-const AVG_OPTS = [1, 3, 7, 10, 14, 21, 30, 90, 180, 365, 1000], AVG_OPTS_C = [-4, -12, ...AVG_OPTS];
+// V21: am Kreis zusätzlich 1, 2 und 8 Stunden; Reihenfolge immer von kurz nach lang (vorher stand 12 Std. vor 4 Std.)
+const AVG_OPTS = [1, 3, 7, 10, 14, 21, 30, 90, 180, 365, 1000], AVG_OPTS_C = [-1, -2, -4, -8, -12, ...AVG_OPTS];
+const avgDays = n => n < 0 ? -n / 24 : n;
+// V21: Index-Alarme (Leiste unter dem Kreis = Wert am Kreis, Index-Chart = Linie im Chart), ETF-Anzeige, offizieller Index als Kerzen, Index-VWAP
+let IDXAL = (() => { try { const a = JSON.parse(store.get('fg21_idxal', '[]')); return Array.isArray(a) ? a : []; } catch { return []; } })();
+const IDXSIDE = {};
+const jget0 = (k, d) => { try { return { ...d, ...JSON.parse(store.get(k, '{}')) }; } catch { return { ...d }; } };   // jget gibt es hier noch nicht
+let ETFF = jget0('fg21_etf', { u: 'mrd', d: 2 }), OFFST = store.get('fg21_offst', 'line'), IVW = jget0('fg21_ivw', { on: false, a: 'M' });
+const etfFmt = v => ETFF.u === 'mio' ? sgn(v, 0) + (LANG === 'de' ? ' Mio. $' : LANG === 'ar' ? ' مليون $' : ' M $') : sgn(v / 1000, +ETFF.d) + (LANG === 'de' ? ' Mrd. $' : LANG === 'ar' ? ' مليار $' : ' bn $');
+let ACTAVG = store.get('fg21_actavg', 'circle'), DCOLS = (() => { try { return JSON.parse(store.get('fg21_dcols', '["avg","typ","vwap","twap"]')); } catch { return ['avg', 'typ', 'vwap', 'twap']; } })(), DCOLOPEN = false;
 const avgNum = (v, d) => { const n = +v; return Number.isFinite(n) && n >= -24 ? (n === 0 ? -4 : n) : d; };
 let AVGC = avgNum(store.get('fg18_avgc', '7'), 7), AVGI = Math.max(1, avgNum(store.get('fg18_avgi', '7'), 7)), SIGAVG = store.get('fg18_sigavg', '0') === '1';
 const AVGREG = new Map(), AVGDONE = new Set(); let AVGH = null;
@@ -1572,7 +1628,7 @@ function avgNow(N) {
 }
 const avgLbl = n => n === 7 ? t('avg7') : n < 0 ? t('avgH', { n: -n }) : n === 1 ? t('avg1d') : t('avgN', { n });
 function renderAvgSel() {
-  for (const [id, cur] of [['avgCSel', AVGC], ['avgISel', AVGI]]) { const el = $(id); if (!el) continue; const opts = [...new Set([...(id === 'avgCSel' ? AVG_OPTS_C : AVG_OPTS), cur])].sort((a, b) => a - b); el.innerHTML = opts.map(n => `<option value="${n}" ${n === cur ? 'selected' : ''}>${avgLbl(n)}</option>`).join(''); el.title = t(id === 'avgCSel' ? 'avgCTip' : 'avgITip'); }
+  for (const [id, cur] of [['avgCSel', AVGC], ['avgISel', AVGI]]) { const el = $(id); if (!el) continue; const opts = [...new Set([...(id === 'avgCSel' ? AVG_OPTS_C : AVG_OPTS), cur])].sort((a, b) => avgDays(a) - avgDays(b)); el.innerHTML = opts.map(n => `<option value="${n}" ${n === cur ? 'selected' : ''}>${avgLbl(n)}</option>`).join(''); el.title = t(id === 'avgCSel' ? 'avgCTip' : 'avgITip'); }
 }
 function setAvg(which, n) {
   n = Math.round(+n); if (which === 'c' && n === 0) n = -4; if (!(n >= (which === 'c' ? -24 : 1) && n <= 2000)) return;
@@ -1659,7 +1715,7 @@ const offFracList = () => memo(`offf${offLineInfo().col}:${offChartN()}:${OFFSIG
 const offCrossAll = () => memo(`offc${JSON.stringify(OFFSIG.x)}${offLineInfo().col}:${offChartN()}:${AVGI}${JSON.stringify([MA.i1, MA.i2, MA.i3])}${H.length}`, () => {
   const c = avgCol(idxCol7(), rawCol(), AVGI), m = new Map(offChartSeries()), td = new Date().toISOString().slice(0, 10), rows = H.filter(r => r[c] != null && r[0] < td).map(r => ({ d: r[0], v: r[c] })), V = rows.map(r => r.v), A = rows.map(r => m.get(r.d) ?? null);
   return (OFFSIG.x || []).flatMap(id => seriesCross(rows, A, maLine(V, lineOf(id).type, lineOf(id).n)).map(x => ({ ...x, id, name: lineName(lineOf(id)) }))).sort((p, q) => p.d < q.d ? -1 : 1); });
-const offSigMenuHtml = () => `<div class="lh">${t('osHead')}</div>
+const offSigMenuHtml = () => `<div class="lh">${t('offStyleH')}</div><div class="vwrow">${['line', 'candle'].map(s => `<label><input type="radio" name="offst" data-offst="${s}" ${OFFST === s ? 'checked' : ''}> ${t('offst_' + s)}</label>`).join('')}</div><div class="lh">${t('osHead')}</div>
   <label><input type="checkbox" data-os="ext" ${OFFSIG.ext ? 'checked' : ''}> ${t('os_ext')}</label>
   <div class="ddnum"><span>${t('os_lo')}</span><input type="number" data-osn="lo" min="1" max="50" step="0.5" value="${OFFSIG.lo}"></div><div class="ddnum"><span>${t('os_hi')}</span><input type="number" data-osn="hi" min="50" max="99" step="0.5" value="${OFFSIG.hi}"></div>
   <label><input type="checkbox" data-os="frac" ${OFFSIG.frac ? 'checked' : ''}> ${t('os_frac')}</label>
@@ -1667,13 +1723,14 @@ const offSigMenuHtml = () => `<div class="lh">${t('osHead')}</div>
   <div class="lh">${t('osXHead')}</div>${ILN.map(id => `<label><input type="checkbox" data-osx="${id}" ${(OFFSIG.x || []).includes(id) ? 'checked' : ''}> ${t('os_x', { l: lineName(lineOf(id)) })}</label>`).join('')}
   <label><input type="checkbox" data-os="lv" ${OFFSIG.lv ? 'checked' : ''}> ${t('os_lv')}</label>
   <p class="muted" style="font-size:11.5px;margin:6px 0 0;white-space:normal;max-width:330px">${t('osNote')}</p>`;
-const offSigChange = el => { const d = el.dataset; if (d.os) OFFSIG[d.os] = el.checked; if (d.osn) { const v = +el.value; if (el.value !== '' && v >= +el.min && v <= +el.max) OFFSIG[d.osn] = v; } if (d.osx) { const s = new Set(OFFSIG.x || []); el.checked ? s.add(d.osx) : s.delete(d.osx); OFFSIG.x = [...s]; } saveOffSig(); };
+const offSigChange = el => { const d = el.dataset; if (d.offst) { OFFST = d.offst; store.set('fg21_offst', OFFST); renderCharts(); return; } if (d.os) OFFSIG[d.os] = el.checked; if (d.osn) { const v = +el.value; if (el.value !== '' && v >= +el.min && v <= +el.max) OFFSIG[d.osn] = v; } if (d.osx) { const s = new Set(OFFSIG.x || []); el.checked ? s.add(d.osx) : s.delete(d.osx); OFFSIG.x = [...s]; } saveOffSig(); };
 ddMenu('offSigDd', 'offSigMenu', offSigMenuHtml, offSigChange); ddMenu('offSigDd2', 'offSigMenu2', offSigMenuHtml, offSigChange);
 // V20: Kreuz zweier Index-Linien (z. B. EMA 8 × SMA 20) – Paare i2×i1, i3×i1, i3×i2
 const ILX_P = ['i2i1', 'i3i1', 'i3i2'];
 const ilxList = c => memo('ilx' + c + JSON.stringify(SMA.cross || []) + JSON.stringify([MA.i1, MA.i2, MA.i3]) + H.length + new Date().toISOString().slice(0, 10), () => {
   const td = new Date().toISOString().slice(0, 10), rows = H.filter(r => r[c] != null && r[0] < td).map(r => ({ d: r[0], v: r[c] })), V = rows.map(r => r.v);
-  return (SMA.cross || []).flatMap(pr => { const a = lineOf(pr.slice(0, 2)), b = lineOf(pr.slice(2)); return seriesCross(rows, maLine(V, a.type, a.n), maLine(V, b.type, b.n)).map(x => ({ ...x, pr, na: lineName(a), nb: lineName(b) })); }).sort((p, q) => p.d < q.d ? -1 : 1); });
+  // V21: Long = die SCHNELLERE (kürzere) Linie kreuzt die langsamere nach oben – vorher galt die erste Linie des Paars, egal wie lang (z. B. EMA 36 × EMA 26 → vertauscht)
+  return (SMA.cross || []).flatMap(pr => { let a = lineOf(pr.slice(0, 2)), b = lineOf(pr.slice(2)); if (a.n > b.n) [a, b] = [b, a]; return seriesCross(rows, maLine(V, a.type, a.n), maLine(V, b.type, b.n)).map(x => ({ ...x, pr, na: lineName(a), nb: lineName(b) })); }).sort((p, q) => p.d < q.d ? -1 : 1); });
 // Marken: offizielles Signal (Dreieck mit Grenze), Fraktal dazu (Raute „OF“)
 const offMark = (x, y, up, lab, tip, c, d = 20) => { const a = up ? y + 7 : y - 7, b = up ? y + d : y - d; return `<g><title>${esc(tip)}</title><path d="M${x},${a} L${x + 7},${b} L${x - 7},${b} Z" fill="${c}" stroke="#160b1b" stroke-width="1.2"/><text x="${x}" y="${up ? b + 11 : b - 4}" fill="${c}" font-size="9.5" font-weight="900" text-anchor="middle" paint-order="stroke" stroke="#160b1b" stroke-width="2.5">${lab}</text></g>`; };
 const offFracMark = (x, y, up, tip, c) => { const yy = up ? y + 14 : y - 14; return `<g><title>${esc(tip)}</title><path d="M${x},${yy - 7} L${x + 7},${yy} L${x},${yy + 7} L${x - 7},${yy} Z" fill="${c}" stroke="#fff" stroke-width="1.3"/><text x="${x}" y="${up ? yy + 18 : yy - 10}" fill="${c}" font-size="9" font-weight="900" text-anchor="middle" paint-order="stroke" stroke="#160b1b" stroke-width="2.5">OF</text></g>`; };
@@ -1752,6 +1809,23 @@ const saveDir = () => { store.set('fg15_dir', JSON.stringify(DIRC)); renderDir()
 // V19: Kerzengrößen wie bei TradingView: 1m, 3m, 5m, 15m, 30m, 1h, 4h (je 3 × 1000 Kerzen: 1m ≈ 2 Tage, 5m ≈ 10 Tage, 30m ≈ 2 Monate)
 const IV_MS = { '1m': 6e4, '3m': 18e4, '5m': 3e5, '15m': 9e5, '30m': 18e5, '1h': 36e5, '4h': 144e5 }, INTRA = {};
 function intraRows(iv) { const c = INTRA[iv]; if (!c || Date.now() - c.t > 60e3) fetchIntra(iv); return c?.rows || null; }
+// V21: Minuten-/Stundenkerzen für einen beliebigen Ausschnitt (z. B. beim Hineinzoomen in ältere Tage) – höchstens INTRA_MAX Kerzen, je Ausschnitt einmal geladen
+const INTRA_R = {}, INTRA_MAX = 5000;
+function intraRange(iv, from, to) {
+  const ms = IV_MS[iv]; if (!ms) return null;
+  const a = Math.floor(from / ms) * ms, b = Math.min(Math.ceil(to / ms) * ms, Date.now()), key = SYM() + iv + ':' + a + ':' + b;
+  if ((b - a) / ms > INTRA_MAX) return null;
+  const c = INTRA_R[key]; if (c) return c.rows;
+  INTRA_R[key] = { rows: null }; const ks = Object.keys(INTRA_R); if (ks.length > 16) delete INTRA_R[ks[0]];
+  (async () => { let rows = [], s = a; try { while (s < b) { const j = await (await fetch(`https://api.binance.com/api/v3/klines?symbol=${SYM()}&interval=${iv}&limit=1000&startTime=${s}&endTime=${b - 1}`)).json();
+      if (!Array.isArray(j) || !j.length) break; rows = rows.concat(j.map(x => [x[0], +x[1], +x[2], +x[3], +x[4], +x[5]])); s = j.at(-1)[0] + ms; if (j.length < 1000) break; } } catch { }
+    INTRA_R[key] = { rows }; rerender(); })();
+  return null;
+}
+// V21: Kerzen höchstens so breit wie im Zahnrad eingestellt (Standard 24 px) – beide Charts gleich
+const CWMAX = () => +(X12.cwMax || 24);
+// V21: Asset (Kurs-Chart) – Standard Bitcoin; Index, Heatmap und Liquidationen bleiben Bitcoin
+const SYM = () => (typeof ASSET !== 'undefined' && ASSET?.sym) || 'BTCUSDT';
 // V18: mehrere Abfragen hintereinander (je 1000 Kerzen) → 4h ≈ 1,4 Jahre, 1h ≈ 4 Monate, 15m ≈ 1 Monat; danach jede Minute nur die neuesten 1000 nachladen; mit Volumen (für VWAP)
 async function fetchIntra(iv) {
   if (INTRA[iv]?.busy) return; INTRA[iv] = { ...(INTRA[iv] || {}), busy: true };
@@ -1789,6 +1863,12 @@ let SIGD = +store.get('fg12_sigd', '3') || 3, SIGTOL = +store.get('fg12_tol', '0
 // Tops/Böden (Mindest-Bewegung %), Pivot-Bereich, Tendenz-Rückblick
 const X12_DEF = { extPct: 35, extPct2: 20, pvBasis: 'view', pvSet: ['view'], pvMode: 'range', fibPer: 'auto', pvW: 2.2, tendN: 30 };
 let X12 = jget('fg12_x', X12_DEF);
+// V21: Kerzengröße des Index-Charts – Auto = wie das Kurs-Chart (gekoppelt), sonst fest: Stunde (Live-Mitschnitt, letzte 7 Tage), Tag, Woche, Monat
+let IDXTF = store.get('fg21_idxtf', 'auto');
+// V21: Seitenbreite (Standard volle Breite wie der Ticker), Schrift Richtungs-Kasten, Linien-Beginn – Zahnrad → Chart-Extras → „Darstellung (V21)“
+function applyV21Look() { const r = document.documentElement.style; r.setProperty('--pagew', (X12.pageW || 'full') === 'full' ? 'none' : X12.pageW + 'px'); r.setProperty('--dirfs', (X12.dirFs || 12.5) + 'px'); }
+applyV21Look();
+let HIDEALL = store.get('fg21_hide', '0') === '1';
 // V14: Beschriftung, Farbe und Verlängerung der Moving Averages; Pivot-Alarme (Zeiträume, Tief/Hoch, Annäherung)
 const MAL_DEF = { pos: 'on', box: true, ext: 5, col: 'fixed', cUp: '#33d39a', cDn: '#ff4d5e' };
 let MAL = jget('fg14_mal', MAL_DEF);
@@ -1865,6 +1945,8 @@ let FRAME = jget('fg12_frame', FRAME_DEF);
 const applyFrame = () => { const s = document.documentElement.style; s.setProperty('--fc', FRAME.color); s.setProperty('--fw', FRAME.w + 'px'); s.setProperty('--hfc', FRAME.hc || '#f6b860'); s.setProperty('--htc', FRAME.ht || '#f6b860'); s.setProperty('--sgc', FRAME.sg || '#f6c453'); s.setProperty('--chc', FRAME.cc || '#ffd84a'); };
 applyFrame();
 let STYLE = jget('fg6_style', STYLE_DEF);
+// V21: Raster standardmäßig aus (Zahnrad → Chart-Darstellung → Gitter-Deckkraft) – einmalig auch für gespeicherte Einstellungen
+if (store.get('fg21_grid', '') !== '1') { STYLE.gridOpacity = 0; store.set('fg6_style', JSON.stringify(STYLE)); store.set('fg21_grid', '1'); }
 const style = () => STYLE;
 // Stufen: 1 = 75/25 (wie im Video), 2 = 85/15 (zusätzlich) – Werte und Farben in den Einstellungen
 const LV_DEF = { p1: { hi: 75, lo: 25, show: true, cHi: '#f3843c', cLo: '#8b6cff', dHi: '#f3a43c', dLo: '#a77bff' }, p2: { hi: 85, lo: 15, show: true, cHi: '#ff4d5e', cLo: '#33d39a', dHi: '#ff4d5e', dLo: '#33d39a' } };
@@ -1943,7 +2025,7 @@ const winOpts = () => WIN_L.map(w => [w, t('winOpt', { n: w }), D && !hasVar(MOD
 const curOpts = () => Object.entries(CURS).map(([k, c]) => [k, k === 'usd' ? '$ USD' : k === 'eur' ? '€ EUR' : c.w ? k.toUpperCase() : `${c.s} ${k.toUpperCase()}`]);
 const syncIdx = () => { if (SRV) api('/api/config', { idx: { src: MODE, win: WIN }, off: { src: OFFSRC, avg: OFFAVG } }).catch(() => { }); };
 const updMode = selCtl('modeSeg', srcOpts, () => MODE, v => { MODE = v; VIEW = null; RUNCACHE = {}; SCACHE = {}; syncIdx(); render(); });
-const updLang = seg('langSeg', () => LANG, v => { LANG = v; render(); });
+const updLang = seg('langSeg', () => LANG, v => { LANG = v; window.siteSetLang?.(v, true); render(); });
 function updRange() { [...$('rangeSeg').querySelectorAll('button[data-v]')].forEach(b => b.classList.toggle('on', b.dataset.v === RKEY)); $('rangeLbl').title = t('rangeTip'); }
 function setRange(k) { RKEY = k; store.set('fg20_rkey', k); if (k !== 'custom') { RANGE = rkeyDays(k); store.set('fg6_range', String(RANGE)); } resetView(); renderCharts(); updRange(); }
 const rngMenuHtml = () => { const lo = ALL[0]?.[0] || '2020-08-28', hi = new Date().toISOString().slice(0, 10);
@@ -1955,7 +2037,7 @@ $('rangeSeg').addEventListener('click', e => {
   setRange(b.dataset.v);
 });
 updRange();
-if (location.protocol === 'file:') $('tabHm').href = 'https://vrilyassluxion.github.io/fear-greed/heatmap/';
+
 const updView = seg('viewSeg', () => VSTYLE, v => { VSTYLE = v; hideHover(); render(); });
 const updDefView = seg('defViewSeg', () => store.get('fg9_defview', 'smc'), v => { store.set('fg9_defview', v); VSTYLE = v; updView(); render(); });
 const updWin = selCtl('winSeg', winOpts, () => WIN, v => { WIN = String(v); store.set('fg6_win', WIN); VIEW = null; RUNCACHE = {}; SCACHE = {}; syncIdx(); updDefWin(); render(); });
@@ -1981,7 +2063,7 @@ const CS_RANGE = { '1m': '1', '3m': '5', '5m': '5', '15m': '30', '30m': '30', '1
 $('csSel').onchange = e => { CS = e.target.value; store.set('fg15_cs', CS); if (CS_RANGE[CS] && (RKEY === 'custom' || rkeyDays(RKEY) > rkeyDays(CS_RANGE[CS]))) setRange(CS_RANGE[CS]); else renderCharts(); };
 
 // V14: Knöpfe mit mehreren Stufen (Klick = nächste Stufe, Rechtsklick = zurück)
-const PV_STEPS = ['off', 'view', '7', '30', '91', '182', '365', 'all'], CL_STEPS = ['all', 'near', 'top', 'far', 'off'], EXT_STEPS = ['off', 'cycle', 'both'];
+const PV_STEPS = ['off', 'view', '1', '3', '7', '14', '30', '61', '91', '182', '365', '730', 'all'], CL_STEPS = ['all', 'near', 'top', 'far', 'off'], EXT_STEPS = ['off', 'cycle', 'both'];
 const cyc = (arr, cur, dir) => arr[((arr.indexOf(cur) < 0 ? 0 : arr.indexOf(cur)) + dir + arr.length) % arr.length];
 const clStep = () => LAY.cl ? (LAY.clMode || 'all') : 'off', extStep = () => LAY.ext ? (LAY.extMode || 'cycle') : 'off';
 function updCycle() {
@@ -2020,7 +2102,8 @@ function btnTips() {
   $('togVw').title = t(LAY.vwap ? 'tipOn' : 'tipOff', { n: 'VWAP' }) + '\n' + t('tipVw');
   $('maDd').textContent = (MAS.filter(m => m.on).map(m => m.n).join(' · ') || t('maNone')) + ' ▾'; $('maDd').title = t('maDdTip');
   $('setsDd').textContent = t('btnSets') + ' ▾'; $('setsDd').title = t('setsTip');
-  $('bellDd').textContent = '▾'; $('bellDd').title = t('bellTip'); $('ownDd').textContent = '▾'; $('ownDd').title = t('ownTip');
+  $('bellDd').textContent = '▾'; $('bellDd').title = t('bellTip'); updIdxTf(); updEndBtns();
+  $('isetDd').textContent = '💾 ' + t('isetBtn') + ' ▾'; $('isetDd').title = t('isetTip'); $('comboBtn').textContent = '🔎 ' + t('comboBtn'); $('comboBtn').title = t('comboTip'); $('ownDd').textContent = '▾'; $('ownDd').title = t('ownTip');
   // V19
   $('frDd').textContent = `${FRC.price.left}/${FRC.price.right}${FRC.price.filt === 'alt' ? ' · ' + t('frf_altS') : ''} ▾`; $('frDd').title = t('frDdTip');
   $('togFrP').title = t(LAY.frP ? 'tipOn' : 'tipOff', { n: t('btnFrac') }) + '\n' + t('tipFrac'); $('togFrI').title = t(LAY.frI ? 'tipOn' : 'tipOff', { n: t('btnFrac') }) + ' (Index)\n' + t('tipFrac');
@@ -2040,6 +2123,84 @@ function ddMenu(btnId, menuId, render, onChange) {
   $(menuId).addEventListener('change', e => { onChange(e.target); $(menuId).innerHTML = render(); });
 }
 document.addEventListener('click', () => document.querySelectorAll('.ddmenu.open').forEach(x => x.classList.remove('open')));
+// V21: Index-Sets – Einstellungen des Index-Charts (Linien, Methoden, Kreuze, Stufen, offizieller Index, 50er, Fraktale, Mittelung, Kerze) unter einem Namen speichern und laden
+const ISET_KEYS = ['fg13_ma', 'fg18_sma', 'fg6_levels', 'fg20_offsig', 'fg16_f50', 'fg18_avgi', 'fg21_idxtf', 'fg21_ivw', 'fg21_offst', 'fg19_frac', 'fg16_mai', 'fg19_offavg', 'fg18_sigavg', 'fg8_opt'];
+let ISETS = (() => { try { const a = JSON.parse(store.get('fg21_isets', '[]')); return Array.isArray(a) ? a : []; } catch { return []; } })();
+const isetHtml = () => `<div class="lh">${t('isetHead')}</div>` + (ISETS.length ? ISETS.map((s, i) => `<div class="ddrow" style="justify-content:space-between;gap:8px"><b style="min-width:120px">${esc(s.name)}</b><small class="muted">${new Date(s.t).toLocaleDateString(loc())}</small><button class="btn sm pri" data-isl="${i}">${t('isetLoad')}</button><button class="btn sm" data-isd="${i}">✕</button></div>`).join('') : `<p class="muted" style="margin:4px 0">${t('isetNone')}</p>`)
+  + `<div class="ddrow"><input type="text" id="isetName" maxlength="40" placeholder="${t('isetName')}" style="width:170px"><button class="btn sm pri" data-iss="1">💾 ${t('isetSave')}</button></div><p class="muted" style="font-size:11.5px;margin:6px 0 0;white-space:normal;max-width:340px">${t('isetNote')}</p>`;
+ddMenu('isetDd', 'isetMenu', isetHtml, () => { });
+$('isetMenu').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.iss) { const name = ($('isetName').value || '').trim() || t('isetDefName', { n: ISETS.length + 1 }); ISETS.push({ name, t: Date.now(), vals: Object.fromEntries(ISET_KEYS.map(k => [k, store.get(k, null)])) }); store.set('fg21_isets', JSON.stringify(ISETS)); toast('💾 ' + t('isetSaved', { n: name })); }
+  else if (b.dataset.isd != null) { ISETS.splice(+b.dataset.isd, 1); store.set('fg21_isets', JSON.stringify(ISETS)); }
+  else if (b.dataset.isl != null) { const s = ISETS[+b.dataset.isl]; for (const k of ISET_KEYS) { const v = s.vals?.[k]; if (v != null) store.set(k, v); } toast('↻ ' + t('isetLoaded', { n: s.name })); setTimeout(() => location.reload(), 600); return; }
+  else return; $('isetMenu').innerHTML = isetHtml(); });
+// V21: Kombinations-Suche – probiert Index-Linien (SMA/EMA, Länge, Methode 1–3) und Kreuze zweier Linien durch und zeigt die besten im Rückblick (30 Tage danach)
+function comboEval(list) {
+  const ix = memo('cbix' + H.length, () => new Map(H.map((r, i) => [r[0], i]))); let nL = 0, nS = 0, wL = 0, wS = 0, sL = 0, sS = 0;
+  for (const x of list) { const i = ix.get(x.d); if (i == null || i + 30 >= H.length) continue; const p0 = H[i][3], p1 = H[i + 30][3]; if (!p0 || !p1) continue; const g = p1 / p0 - 1;
+    if (x.up) { nL++; sL += g; if (g > 0) wL++; } else { nS++; sS -= g; if (g < 0) wS++; } }
+  return { nL, nS, aL: nL ? sL / nL * 100 : null, aS: nS ? sS / nS * 100 : null, wL: nL ? wL / nL * 100 : null, wS: nS ? wS / nS * 100 : null };
+}
+async function comboRun() {
+  const m = $('comboModal'), body = $('comboBody'); $('comboTitle').textContent = t('comboTitle'); m.classList.add('open'); body.innerHTML = `<p class="muted">${t('comboBusy')}</p>`;
+  await new Promise(r => setTimeout(r, 30));
+  const c = avgCol(idxCol7(), rawCol(), AVGI), rows = smaRows(c), V = rows.map(r => r.v), res = [];
+  const base = (() => { let s = 0, n = 0; for (let i = 0; i + 30 < H.length; i++) if (H[i][3] && H[i + 30][3]) { s += H[i + 30][3] / H[i][3] - 1; n++; } return n ? s / n * 100 : 0; })();
+  for (const type of ['sma', 'ema']) for (const n of [8, 13, 20, 26, 36, 50, 100]) for (const mk of ['m1', 'm2', 'm3']) {
+    const o = { ...SMA, line: { type, n }, m1: { ...SMA.m1, on: mk === 'm1' }, m2: { ...SMA.m2, on: mk === 'm2' }, m3: { ...SMA.m3, on: mk === 'm3' }, rejects: false };
+    let list = []; try { list = smaSignals(rows, o); } catch { }
+    res.push({ kind: 'line', type, n, mk, name: `${type.toUpperCase()} ${n} · ${t('sma_' + mk).replace(/^SMA 20 · /, '')}`, ...comboEval(list) }); }
+  for (const type of ['sma', 'ema']) for (const f of [5, 8, 13, 20]) for (const s of [20, 26, 36, 50, 100, 200]) { if (f >= s) continue;
+    const list = seriesCross(rows, maLine(V, type, f), maLine(V, type, s)); res.push({ kind: 'cross', type, f, s, name: `${type.toUpperCase()} ${f} × ${type.toUpperCase()} ${s}`, ...comboEval(list) }); }
+  const top = (k, nk) => res.filter(r => r[nk] >= 5 && r[k] != null).sort((a, b) => b[k] - a[k]).slice(0, 8);
+  const tab = (side, list) => `<table class="ctab"><tr><th>${t('comboCol')}</th><th class="r">${t('comboN')}</th><th class="r">${t('comboHit')}</th><th class="r">${t('comboAvg')}</th><th></th></tr>`
+    + list.map(r => { const i = res.indexOf(r), n = side === 'L' ? r.nL : r.nS, w = side === 'L' ? r.wL : r.wS, a = side === 'L' ? r.aL : r.aS; return `<tr><td>${esc(r.name)}</td><td class="r">${n}</td><td class="r">${fmt(w, 0)} %</td><td class="r" style="color:${a > 0 ? 'var(--green)' : 'var(--red)'}">${sgn(a, 1)} %</td><td><button class="btn sm" data-cbu="${i}">${t('comboUse')}</button></td></tr>`; }).join('') + '</table>';
+  body.innerHTML = `<p class="muted">${t('comboIntro', { n: res.length, a: avgLbl(AVGI), b: sgn(base, 1) })}</p><h3>▲ Long</h3>${tab('L', top('aL', 'nL'))}<h3>▼ Short</h3>${tab('S', top('aS', 'nS'))}<p class="muted" style="margin-top:10px">${t('comboWarn')}</p>`;
+  body.onclick = e => { const b = e.target.closest('[data-cbu]'); if (!b) return; const r = res[+b.dataset.cbu];
+    if (r.kind === 'line') { MA.i1 = { ...MA.i1, type: r.type, n: r.n, on: true }; SMA.lines = { ...(SMA.lines || {}), i1: { ...(SMA.lines?.i1 || {}), ms: [r.mk], on: true } }; SMA[r.mk] = { ...SMA[r.mk], on: true }; }
+    else { MA.i2 = { ...MA.i2, type: r.type, n: r.f, on: true }; MA.i3 = { ...MA.i3, type: r.type, n: r.s, on: true }; SMA.cross = [...new Set([...(SMA.cross || []), 'i3i2'])]; }
+    store.set('fg13_ma', JSON.stringify(MA)); saveSma(); m.classList.remove('open'); toast('✓ ' + t('comboUsed', { n: r.name })); render(); };
+}
+$('comboBtn').onclick = () => comboRun();
+// V21: Stufen direkt am Knopf ändern (▾ neben 68/32 und 61,8/38,2) – wie im Zahnrad, mit Schnellwahl
+for (const [k, n] of [['p1', 1], ['p2', 2]]) {
+  const html = () => `<div class="lh">${t('lvMenuH', { a: LV[k].hi, b: LV[k].lo })}</div><div class="ddnum"><span>${t('lvHi')}</span><input type="number" data-lk="hi" min="50.1" max="99.9" step="0.1" value="${LV[k].hi}"></div><div class="ddnum"><span>${t('lvLo')}</span><input type="number" data-lk="lo" min="0.1" max="49.9" step="0.1" value="${LV[k].lo}"></div>`
+    + `<div class="ddrow">${['70/30', '68/32', '75/25', '61.8/38.2', '78.6/21.4', '80/20', '85/15'].map(q => `<button class="btn sm" data-lq="${q}">${q}</button>`).join('')}</div><p class="muted" style="font-size:11.5px;margin:6px 0 0;white-space:normal;max-width:300px">${t('lvMenuNote')}</p>`;
+  const apply = () => { saveLV(); RUNCACHE = {}; SCACHE = {}; render(); };
+  ddMenu('lvDd' + n, 'lvMenu' + n, html, el => { const v = +el.value, f = el.dataset.lk; if (f === 'hi' && v > 50 && v < 100) LV[k].hi = v; if (f === 'lo' && v > 0 && v < 50) LV[k].lo = v; apply(); });
+  $('lvMenu' + n).addEventListener('click', e => { const b = e.target.closest('[data-lq]'); if (!b) return; const [hi, lo] = b.dataset.lq.split('/').map(Number); LV[k].hi = hi; LV[k].lo = lo; apply(); $('lvMenu' + n).innerHTML = html(); });
+}
+// V21: Index-Alarme – Menü „🔔 Index-Alarm ▾“ unter der Leiste, Rechtsklick auf die Leiste oder ins Index-Chart = Alarm an dieser Stelle
+const saveIdxAl = () => { store.set('fg21_idxal', JSON.stringify(IDXAL)); renderIdxAl(); renderCharts(); };
+function addIdxAl(v, src) { v = Math.round(clamp(v, 0, 100) * 2) / 2; IDXAL.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), v, src, dir: 'both', on: true }); saveIdxAl(); toast('🔔 ' + t('idxAlAdded', { v, s: t('ia_' + src) })); }
+function renderIdxAl() {
+  const mk = $('idxAlMk'); if (mk) mk.innerHTML = VSTYLE === 'vss' ? IDXAL.filter(a => a.on !== false && a.src === 'c').map(a => `<div class="mk ial" style="left:${clamp(a.v, 0, 100)}%" title="${esc(t('idxAlTip', { v: a.v }))}">🔔</div>`).join('') : '';
+  const b = $('idxAlDd'); if (b) { b.textContent = `🔔 ${t('idxAlBtn')}${IDXAL.length ? ' · ' + IDXAL.length : ''} ▾`; b.title = t('idxAlHelp'); }
+  const tx = $('idxAlTxt'); if (tx) tx.textContent = t('idxAlRc');
+}
+const idxAlMenuHtml = () => `<div class="lh">${t('idxAlHead')}</div>` + (IDXAL.length ? IDXAL.map((a, i) => `<div class="ownrow ialrow"><input type="checkbox" data-iaon="${i}" ${a.on !== false ? 'checked' : ''}><input type="number" data-iav="${i}" min="0" max="100" step="0.5" value="${a.v}"><select data-iasrc="${i}">${['c', 'i'].map(s => `<option value="${s}" ${a.src === s ? 'selected' : ''}>${t('ia_' + s)}</option>`).join('')}</select><select data-iadir="${i}">${['both', 'up', 'down'].map(d => `<option value="${d}" ${(a.dir || 'both') === d ? 'selected' : ''}>${t('iad_' + d)}</option>`).join('')}</select><button class="btn sm" data-iadel="${i}" title="${t('ownDel')}">✕</button></div>`).join('') : `<p class="muted" style="margin:4px 0">${t('idxAlNone')}</p>`)
+  + `<div class="ddrow"><input type="number" id="iaNew" min="0" max="100" step="0.5" value="25" style="width:72px"><button class="btn sm pri" data-iaadd="c">+ ${t('ia_c')}</button><button class="btn sm" data-iaadd="i">+ ${t('ia_i')}</button></div><p class="muted" style="font-size:11.5px;margin:6px 0 0;white-space:normal;max-width:380px">${t('idxAlNote')}</p>`;
+ddMenu('idxAlDd', 'idxAlMenu', idxAlMenuHtml, el => { const d = el.dataset; if (d.iaon != null) IDXAL[+d.iaon].on = el.checked; if (d.iav != null) { const v = +el.value; if (v >= 0 && v <= 100) IDXAL[+d.iav].v = v; } if (d.iasrc != null) IDXAL[+d.iasrc].src = el.value; if (d.iadir != null) IDXAL[+d.iadir].dir = el.value; if (d.iav == null || el.value !== '') saveIdxAl(); });
+$('idxAlMenu').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.iaadd) { const v = +$('iaNew').value; if (v >= 0 && v <= 100) addIdxAl(v, b.dataset.iaadd); } else if (b.dataset.iadel != null) { IDXAL.splice(+b.dataset.iadel, 1); saveIdxAl(); } else return; $('idxAlMenu').innerHTML = idxAlMenuHtml(); });
+function checkIdxAlarms() {
+  if (!D || !H.length || AL.idxal === false) return;
+  for (const a of IDXAL) { if (a.on === false) continue; const N = a.src === 'c' ? AVGC : AVGI, cur = avgNow(N); if (cur == null) continue;
+    const s = Math.sign(cur - a.v), p = IDXSIDE[a.id]; if (s) IDXSIDE[a.id] = s; if (!p || !s || p === s) continue; if ((a.dir === 'up' && s < 0) || (a.dir === 'down' && s > 0)) continue;
+    fireAlert(t('idxAlT', { v: a.v, d: s > 0 ? '↑' : '↓' }), t('idxAlB', { v: a.v, c: cur, s: t('ia_' + a.src), n: avgLbl(N), d: t(s > 0 ? 'iaUp' : 'iaDn') }), 'idxal'); }
+}
+// Rechtsklick auf die Leiste unter dem Kreis bzw. ins Index-Chart
+document.addEventListener('contextmenu', e => {
+  const W0 = $('curMk')?.parentElement, bar = W0 && W0.contains(e.target) ? W0 : null, idx = e.target.closest?.('#idxChart');
+  let v = null, src = null;
+  if (idx && VSTYLE === 'vss') { const G = (!COUPLE && chartGeom2) ? chartGeom2 : chartGeom; if (!G?.ih2) return; const r = idx.getBoundingClientRect(), my = (e.clientY - r.top) / r.height * G.H2; v = G.lo2 + (1 - (my - G.Qt) / G.ih2) * (G.hi2 - G.lo2); src = 'i'; }
+  else if (bar && VSTYLE === 'vss') { const r = bar.getBoundingClientRect(); v = (e.clientX - r.left) / r.width * 100; src = 'c'; }
+  if (v == null || !(v >= 0 && v <= 100)) return; e.preventDefault(); v = Math.round(v * 2) / 2;
+  const near = IDXAL.findIndex(a => a.src === src && Math.abs(a.v - v) <= 1.5);
+  ctxEl.innerHTML = `<b>${t('ia_' + src)} · ${fmt(v, 1)}</b><button data-c="add">🔔 ${t('idxAlHere', { v: fmt(v, 1) })}</button>${near >= 0 ? `<button data-c="del">✕ ${t('idxAlDel', { v: IDXAL[near].v })}</button>` : ''}<button data-c="menu">${t('idxAlHead')} …</button>`;
+  ctxEl.style.left = Math.min(e.clientX, innerWidth - 220) + 'px'; ctxEl.style.top = Math.min(e.clientY, innerHeight - 150) + 'px'; ctxEl.classList.add('open');
+  ctxEl.onclick = ev => { const c = ev.target.dataset?.c; if (!c) return; ev.stopPropagation(); ctxEl.classList.remove('open');
+    if (c === 'add') addIdxAl(v, src); if (c === 'del') { IDXAL.splice(near, 1); saveIdxAl(); } if (c === 'menu') setTimeout(() => $('idxAlDd').click(), 0); };
+});
 ddMenu('pvDd', 'pvMenu', () => {
   const ps = X12.pvSet?.length ? X12.pvSet : ['view'];
   return `<div class="lh">${t('pvPerHead')}</div>` + PV_STEPS.slice(1).map(p => `<label><input type="checkbox" data-pv="${p}" ${ps.includes(p) ? 'checked' : ''}> ${p === 'view' ? t('pvr_viewL') : PVN[LANG]?.[p] || p}</label>`).join('')
@@ -2204,13 +2365,32 @@ function mtToggle(k) {
   renderSigStats();
 }
 $('avgCSel').addEventListener('change', e => setAvg('c', e.target.value));
+$('actAvgSel').addEventListener('change', e => { ACTAVG = e.target.value; store.set('fg21_actavg', ACTAVG); render(); });
+// V21: Spalten der Tabelle „Die letzten 7 Tage“ (Ø-Preis, Typical, VWAP, TWAP) ein-/ausschalten
+$('days').addEventListener('click', e => { if (e.target.closest('#dcolBtn')) { DCOLOPEN = !DCOLOPEN; renderDays(); } });
+$('days').addEventListener('change', e => { const k = e.target.dataset.dcol; if (!k) return; DCOLS = e.target.checked ? [...new Set([...DCOLS, k])] : DCOLS.filter(x => x !== k); store.set('fg21_dcols', JSON.stringify(DCOLS)); renderDays(); });
 $('avgISel').addEventListener('change', e => setAvg('i', e.target.value));
 // V18: 🔒 eigene Linien sperren (kein Verschieben mehr), 🧲 Magnet fürs Fadenkreuz (aus / schwach / stark wie TradingView)
+$('hideBtn').onclick = () => { HIDEALL = !HIDEALL; store.set('fg21_hide', HIDEALL ? '1' : '0'); updEndBtns(); renderCharts(); };
+// V21: Knöpfe mit wechselndem Text bekommen eine feste Breite – sonst springt die Leiste in eine neue Zeile; der volle Text steht im Tooltip
+for (const id of ['heatDd', 'cdlDd', 'frDd', 'pvDd', 'maDd', 'vwDd', 'togDiv', 'togExt', 'togCl', 'togSig', 'togSigOff', 'togCdl', 'togVw']) { const el = $(id); if (!el) continue; el.classList.add('fixw');
+  const upd = () => { if (el.scrollWidth > el.clientWidth + 1 && !el.title.startsWith(el.textContent)) el.title = el.textContent + (el.title ? '\n' + el.title : ''); };
+  new MutationObserver(upd).observe(el, { childList: true, characterData: true, subtree: true }); }
 function updEndBtns() {
+  updIdxTf();
+  $('hideBtn').classList.toggle('on', HIDEALL); $('hideBtn').textContent = HIDEALL ? '🙈' : '👁'; $('hideBtn').title = t(HIDEALL ? 'hideOn' : 'hideOff');
   $('lockBtn').classList.toggle('on', LOCK); $('lockBtn').textContent = LOCK ? '🔒' : '🔓'; $('lockBtn').title = t(LOCK ? 'lockOn' : 'lockOff');
   $('magBtn').classList.toggle('on', MAG !== 'off'); $('magBtn').innerHTML = `🧲<span class="mlbl">${t('magS_' + MAG)}</span>`; $('magBtn').title = t('magTip', { s: t('mag_' + MAG) });
 }
 $('lockBtn').onclick = () => { LOCK = !LOCK; store.set('fg18_lock', LOCK ? '1' : '0'); updEndBtns(); renderCharts(); };
+// V21: Index-Chart – Kerzengröße und Koppeln direkt am Chart (Koppeln auch im Zahnrad → Chart-Extras → Index-Chart)
+function updIdxTf() {
+  try { COUPLE; } catch { return; }   // vor dem Start der Charts noch nicht bereit
+  const s = $('idxTfSel'); if (!s) return; s.innerHTML = ['auto', '1h', '1d', '1w', '1mo'].map(v => `<option value="${v}" ${IDXTF === v ? 'selected' : ''}>${t('itf_' + v)}</option>`).join(''); s.title = t('itfTip');
+  const b = $('coupleBtn'); if (b) { b.textContent = COUPLE ? '🔗 ' + t('coupleOnS') : '⛓️‍💥 ' + t('coupleOffS'); b.classList.toggle('on', COUPLE); b.title = t('coupleSub'); }
+}
+$('idxTfSel').onchange = e => { IDXTF = e.target.value; store.set('fg21_idxtf', IDXTF); renderCharts(); };
+$('coupleBtn').onclick = () => { COUPLE = !COUPLE; store.set('fg18_couple', COUPLE ? '1' : '0'); VIEW2 = null; updIdxTf(); renderCharts(); if ($('setModal').classList.contains('open')) renderX12Set(); };
 $('magBtn').onclick = () => { MAG = cyc(MAGS, MAG, 1); store.set('fg18_mag', MAG); updEndBtns(); renderX12Set(); };
 $('magBtn').addEventListener('contextmenu', e => { e.preventDefault(); MAG = cyc(MAGS, MAG, -1); store.set('fg18_mag', MAG); updEndBtns(); renderX12Set(); });
 updEndBtns();
@@ -2224,7 +2404,7 @@ for (const [id, get, set, arr] of [['togCl', clStep, setCl, CL_STEPS], ['togExt'
   $(id).addEventListener('contextmenu', e => { e.preventDefault(); go(-1); });
 }
 // V16: Statuszeile (welche Ansicht gerade läuft, Hinweis auf VrilyaSS) und Hinweis, wenn eine neuere Version läuft
-const PAGE_VER = 20;
+const PAGE_VER = 21;
 function renderVStat() { const el = $('vStat'); if (el) el.innerHTML = t('vs_' + VSTYLE); }
 $('vStat').addEventListener('click', e => { if (e.target.closest('[data-go]')) [...$('viewSeg').querySelectorAll('button')].find(b => b.dataset.v === 'vss')?.click(); });
 function checkNewVer() {
@@ -2336,10 +2516,13 @@ for (const id of ['i2', 'i3']) {
 ddMenu('ilnDd', 'ilnMenu', () => `<div class="lh">${t('ilnHead')}</div>` + ILN.map(id => { const m = MA[id], L = SMA.lines[id] || { ms: [] }; return `<div class="ilnrow"><b>${t('ma_' + id)}</b>
   <select data-il="${id}" data-f="type"><option value="sma" ${m.type === 'sma' ? 'selected' : ''}>SMA</option><option value="ema" ${m.type === 'ema' ? 'selected' : ''}>EMA</option></select>
   <input type="number" data-il="${id}" data-f="n" min="2" max="400" value="${m.n}"><input type="color" data-il="${id}" data-f="c" value="${m.c}">
-  ${['m1', 'm2', 'm3'].map(mk => `<label title="${t('sma_' + mk)}"><input type="checkbox" data-il="${id}" data-f="${mk}" ${(L.ms || []).includes(mk) ? 'checked' : ''}> ${mk.toUpperCase()}</label>`).join('')}</div>`; }).join('')
+  ${['m1', 'm2', 'm3'].map(mk => `<label title="${t('sma_' + mk)} – ${t(mk + 'Help')}"><input type="checkbox" data-il="${id}" data-f="${mk}" ${(L.ms || []).includes(mk) ? 'checked' : ''}> ${mk.toUpperCase()}</label>`).join('')}</div>`; }).join('')
   + `<div class="lh">${t('ilxHead')}</div>` + ILX_P.map(pr => `<label><input type="checkbox" data-ilx="${pr}" ${(SMA.cross || []).includes(pr) ? 'checked' : ''}> ${lineName(lineOf(pr.slice(0, 2)))} × ${lineName(lineOf(pr.slice(2)))}</label>`).join('')
+  + `<div class="lh">${t('ivwHead')}</div><div class="vwrow"><label><input type="checkbox" data-ivw="1" ${IVW.on ? 'checked' : ''}> ${t('ivwOn')}</label>${['W', 'M', 'Q', 'Y'].map(a => `<label><input type="radio" name="ivwa" data-ivwa="${a}" ${IVW.a === a ? 'checked' : ''}> ${t('vwA_' + a)}</label>`).join('')}</div>`
   + `<label><input type="checkbox" data-ilgray="1" ${SMA.gray ? 'checked' : ''}> ${t('smaGray')}</label><p class="muted" style="font-size:11.5px;margin:6px 0 0;white-space:normal;max-width:360px">${t('ilnNote')}</p>`, el => {
   if (el.dataset.ilgray) { SMA.gray = el.checked; saveSma(); return; }
+  if (el.dataset.ivw) { IVW.on = el.checked; store.set('fg21_ivw', JSON.stringify(IVW)); renderCharts(); return; }
+  if (el.dataset.ivwa) { IVW.a = el.dataset.ivwa; IVW.on = true; store.set('fg21_ivw', JSON.stringify(IVW)); renderCharts(); return; }
   if (el.dataset.ilx) { const s = new Set(SMA.cross || []); el.checked ? s.add(el.dataset.ilx) : s.delete(el.dataset.ilx); SMA.cross = [...s]; saveSma(); return; }
   const id = el.dataset.il, f = el.dataset.f; if (!id || !f) return;
   if (f === 'type' || f === 'c') MA[id] = { ...MA[id], [f]: el.value };
@@ -2394,7 +2577,7 @@ $('lvSet').addEventListener('click', e => {
   if (q) { const [hi, lo] = q.dataset.lvq.split('/').map(Number); LV.p1.hi = hi; LV.p1.lo = lo; saveLV(); RUNCACHE = {}; SCACHE = {}; renderLevelSet(); render(); return; }
   const el = e.target.closest('.sw'); if (!el) return; const k = el.dataset.l; LV[k].show = !LV[k].show; el.classList.toggle('on', LV[k].show); saveLV(); renderCharts(); });
 // V16: Ton und Wiederholung je Alarmart
-const ALK = ['signal', 'off', 'div', 'cluster', 'react', 'lines', 'pivot', 'f50', 'cdl', 'sma', 'vwap', 'frac', 'ma', 'fib'];
+const ALK = ['signal', 'off', 'div', 'cluster', 'react', 'lines', 'pivot', 'f50', 'cdl', 'sma', 'vwap', 'frac', 'ma', 'fib', 'idxal'];
 function renderAlSnd() {
   const S = AL.snd || {}, R = AL.rep || {};
   $('alSnd').innerHTML = `<div class="sethead" style="margin-top:10px">${t('sndHead')}</div><p class="muted" style="font-size:12px;margin-top:4px">${t('sndSub')}</p>
@@ -2424,7 +2607,7 @@ $('alSnd').addEventListener('click', e => {
 });
 function renderAlertSet() {
   renderAlSnd();
-  $('alBrowser').innerHTML = ['sound', 'notify', 'p1', 'p2', 'turn', 'heat', 'react', 'lines', 'pivot', 'f50', 'cdl', 'sma', 'vwap', 'frac', 'ma', 'fib', 'div', 'off'].map(k => `<label><input type="checkbox" data-a="${k}" ${AL[k] ? 'checked' : ''}> ${t('al_' + k, { a: LV.p1.hi + '/' + LV.p1.lo, b: LV.p2.hi + '/' + LV.p2.lo })}</label>`).join('');
+  $('alBrowser').innerHTML = ['sound', 'notify', 'p1', 'p2', 'turn', 'heat', 'react', 'lines', 'pivot', 'f50', 'cdl', 'sma', 'vwap', 'frac', 'ma', 'fib', 'idxal', 'div', 'off'].map(k => `<label><input type="checkbox" data-a="${k}" ${AL[k] ? 'checked' : ''}> ${t('al_' + k, { a: LV.p1.hi + '/' + LV.p1.lo, b: LV.p2.hi + '/' + LV.p2.lo })}</label>`).join('');
 }
 $('alBrowser').addEventListener('change', async e => { const k = e.target.dataset.a; if (!k) return; AL[k] = e.target.checked; store.set('fg6_alerts', JSON.stringify(AL)); if (k === 'notify' && AL.notify && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission(); });
 $('alTest').onclick = async () => { if (AL.notify && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission(); fireAlert(t('alTestTitle'), t('alTestBody'), 'test'); };
@@ -2648,6 +2831,14 @@ function renderX12Set() {
     <div class="set"><label><span>${t('fibPerSet')}</span></label><select id="xPvB"><option value="auto" ${(X12.fibPer || 'auto') === 'auto' ? 'selected' : ''}>${t('fibPerAuto')}</option>${PV_STEPS.slice(1).map(v => `<option value="${v}" ${X12.fibPer === v ? 'selected' : ''}>${v === 'view' ? t('pvr_viewL') : PVN[LANG]?.[v] || v}</option>`).join('')}</select></div>
     <div class="numrow"><span>${t('pvWSet')}</span><input type="number" id="xPvW" min="0.5" max="6" step="0.1" value="${X12.pvW}"></div>
     <div class="numrow"><span>${t('tendSet')}</span><input type="number" id="xTend" min="7" max="120" step="1" value="${X12.tendN}"></div>
+    <div class="sethead" style="margin-top:12px">${t('v21Look')}</div>
+    <div class="set"><label><span>${t('pageW')}<br><small class="muted">${t('pageWSub')}</small></span></label><div class="seg" id="pageWSeg">${['full', '1920', '1600', '1400'].map(v => `<button data-v="${v}" class="${on(X12.pageW || 'full', v)}">${t('pw_' + v)}</button>`).join('')}</div></div>
+    <div class="numrow"><span>${t('cwMaxSet')}<br><small class="muted">${t('cwMaxSub')}</small></span><input type="number" id="xCwMax" min="4" max="80" step="1" value="${X12.cwMax || 24}"></div>
+    <div class="numrow"><span>${t('dirFsSet')}</span><input type="number" id="xDirFs" min="9" max="30" step="0.5" value="${X12.dirFs || 12.5}"></div>
+    <div class="numrow"><span>${t('lineFromSet')}<br><small class="muted">${t('lineFromSub')}</small></span><input type="number" id="xLineFrom" min="0" max="95" step="5" value="${X12.lineFrom ?? 50}"></div>
+    <div class="set"><label><span>${t('shiftTri')}<br><small class="muted">${t('shiftTip')}</small></span></label><button class="sw ${X12.shiftTri !== false ? 'on' : ''}" id="swShiftTri"></button></div>
+    <div class="set"><label><span>${t('etfSet')}<br><small class="muted">${t('etfSub')}</small></span></label><div class="seg" id="etfUSeg">${['mrd', 'mio'].map(v => `<button data-v="${v}" class="${on(ETFF.u, v)}">${t('etfu_' + v)}</button>`).join('')}</div></div>
+    <div class="numrow"><span>${t('etfDSet')}</span><input type="number" id="xEtfD" min="0" max="3" step="1" value="${ETFF.d}"></div>
     <div class="set"><label><span>${t('frOn')}</span></label><button class="sw ${FRAME.on ? 'on' : ''}" id="swFrame"></button></div>
     <div class="numrow"><span>${t('frColor')}</span><input type="color" id="frColor" value="${FRAME.color}"></div>
     <div class="numrow"><span>${t('frW')}</span><input type="number" id="frW" min="1" max="4" step="1" value="${FRAME.w}"></div>
@@ -2808,6 +2999,10 @@ $('x12Set').addEventListener('input', e => {
   if (id === 'malUp' || id === 'malDn') { MAL[id === 'malUp' ? 'cUp' : 'cDn'] = e.target.value; saveMal(); }
   if (id === 'malExt' && v >= 0 && v <= 50) { MAL.ext = Math.round(v); saveMal(); }
   if (id === 'xTend' && v >= 7 && v <= 120) { X12.tendN = Math.round(v); saveX12(); }
+  if (id === 'xCwMax' && v >= 4 && v <= 80) { X12.cwMax = Math.round(v); saveX12(); }
+  if (id === 'xDirFs' && v >= 9 && v <= 30) { X12.dirFs = v; saveX12(); applyV21Look(); }
+  if (id === 'xLineFrom' && e.target.value !== '' && v >= 0 && v <= 95) { X12.lineFrom = Math.round(v); saveX12(); }
+  if (id === 'xEtfD' && e.target.value !== '' && v >= 0 && v <= 3) { ETFF.d = Math.round(v); store.set('fg21_etf', JSON.stringify(ETFF)); render(); }
   if (id === 'frColor') { FRAME.color = e.target.value; store.set('fg12_frame', JSON.stringify(FRAME)); applyFrame(); }
   if (id === 'frW' && v >= 1 && v <= 4) { FRAME.w = Math.round(v); store.set('fg12_frame', JSON.stringify(FRAME)); applyFrame(); }
   if (id === 'frHc' || id === 'frHt') { FRAME[id === 'frHc' ? 'hc' : 'ht'] = e.target.value; store.set('fg12_frame', JSON.stringify(FRAME)); applyFrame(); }
@@ -2851,6 +3046,7 @@ $('x12Set').addEventListener('click', e => {
   if (b.parentElement.id === 'smaWhere') { SMA.inIdx = b.dataset.v !== 'price'; SMA.inPrice = b.dataset.v !== 'idx'; saveSma(); renderX12Set(); return; }
   if (b.parentElement.id === 'smaDir') { SMA.dir = b.dataset.v; saveSma(); renderX12Set(); return; }
   if (b.id === 'swSigAvg') { SIGAVG = !SIGAVG; store.set('fg18_sigavg', SIGAVG ? '1' : '0'); RUNCACHE = {}; SCACHE = {}; syncAvg(); render(); renderX12Set(); return; }
+  if (b.id === 'swShiftTri') { X12.shiftTri = X12.shiftTri === false; saveX12(); renderX12Set(); return; }
   if (b.id === 'swCouple') { COUPLE = !COUPLE; store.set('fg18_couple', COUPLE ? '1' : '0'); VIEW2 = null; renderCharts(); renderX12Set(); return; }
   if (b.parentElement.id === 'tfModeSeg') { TKS.tfMode = b.dataset.v; saveTks(); renderTF(); renderX12Set(); return; }
   if (b.parentElement.id === 'iwSeg') { IDXW = b.dataset.v; store.set('fg18_iw', IDXW); renderCharts(); renderX12Set(); return; }
@@ -2859,6 +3055,8 @@ $('x12Set').addEventListener('click', e => {
   if (b.parentElement.id === 'layoSeg') { LAYO = b.dataset.v; store.set('fg18_lay', LAYO); applyLower(); renderX12Set(); return; }
   if (b.id === 'swPulseA' || b.id === 'swPulseT') { const k = b.id === 'swPulseA' ? 'pA' : 'pT'; ACT[k] = !ACT[k]; saveAct(); renderX12Set(); return; }
   if (b.id === 'tkReset') { TKS = { tz0: 1 }; saveTks(); renderX12Set(); return; }
+  if (b.parentElement.id === 'etfUSeg') { ETFF.u = b.dataset.v; store.set('fg21_etf', JSON.stringify(ETFF)); render(); renderX12Set(); return; }
+  if (b.parentElement.id === 'pageWSeg') { X12.pageW = b.dataset.v; saveX12(); applyV21Look(); renderX12Set(); setTimeout(() => { drawWires(); renderCharts(); }, 50); return; }
   if (b.parentElement.id === 'plKfmt') { PL.kfmt = b.dataset.v; store.set('fg15_pl', JSON.stringify(PL)); rerender(); renderX12Set(); return; }
   if (b.parentElement.id === 'plCd') { PL.cd = b.dataset.v; store.set('fg15_pl', JSON.stringify(PL)); rerender(); renderX12Set(); return; }
   if (b.parentElement.id === 'xExtB') { X12.extBasis = b.dataset.v; saveX12(); renderX12Set(); return; }
@@ -2915,7 +3113,7 @@ function compText(c) { // Hauptwert + Zusatz je Baustein
     case 'ls': return [fmt(c.raw, 2), t('x_ls_' + MODE)];
     case 'liq': return liq && liq.L + liq.S >= 2e6 ? [`${fmt(liq.L / 1e6, 0)} / ${fmt(liq.S / 1e6, 0)} ${LANG === 'de' ? 'Mio. $' : 'M $'}`, t('x_liq')] : [t('collecting'), t('x_liq')];
     case 'rsi': return ['RSI ' + fmt(c.raw, 0), t('x_rsi', { a: fmt(c.atr, 1) })];
-    case 'etf': return c.raw == null ? [t('noKey'), t('x_etf')] : [sgn(c.raw, 0) + (LANG === 'de' ? ' Mio. $' : ' M $'), t('x_etf')];
+    case 'etf': return c.raw == null ? [t('noKey'), t('x_etf')] : [etfFmt(c.raw) + ' · ' + t('etf5'), t('x_etf')];
     case 'stable': return [sgn(c.raw, 1) + ' %', t('x_stable')];
     case 'cbp': return [sgn(c.raw, 3) + ' %', t('x_cbp')];
     case 'vix': return [fmt(c.level, 1), t('x_vix')];
@@ -2925,7 +3123,7 @@ function compText(c) { // Hauptwert + Zusatz je Baustein
 }
 function srcVal(id, v) {
   if (v == null) return '–';
-  return { funding: sgn(v, 4) + ' %', oi: sgn(v, 1) + ' %', ls: fmt(v, 2), rsi: 'RSI ' + fmt(v, 1), etf: sgn(v, 0) + ' Mio. $', stable: sgn(v, 2) + ' %', cbp: sgn(v, 3) + ' %', vix: fmt(v, 1), dxy: sgn(v, 2) + ' %', liq: usd(v / 1e6, 1) + 'M' }[id] ?? fmt(v, 2);
+  return { funding: sgn(v, 4) + ' %', oi: sgn(v, 1) + ' %', ls: fmt(v, 2), rsi: 'RSI ' + fmt(v, 1), etf: etfFmt(v), stable: sgn(v, 2) + ' %', cbp: sgn(v, 3) + ' %', vix: fmt(v, 1), dxy: sgn(v, 2) + ' %', liq: usd(v / 1e6, 1) + 'M' }[id] ?? fmt(v, 2);
 }
 
 /* ================= Rendering ================= */
@@ -3023,8 +3221,22 @@ function tendency() {
   const tr = trendOf(seriesOf(col, M().index), 7);
   return { k: tr == null ? 'tendSide' : tr > 4 ? 'tendUp' : tr < -4 ? 'tendDown' : 'tendSide', c: tr > 4 ? '#f3a43c' : tr < -4 ? '#a77bff' : '#c9b8ff', txt: t('tendTxtTrend', { n: N, t: tword(tr) }) };
 }
+// V21: „Was das jetzt heißt“ und die Empfehlung folgen der Mittelung am Kreis (oder einer eigenen Wahl) – vorher immer das 7-Tage-Mittel
+function actIdx() {
+  const m = M(); if (VSTYLE !== 'vss') return { N: 7, v: m.index, z: zoneOf(m.index ?? 50) };
+  const N = ACTAVG === 'circle' ? AVGC : +ACTAVG || 7, v = N === 7 ? m.index : avgNow(N) ?? m.index; return { N, v, z: zoneOf(v ?? 50) };
+}
+// Rückblick seit Beginn: in dieser Zone (mit dieser Mittelung) – wie oft lag Bitcoin 30 Tage später höher, Ø Veränderung
+function zoneStats(N, zk) {
+  const col = N > 0 ? avgCol(idxCol7(), rawCol(), N) : rawCol();
+  return memo('zs' + col + zk + H.length, () => { const rows = H.filter(r => r[col] != null && r[3] != null); let n = 0, up = 0, sum = 0, since = null;
+    for (let i = 0; i + 30 < rows.length; i++) { if (zoneOf(rows[i][col]).k !== zk) continue; const ch = rows[i + 30][3] / rows[i][3] - 1; n++; if (ch > 0) up++; sum += ch; since ??= rows[i][0]; }
+    return n ? { up: Math.round(up / n * 100), avg: sum / n * 100, n, since } : null; });
+}
 function renderSide() {
-  const m = M(), z = zoneOf(m.index ?? 50);
+  const m = M(), A = actIdx(), z = A.z; renderIdxAl();
+  { const s = $('actAvgSel'); if (s) { const cur = String(ACTAVG); s.innerHTML = `<option value="circle" ${cur === 'circle' ? 'selected' : ''}>${t('actCircle', { n: avgLbl(AVGC) })}</option>` + AVG_OPTS_C.map(n => `<option value="${n}" ${cur === String(n) ? 'selected' : ''}>${avgLbl(n)}</option>`).join(''); s.title = t('actAvgTip'); }
+    $('actFrom').textContent = VSTYLE === 'vss' ? t('fromZoneN', { n: avgLbl(A.N), v: A.v ?? '–' }) : t('fromZone'); }
   const up = m.outlook;
   $('pUp').textContent = up == null ? '–' : up + ' %'; $('pDown').textContent = up == null ? '–' : (100 - up) + ' %';
   $('obar').style.setProperty('--p', (up ?? 50) + '%');
@@ -3035,7 +3247,7 @@ function renderSide() {
   $('action').style.background = z.c; $('action').style.boxShadow = `0 10px 30px ${z.c}44`; $('actionTxt').textContent = t('act_' + z.k);
   $('action').style.fontSize = '';
   if (VSTYLE === 'vss' && H.length) { const td = tendency(); $('tend').innerHTML = `<small>${t('tendCap')}</small><b>${t(td.k + 'S')}</b>`; $('tend').style.background = td.c; $('tend').style.boxShadow = `0 8px 24px ${td.c}44`; $('tendTxt').textContent = td.txt; }
-  const b = m.backtest30;
+  const b = A.N === 7 ? m.backtest30 : zoneStats(A.N, z.k);
   $('bt').innerHTML = b ? t('bt', { z: t(z.k), p: b.up, a: sgn(b.avg, 1), n: fmt(b.n), s: monthYear(b.since) }) : '';
   $('noteTxt').innerHTML = t('note', { w: M().window || 365 });
   $('zl').innerHTML = ZL.map(x => `<div class="${x === z ? 'on' : ''}"><b style="color:${x.c}">${x.from}–${x.to}</b><span>${t('act_' + x.k)}</span></div>`).join('');
@@ -3094,10 +3306,18 @@ function renderDays() {
   const el = $('days'); if (!D || VSTYLE !== 'vss') { el.innerHTML = ''; return; }
   const col = idxCol(), rc = rawCol(), rows = H.filter(r => r[col] != null), last = rows.slice(-DAYSN - 1), show = last.slice(1).reverse();
   const cell = v => v == null ? '<td class="r flat">–</td>' : `<td class="r pts" style="color:${color(v)}">${v}</td>`;
-  let html = `<div class="h"><span>${t('daysTitle', { n: DAYSN })}</span><small>${t('daysNote')}</small></div><div class="tw"><table><tr><th>${t('cDay')}</th><th class="r">${t('cIndex')}</th><th class="r">${t('cDaily')}</th><th class="r">alt.me</th><th class="r">CMC</th><th class="r">CFGI</th><th class="r">Bitcoin</th></tr>`;
+  // V21: zusätzliche Spalten – Ø-Preis (O+H+L+C)/4, Typical (H+L+C)/3, VWAP und TWAP des Tages (aus Stundenkerzen, letzte ~8 Tage)
+  const DC = ['avg', 'typ', 'vwap', 'twap'].filter(k => DCOLS.includes(k)), hb = new Map();
+  for (const h of D.hourly || []) { const d = new Date(h[0]).toISOString().slice(0, 10), o = hb.get(d) || { pv: 0, v: 0, c: 0, n: 0 }; const tp = (h[2] + h[3] + h[4]) / 3; o.pv += tp * (h[5] || 0); o.v += h[5] || 0; o.c += h[4]; o.n++; hb.set(d, o); }
+  const dval = (k, r) => { const O = r[9] ?? r[3], Hh = r[10] ?? r[3], L = r[11] ?? r[3], C = r[3], hq = hb.get(r[0]);
+    return k === 'avg' ? (O + Hh + L + C) / 4 : k === 'typ' ? (Hh + L + C) / 3 : k === 'vwap' ? (hq?.v > 0 ? hq.pv / hq.v : null) : (hq?.n ? hq.c / hq.n : null); };
+  let html = `<div class="h"><span>${t('daysTitle', { n: DAYSN })}</span><small>${t('daysNote')}</small><button class="tog sm" id="dcolBtn" title="${t('dcolTip')}">${t('dcolBtn')} ▾</button></div>`
+    + (DCOLOPEN ? `<div class="dcolrow">${['avg', 'typ', 'vwap', 'twap'].map(k => `<label title="${t('dcolH_' + k)}"><input type="checkbox" data-dcol="${k}" ${DCOLS.includes(k) ? 'checked' : ''}> ${t('dcol_' + k)}</label>`).join('')}</div>` : '')
+    + `<div class="tw"><table><tr><th>${t('cDay')}</th><th class="r">${t('cIndex')}</th><th class="r">${t('cDaily')}</th><th class="r">alt.me</th><th class="r">CMC</th><th class="r">CFGI</th><th class="r">Bitcoin</th>${DC.map(k => `<th class="r" title="${t('dcolH_' + k)}">${t('dcol_' + k)}</th>`).join('')}</tr>`;
   show.forEach((r, i) => {
     const prev = last[last.length - 2 - i], ch = prev?.[3] ? (r[3] / prev[3] - 1) * 100 : null;
-    html += `<tr><td>${WD[LANG][new Date(r[0] + 'T12:00:00Z').getUTCDay()]} ${dmy(r[0], false)}${i === 0 && r[0] === todayKey() ? ` <span class="flat">(${t('liveNow')})</span>` : ''}</td>${cell(r[col])}${cell(r[rc])}${cell(r[4])}${cell(r[5])}${cell(r[6])}<td class="r btc"><b>${money(r[3], 0, r[8])}</b><small class="${ch > 0 ? 'up' : ch < 0 ? 'down' : 'flat'}">${sgn(ch, 1)} %</small></td></tr>`;
+    const xtra = DC.map(k => { const v = dval(k, r); return `<td class="r dx">${v == null ? '–' : money(v, 0, r[8])}</td>`; }).join('');
+    html += `<tr><td>${WD[LANG][new Date(r[0] + 'T12:00:00Z').getUTCDay()]} ${dmy(r[0], false)}${i === 0 && r[0] === todayKey() ? ` <span class="flat">(${t('liveNow')})</span>` : ''}</td>${cell(r[col])}${cell(r[rc])}${cell(r[4])}${cell(r[5])}${cell(r[6])}<td class="r btc"><b>${money(r[3], 0, r[8])}</b><small class="${ch > 0 ? 'up' : ch < 0 ? 'down' : 'flat'}">${sgn(ch, 1)} %</small></td>${xtra}</tr>`;
   });
   el.innerHTML = html + '</table></div>';
 }
@@ -3112,7 +3332,7 @@ REC_DEF.ar = { spot: { xfear: 'شراء / DCA (زيادة خطة الادخار)
 function recGet() { const d = REC_DEF[LANG] || REC_DEF.en; try { const s = JSON.parse(store.get('fg9_rec', 'null')); return s ? { spot: { ...d.spot, ...s.spot }, fut: { ...d.fut, ...s.fut } } : d; } catch { return d; } }
 function renderRec() {
   if (!D || VSTYLE !== 'vss') return;
-  const m = M(), z = zoneOf(m.index ?? 50), R = recGet();
+  const m = M(), z = actIdx().z, R = recGet();
   $('rec').innerHTML = `<div class="rec2"><div class="recb"><div class="k">${t('recSpot')}</div><b style="color:${z.c}">${esc(R.spot[z.k])}</b></div><div class="recb"><div class="k">${t('recFut')}</div><b style="color:${z.c}">${esc(R.fut[z.k])}</b></div></div>
     <div class="tw"><table class="rtab"><tr><th>${t('recZone')}</th><th>Spot</th><th>Futures</th></tr>${ZL.map(x => `<tr class="${x === z ? 'on' : ''}"><td><b style="color:${x.c}">${x.from}–${x.to}</b></td><td>${esc(R.spot[x.k])}</td><td>${esc(R.fut[x.k])}</td></tr>`).join('')}</table></div>
     ${liqShort() ? `<p class="muted recLiq" style="font-size:12px;margin-top:10px">${liqShort()}</p>` : ''}<p class="muted" style="font-size:11px;margin-top:6px">${t('recHelp')}</p>`;
@@ -3503,6 +3723,7 @@ function checkLineBrowser() {
 // V20: Kurs berührt den VWAP (live, je Anker 1× am Tag) und kreuzt eine sichtbare Fibonacci-Stufe (je Stufe höchstens alle 10 Minuten)
 var VWSIDE = {}, FIBSIDE = {}, FIBLV = [];   // var: renderCharts kann schon vor dieser Zeile laufen
 function checkTouchBrowser() {
+  checkIdxAlarms();
   const price = LIVE.price || D?.btc?.price; if (!price || !D || !H.length) return;
   const td = new Date().toISOString().slice(0, 10), S = alarmState();
   if (AL.vwap && VW.touch?.length) {
@@ -3520,7 +3741,15 @@ function checkTouchBrowser() {
 }
 // V18: Zeitachse von Kurs- und Index-Chart gekoppelt (Standard) oder frei – frei: der Index-Chart hat eine eigene Ansicht (VIEW2) und wird in einem zweiten Durchlauf gezeichnet
 let COUPLE = store.get('fg18_couple', '1') === '1', VIEW2 = null, RC_IDX = false, chartGeom2 = null, chartData2 = [], chartO72 = [];
+updIdxTf();
 function renderCharts() {
+  // V21: „alles ausblenden“ (Auge-Knopf): Signale, Linien, Indikatoren und Zeichnungen nur beim Zeichnen ausschalten – die Einstellungen bleiben
+  if (HIDEALL && VSTYLE === 'vss') { const L0 = { ...LAY }, O0 = { ...OPT }, S0 = SMA.inPrice, D0 = typeof DRAW !== 'undefined' ? DRAW.show : null;
+    for (const k of Object.keys(LAY)) if (typeof LAY[k] === 'boolean') LAY[k] = false; OPT.sig = false; OPT.heat = false; SMA.inPrice = false; if (D0 != null) DRAW.show = false;
+    try { renderCharts1(); } finally { Object.assign(LAY, L0); Object.assign(OPT, O0); SMA.inPrice = S0; if (D0 != null) DRAW.show = D0; } return; }
+  renderCharts1();
+}
+function renderCharts1() {
   renderCharts0();
   if (!COUPLE && VSTYLE === 'vss') { if (!VIEW2) VIEW2 = { ...VIEW }; const v = VIEW; VIEW = VIEW2; RC_IDX = true; try { renderCharts0(); } finally { VIEW2 = VIEW; VIEW = v; RC_IDX = false; } }
 }
@@ -3539,7 +3768,8 @@ function renderCharts0() {
   const data = all.slice(VIEW.s, lastI + 1), o7 = O7.slice(VIEW.s, lastI + 1);
   if (!RC_IDX) { chartData = data; chartO7 = o7; }
   const n = data.length; if (n < 2) return;
-  const W = Math.max(320, $('priceChart').clientWidth), H1 = CH1, H2 = CH2;
+  // V21: ist Chart 1 minimiert, kommt die Breite vom Index-Chart (vorher 320 px → Chart 2 gestaucht)
+  const W = Math.max(320, $('priceChart').clientWidth || $('idxChart').clientWidth || (($('idxCard')?.clientWidth || 0) - 28)), H1 = CH1, H2 = CH2;
   $('priceChart').style.height = H1 + 'px'; $('idxChart').style.height = H2 + 'px';
   $('togLv1').textContent = LV.p1.hi + '/' + LV.p1.lo; $('togLv1').classList.toggle('on', LV.p1.show);
   $('togLv2').textContent = LV.p2.hi + '/' + LV.p2.lo; $('togLv2').classList.toggle('on', LV.p2.show);
@@ -3552,15 +3782,20 @@ function renderCharts0() {
   // V15: Kerzengröße – Auto (bis 10 Tage Stundenkerzen, sonst Tageskerzen); 15m / 1h / 4h nur am aktuellen Ende, soweit die Daten zurückreichen; 1T; 1W
   let hourly = null, IVMS = 36e5; CSNOTE = '';
   // V19: Auto – bei 1–2 Tagen 5-Minuten-, bei 3 Tagen 15-Minuten-Kerzen (sobald geladen), bis 10 Tage Stundenkerzen, sonst Tageskerzen
+  // V21: feinere Kerzen auch in älteren Ausschnitten (nicht nur am rechten Ende) – der Ausschnitt wird bei Binance nachgeladen; vorher sprang das Chart
+  // beim Hineinzoomen in die Vergangenheit auf riesige Tageskerzen
+  const atEnd = lastI === all.length - 1, tEnd = Date.parse(data[n - 1][0]) + 864e5;
   if (CS === 'auto') {
-    const iv = n <= 2 ? '5m' : n <= 3 ? '15m' : null, rows = iv && lastI === all.length - 1 ? intraRows(iv) : null;
-    if (rows?.length && rows[0][0] <= t0 + 864e5) { hourly = rows.filter(h => h[0] >= t0); IVMS = IV_MS[iv]; }
-    else hourly = n <= 10 && lastI === all.length - 1 && D.hourly?.length ? D.hourly.filter(h => h[0] >= t0) : null;
+    const iv = n <= 2 ? '5m' : n <= 3 ? '15m' : n <= 10 && !atEnd ? '1h' : null;
+    const rows = iv ? (atEnd ? intraRows(iv) : intraRange(iv, t0, tEnd)) : null;
+    if (rows?.length && rows[0][0] <= t0 + 864e5) { hourly = rows.filter(h => h[0] >= t0 && h[0] < tEnd); IVMS = IV_MS[iv]; }
+    else hourly = n <= 10 && atEnd && D.hourly?.length ? D.hourly.filter(h => h[0] >= t0) : null;
   }
   else if (IV_MS[CS]) {
-    const rows = intraRows(CS);
-    if (rows?.length && lastI === all.length - 1 && rows[0][0] <= t0 + 864e5) { hourly = rows.filter(h => h[0] >= t0); IVMS = IV_MS[CS]; }
-    else CSNOTE = !rows?.length ? t('csLoad') : lastI !== all.length - 1 ? t('csEnd') : t('csRange', { d: Math.floor((Date.now() - rows[0][0]) / 864e5) });
+    let rows = intraRows(CS);
+    if (!(rows?.length && rows[0][0] <= t0 + 864e5 && (atEnd || rows.at(-1)[0] >= tEnd - IV_MS[CS]))) rows = intraRange(CS, t0, tEnd) ?? (rows?.length ? null : rows);
+    if (rows?.length && rows[0][0] <= t0 + 864e5) { hourly = rows.filter(h => h[0] >= t0 && h[0] < tEnd); IVMS = IV_MS[CS]; }
+    else CSNOTE = (tEnd - t0) / IV_MS[CS] > INTRA_MAX ? t('csTooLong') : t('csLoad');
   }
   if (!RC_IDX) { HOURS = hourly; CDIV = hourly ? IVMS : ({ '1w': 'w', '1mo': 'mo', '1y': 'y' })[CS] || 'd'; } if ($('csNote')) $('csNote').textContent = VSTYLE === 'vss' ? CSNOTE : '';
   const XT = t => P.l + (t - t0) / 864e5 * bw;
@@ -3569,7 +3804,7 @@ function renderCharts0() {
   const pts = hourly ? hourly.map(h => { const day = Math.floor((h[0] - t0) / 864e5), r = data[day]; return { x: XT(h[0] + IVMS / 2), c: conv(h[4], r), o: conv(h[1], r), h: conv(h[2], r), l: conv(h[3], r), day }; })
     : data.map((r, i) => ({ x: X(i), c: conv(r[3], r), o: conv(r[9] ?? r[3], r), h: conv(r[10] ?? r[3], r), l: conv(r[11] ?? r[3], r), day: i }));
   const lastLive = LIVE.price ? (CUR === 'eur' ? (LIVE.eur ? LIVE.price / LIVE.eur : null) : LIVE.price * facLive()) : null;
-  if (hourly && lastLive) pts.push({ x: Math.min(P.l + iw, XT(Date.now())), c: lastLive, o: lastLive, h: lastLive, l: lastLive, day: n - 1 });
+  if (hourly && lastLive && atEnd) pts.push({ x: Math.min(P.l + iw, XT(Date.now())), c: lastLive, o: lastLive, h: lastLive, l: lastLive, day: n - 1 });
   const lows = pts.map(p => candles ? p.l : p.c), highs = pts.map(p => candles ? p.h : p.c);
   const lo0 = Math.min(...lows), hi0 = Math.max(...highs), pad = (hi0 - lo0) * 0.1 || hi0 * 0.02;
   const mid = (lo0 + hi0) / 2 + yShift, half = ((hi0 - lo0) / 2 + pad) * yZoom, yl = mid - half, yh = mid + half;
@@ -3614,11 +3849,11 @@ function renderCharts0() {
     const wk = []; let cur = null;
     data.forEach((r, i) => { const d = new Date(r[0] + 'T12:00:00Z'), key = CS === '1w' ? Math.floor((d.getTime() / 864e5 + 3) / 7) : CS === '1mo' ? r[0].slice(0, 7) : r[0].slice(0, 4), p = pts[i]; if (!cur || cur.key !== key) { cur = { key, i0: i, i1: i, o: p.o, h: p.h, l: p.l, c: p.c }; wk.push(cur); } else { cur.i1 = i; cur.h = Math.max(cur.h, p.h); cur.l = Math.min(cur.l, p.l); cur.c = p.c; } });
     for (const w of wk) {
-      const up = w.c >= w.o, c = up ? ST.candleUp : ST.candleDown, xc = (X(w.i0) + X(w.i1)) / 2, cw = Math.max(1.5, (w.i1 - w.i0 + 1) * bw * 0.7), yT = Y(Math.max(w.o, w.c)), yB = Y(Math.min(w.o, w.c));
+      const up = w.c >= w.o, c = up ? ST.candleUp : ST.candleDown, xc = (X(w.i0) + X(w.i1)) / 2, cw = Math.min(CWMAX(), Math.max(1.5, (w.i1 - w.i0 + 1) * bw * 0.7)), yT = Y(Math.max(w.o, w.c)), yB = Y(Math.min(w.o, w.c));
       g += `<line x1="${xc.toFixed(1)}" x2="${xc.toFixed(1)}" y1="${Y(w.h).toFixed(1)}" y2="${Y(w.l).toFixed(1)}" stroke="${c}" stroke-width="1.2"/><rect x="${(xc - cw / 2).toFixed(1)}" y="${yT.toFixed(1)}" width="${cw.toFixed(1)}" height="${Math.max(1, yB - yT).toFixed(1)}" fill="${c}"/>`;
     }
   } else if (candles) {
-    const cw = Math.max(1, (hourly ? bw * IVMS / 864e5 : bw) * 0.62);
+    const cw = Math.min(CWMAX(), Math.max(1, (hourly ? bw * IVMS / 864e5 : bw) * 0.62));   // V21: Kerzen nie breiter als eingestellt (wie TradingView)
     for (const p of pts) {
       const up = p.c >= p.o, c = up ? ST.candleUp : ST.candleDown, yT = Y(Math.max(p.o, p.c)), yB = Y(Math.min(p.o, p.c));
       g += `<line x1="${p.x.toFixed(1)}" x2="${p.x.toFixed(1)}" y1="${Y(p.h).toFixed(1)}" y2="${Y(p.l).toFixed(1)}" stroke="${c}" stroke-width="1"/><rect x="${(p.x - cw / 2).toFixed(1)}" y="${yT.toFixed(1)}" width="${cw.toFixed(1)}" height="${Math.max(1, yB - yT).toFixed(1)}" fill="${c}"/>`;
@@ -3631,6 +3866,7 @@ function renderCharts0() {
   // Moving Averages im Kurs-Chart (aus dem ganzen Verlauf berechnet, nur Tagesansicht)
   // V15: MA aus den Kursen in der angezeigten Währung (in € glatt statt Zickzack durch den täglichen Umrechnungskurs), auch bei Stunden-/Minutenkerzen
   // V18: bis zu 10 Linien (MA ▾), je Linie Farbmodus und Dicke
+  const gMaStart = g.length;   // V21: VWAP wird nachher hinter die MAs gelegt (VWAP hinten, langsame MAs hinter schnellen)
   if (VSTYLE === 'vss' && LAY.ma) for (const m of [...MAS].sort((a, b) => b.n - a.n)) {
     if (!m.on) continue;
     const closes = memo(`cl${CUR}${col}${all.length}`, () => all.map(r => conv(r[3], r)));
@@ -3638,16 +3874,24 @@ function renderCharts0() {
     g += maSvg(vals, closes, VIEW.s, lastI, m, X, v => Y(v), `${m.type.toUpperCase()} ${m.n}`, P.l + iw - 3, { ...MAL, col: m.col || 'fixed', w: m.w ?? 1.8, ext: m.ext ?? 5 });
   }
   // V18: VWAP-Linien – größerer Zeitraum weiter hinten (Jahr, Quartal, Monat, Woche, Session); Session nur bei Stundenkerzen; bei Stundenkerzen fehlt ein Zeitraum, der vor den geladenen Kerzen beginnt
+  const gVwStart = g.length;
   if (VSTYLE === 'vss' && LAY.vwap) {
     const VL = [];
     for (const A of ['Y', 'Q', 'M', 'W', 'S']) {
       const st = VW.A[A]; if (!st?.on || (A === 'S' && !hourly)) continue;
       const segs = [];
       if (hourly) {
-        const full = (CS === 'auto' ? D.hourly : intraRows(CS)) || [], dayRow = new Map(all.map(r => [r[0], r]));
-        const rows = full.map(h => { const d = new Date(h[0]).toISOString().slice(0, 10), r = dayRow.get(d); return { t: h[0], d, o: conv(h[1], r), h: conv(h[2], r), l: conv(h[3], r), c: conv(h[4], r), v: h[5] || 0 }; });
-        const res = vwapCalc(rows, A, VW.src, true);
-        rows.forEach((r, k) => { if (r.t >= t0 && res.w[k] != null) segs.push({ x: XT(r.t + IVMS / 2), w: res.w[k], sd: res.sd[k], key: VW_KEY[A](r.d) }); });
+        // V21: glatt wie bei TradingView – abgeschlossene Tage des Zeitraums aus den Tageskerzen, der jeweilige Tag aus den gezeigten Kerzen (vorher Stundenwerte
+        // unter Minutenkerzen → treppenartig „abgehackt“)
+        const dayIdx = new Map(all.map((r, i) => [r[0], i])), tpOf = (o, h, l, c) => VW.src === 'close' ? c : VW.src === 'hl2' ? (h + l) / 2 : VW.src === 'ohlc4' ? (o + h + l + c) / 4 : (h + l + c) / 3;
+        const cumB = A === 'S' ? null : memo('vwC' + A + VW.src + CUR + all.length, () => { const out = new Array(all.length); let k0 = null, pv = 0, pv2 = 0, vv = 0;
+          all.forEach((r, i) => { const k = VW_KEY[A](r[0]); if (k !== k0) { k0 = k; pv = pv2 = vv = 0; } out[i] = [pv, pv2, vv, k]; const v = r[18] || 0, tp = tpOf(conv(r[9] ?? r[3], r), conv(r[10] ?? r[3], r), conv(r[11] ?? r[3], r), conv(r[3], r)); if (v > 0 && tp > 0) { pv += tp * v; pv2 += tp * tp * v; vv += v; } }); return out; });
+        let dCur = null, rpv = 0, rpv2 = 0, rvv = 0;
+        for (const hr of hourly) { const tt = hr[0], d = new Date(tt).toISOString().slice(0, 10), i = dayIdx.get(d); if (i == null) continue; const r = all[i];
+          if (d !== dCur) { dCur = d; rpv = rpv2 = rvv = 0; }
+          const v = hr[5] || 0, tp = tpOf(conv(hr[1], r), conv(hr[2], r), conv(hr[3], r), conv(hr[4], r)); if (v > 0 && tp > 0) { rpv += tp * v; rpv2 += tp * tp * v; rvv += v; }
+          const [bpv, bpv2, bvv, key] = cumB ? cumB[i] : [0, 0, 0, d], V = bvv + rvv; if (!(V > 0)) continue;
+          const w = (bpv + rpv) / V; if (tt >= t0) segs.push({ x: XT(tt + IVMS / 2), w, sd: Math.sqrt(Math.max(0, (bpv2 + rpv2) / V - w * w)), key }); }
       } else {
         const res = memo('vwD' + A + VW.src + CUR + all.length, () => vwapCalc(all.map(r => ({ d: r[0], o: conv(r[9] ?? r[3], r), h: conv(r[10] ?? r[3], r), l: conv(r[11] ?? r[3], r), c: conv(r[3], r), v: r[18] || 0 })), A, VW.src));
         for (let i = VIEW.s; i <= lastI; i++) if (res.w[i] != null) segs.push({ x: X(i - VIEW.s), w: res.w[i], sd: res.sd[i], key: VW_KEY[A](all[i][0]) });
@@ -3660,9 +3904,13 @@ function renderCharts0() {
     }
     for (const L of VL) { const w = L.tx.length * 6.4 + 10; g += `<rect x="${(L.x + 6).toFixed(1)}" y="${(L.y - 8).toFixed(1)}" width="${w.toFixed(1)}" height="16" rx="4" fill="#160b1b" stroke="${L.c}" stroke-width="1.2"/><text x="${(L.x + 6 + w / 2).toFixed(1)}" y="${(L.y + 4).toFixed(1)}" fill="${L.c}" font-size="10.5" font-weight="800" text-anchor="middle">${L.tx}</text>`; }
   }
+  { const vwPart = g.slice(gVwStart); g = g.slice(0, gMaStart) + vwPart + g.slice(gMaStart, gVwStart); }
   // Punkte = Spitzen der Extremphasen, Zahlen = Wendepunkte des Index
   const idxOf = new Map(data.map((d, i) => [d[0], i]));
   const priceAtDay = i => { if (!hourly) return pts[i].c; const p = pts.filter(q => q.day === i).at(-1); return p ? p.c : null; };
+  // V21: Signal-Marken unter dem Tief (Long) bzw. über dem Hoch (Short) der Kerze(n) dieses Tages – vorher am Schlusskurs, dadurch oft mitten auf der Kerze
+  const extY = (i, up) => { const q = hourly ? pts.filter(p => p.day === i) : [pts[i]]; if (!q.length || !q[0]) { const pr = priceAtDay(i); return pr == null ? null : Y(pr); }
+    return up ? Math.max(...q.map(p => Y(candles ? p.l : p.c))) : Math.min(...q.map(p => Y(candles ? p.h : p.c))); };
   // Punkte je Stufe; läuft die Phase noch, ist der Punkt hohl = vorläufig (kann noch wandern)
   if (VSTYLE !== 'vss' || LAY.dots) for (const k of activeSigLv()) for (const e of runsFor(k)) {
     const i = idxOf.get(e.peakDay); if (i == null) continue;
@@ -3686,17 +3934,17 @@ function renderCharts0() {
   };
   if (OPT.sig && VSTYLE === 'vss') for (const k of activeSigLv()) for (const s of signalsFor(k)) {
     const i = idxOf.get(s.d); if (i == null) continue;
-    const pr = priceAtDay(i); if (pr == null) continue;
-    g += tri(X(i), Y(pr), s.type === 'fear', s.type === 'fear' ? LV[k].dLo : LV[k].dHi, s.kind);
-    if (s.against) g += `<text x="${X(i) + 10}" y="${Y(pr) + (s.type === 'fear' ? 26 : -18)}" font-size="13" font-weight="900" fill="#ffcc4d" paint-order="stroke" stroke="#160b1b" stroke-width="3">⚠</text>`;
+    const yy = extY(i, s.type === 'fear'); if (yy == null) continue;
+    g += `<g><title>${esc(daySigTitle('lv', { k, s }))}</title>${tri(X(i), yy, s.type === 'fear', s.type === 'fear' ? LV[k].dLo : LV[k].dHi, s.kind)}</g>`;
+    if (s.against) g += `<text x="${X(i) + 10}" y="${yy + (s.type === 'fear' ? 26 : -18)}" font-size="13" font-weight="900" fill="#ffcc4d" paint-order="stroke" stroke="#160b1b" stroke-width="3">⚠</text>`;
   }
   // offizieller Index: Punkte (Spitzen der Extremphasen) und Signale in eigener Farbe, etwas weiter vom Kurs
   if (VSTYLE === 'vss' && LAY.sigOff) {
     const oc2 = ST.sigOffColor;
     // V20: Austritt aus 13 / 70 am selben Tag wie im Index-Chart, Fraktal im Kurs dazu (Raute „OF“), Kreuz der offiziellen Linie mit einer Index-Linie
-    if (OFFSIG.ext) for (const s of offExitList()) { const i = idxOf.get(s.d); if (i == null) continue; const pr = priceAtDay(i); if (pr == null) continue; g += offMark(X(i), Y(pr), s.up, 'O' + s.lim, `${t('osExitT', { l: s.lim, e: s.ext, d: dmy(s.extDay) })} · ${s.up ? 'Long' : 'Short'} · ${dmy(s.d)}`, oc2); }
+    if (OFFSIG.ext) for (const s of offExitList()) { const i = idxOf.get(s.d); if (i == null) continue; const pr = extY(i, s.up); if (pr == null) continue; g += offMark(X(i), pr, s.up, 'O' + s.lim, `${t('osExitT', { l: s.lim, e: s.ext, d: dmy(s.extDay) })} · ${s.up ? 'Long' : 'Short'} · ${dmy(s.d)}`, oc2); }
     if (OFFSIG.frac) for (const f of offFracList()) { const i = idxOf.get(f.d); if (i == null) continue; const p = conv(f.p, data[i]); g += offFracMark(X(i), Y(p), f.up, `${t(f.fb ? (f.up ? 'osFbLo' : 'osFbHi') : (f.up ? 'frLo' : 'frHi'))} · ${moneyK(p)} · ${dmy(f.d)} – ${t('osFracFor', { d: dmy(f.from) })}`, oc2); }
-    if (OFFSIG.x?.length) for (const x of offCrossAll()) { const i = idxOf.get(x.d); if (i == null) continue; const pr = priceAtDay(i); if (pr == null) continue; g += offMark(X(i), Y(pr), x.up, '×', `${t('os_x', { l: x.name })} · ${x.up ? 'Long' : 'Short'} · ${dmy(x.d)}`, oc2, 34); }
+    if (OFFSIG.x?.length) for (const x of offCrossAll()) { const i = idxOf.get(x.d); if (i == null) continue; const pr = extY(i, x.up); if (pr == null) continue; g += offMark(X(i), pr, x.up, '×', `${t('os_x', { l: x.name })} · ${x.up ? 'Long' : 'Short'} · ${dmy(x.d)}`, oc2, 34); }
     for (const k of OFFSIG.lv ? activeSigLv() : []) {
       for (const e of offRunsFor(k)) {
         const i = idxOf.get(e.peakDay); if (i == null) continue; const pr = priceAtDay(i); if (pr == null) continue;
@@ -3792,7 +4040,7 @@ function renderCharts0() {
   }
   // V20: Kreuz zweier Index-Linien auch im Kurs-Chart (Kreis mit ×)
   if (VSTYLE === 'vss' && SMA.cross?.length && SMA.inPrice) for (const x of ilxList(avgCol(idxCol7(), rcol, AVGI))) {
-    const i = idxOf.get(x.d); if (i == null) continue; const pr = priceAtDay(i); if (pr == null) continue; const c = x.up ? '#33d39a' : '#ff4d5e', yy = Y(pr) + (x.up ? 40 : -40);
+    const i = idxOf.get(x.d); if (i == null) continue; const pr = extY(i, x.up); if (pr == null) continue; const c = x.up ? '#33d39a' : '#ff4d5e', yy = pr + (x.up ? 30 : -30);
     g += `<g><title>${x.na} × ${x.nb} (Index) · ${x.up ? 'Long' : 'Short'} · ${dmy(x.d)}</title><circle cx="${X(i)}" cy="${yy}" r="7" fill="${c}" stroke="#160b1b" stroke-width="1.4"/><text x="${X(i)}" y="${yy + 3.5}" fill="#0b0b10" font-size="10" font-weight="900" text-anchor="middle">×</text></g>`;
   }
   // Anzahl im sichtbaren Bereich auf den Knöpfen (damit man sieht, ob es im Zeitraum überhaupt Signale gibt)
@@ -3821,7 +4069,8 @@ function renderCharts0() {
   }
   g += `</g>`;
   // ---- Cluster (L1/S1 stärkster, L2/S2 nächster, L3… weitere), Glocken-Linien (Alarmstufe), Mitte, eigene Alarmlinien ----
-  const LBL = [], xm = P.l + iw / 2, xr = P.l + iw, inY = p => p != null && p >= yl && p <= yh;
+  // V21: wo Cluster-, Alarm- und eigene Linien beginnen (Zahnrad: 0 % = ganz links, 50 % = Mitte wie bisher)
+  const LBL = [], xm = P.l + iw * clamp(X12.lineFrom ?? 50, 0, 95) / 100, xr = P.l + iw, inY = p => p != null && p >= yl && p <= yh;
   // Pivot: höchstes Hoch und tiefstes Tief danach (sichtbarer Bereich oder gesamter Verlauf), Linie bis zum rechten Rand
   if (VSTYLE === 'vss' && (LAY.pivot || LAY.fib)) {
     // V16: in der angezeigten Währung, mehrere Zeiträume gleichzeitig, Berechnungsart aus dem Zahnrad (Extreme / Tief nach Hoch / Hoch nach Tief)
@@ -3839,12 +4088,15 @@ function renderCharts0() {
         const name = R.pb === 'view' ? t('pvr_view') : (PVS[LANG] || PVS.de)[R.pb], bell = AL.pivot && PVA.per.includes(String(R.pb)) && PVA[sd];
         const same = lines.find(L => L.sd === sd && Math.abs(L.p - p) < 1e-6);
         if (same) { same.names.push(name); same.bell ||= bell; continue; }
-        const gi = k + R.off; lines.push({ sd, p, key, c, x1: xAtExt(gi, sd), names: [name], bell });
+        // V21: jeder Zeitraum in eigener Abstufung der Farbe (kurz = heller, lang = kräftiger), damit man sie auseinanderhält
+        const ix = PV_STEPS.indexOf(String(R.pb)), sh = R.pb === 'view' ? 0 : (ix - 6) / 7;
+        const cc = sh < 0 ? mixHex(c, '#ffffff', Math.min(.55, -sh * .9)) : mixHex(c, '#000000', Math.min(.35, sh * .5));
+        const gi = k + R.off; lines.push({ sd, p, key, c: cc, x1: xAtExt(gi, sd), names: [name], bell });
       }
       for (const L of lines) {
         const y = Y(L.p);
         g += `<line x1="${L.x1}" x2="${xr}" y1="${y}" y2="${y}" stroke="${L.c}" stroke-width="${pw}"/><circle cx="${L.x1}" cy="${y}" r="${Math.max(3.5, pw + 1.3)}" fill="${L.c}"/>`;
-        LBL.push({ y, text: `${L.bell ? '🔔 ' : ''}${t(L.key)}${sel.length > 1 ? ' ' + L.names.join('·') : ''} ${moneyK(L.p)}`, bg: L.c, fg: '#0b0b10', op: 1, pr: 1 });
+        LBL.push({ y, text: `${L.bell ? '🔔 ' : ''}${t(L.key)}${L.names?.length ? ' – (' + L.names.join('–') + ')' : ''} – ${moneyK(L.p)}`, bg: L.c, fg: '#0b0b10', op: 1, pr: 1 });
       }
     }
     // Fibonacci aus dem gewählten Zeitraum (Standard: erster angehakter Pivot-Zeitraum)
@@ -3877,7 +4129,7 @@ function renderCharts0() {
       g += `<rect x="${xm}" y="${y1.toFixed(1)}" width="${(xr - xm).toFixed(1)}" height="${Math.max(2, y2 - y1).toFixed(1)}" fill="${colr}" opacity="${main ? .13 : faint ? .05 : .07}"/>`;
       g += `<line x1="${xm + bw2}" x2="${xr}" y1="${y}" y2="${y}" stroke="${colr}" stroke-width="${main ? 2.3 : c.kind === 'far' ? 1.7 : 1.4}" ${main ? '' : `stroke-dasharray="${faint ? '2 4' : c.kind === 'far' ? '12 4 2 4' : '7 5'}"`} opacity="${faint ? .85 : 1}"/>`;
       g += `<rect x="${xm}" y="${y - 8.5}" width="${bw2}" height="17" rx="3" fill="${colr}" stroke="#160b1b" stroke-width="1"/><text x="${xm + bw2 / 2}" y="${y + 4}" fill="#0b0b10" font-size="11" font-weight="800" text-anchor="middle">${c.id}</text>`;
-      LBL.push({ y, text: `${main ? '★' : ''}${c.id} ${moneyK(p)} · ${fmt(z.usd / 1e6, 0)}${LANG === 'de' ? ' Mio' : 'M'}`, bg: c.side === 'L' ? ST.heatLabelBgL : ST.heatLabelBgS, fg: c.side === 'L' ? ST.heatLabelTextL : ST.heatLabelTextS, op: main ? 1 : faint ? .6 : .8, pr: main ? 1 : faint ? 5 : 3 });
+      LBL.push({ y, text: `${main ? '★' : ''}${c.id} – ${moneyK(p)} – ${fmt(z.usd / 1e6, 0)}${LANG === 'de' ? ' Mio.' : LANG === 'ar' ? ' مليون' : 'M'}`, bg: c.side === 'L' ? ST.heatLabelBgL : ST.heatLabelBgS, fg: c.side === 'L' ? ST.heatLabelTextL : ST.heatLabelTextS, op: main ? 1 : faint ? .6 : .8, pr: main ? 1 : faint ? 5 : 3 });
     }
     if (LAY.bell) for (const c of CL) {
       if (c.kind === 'extra' && !HEAT.alarmExtra) continue;
@@ -3936,11 +4188,16 @@ function renderCharts0() {
   // eigene Linien zum Verschieben (über allem anderen, damit man sie greifen kann)
   if (VSTYLE === 'vss' && LAY.own && !LOCK) for (const l of LINES) { if (!l.on) continue; const p = conv(l.p); if (!inY(p)) continue; g += `<rect id="own-${l.id}" x="${xm}" y="${Y(p) - 7}" width="${xr - xm}" height="14" fill="transparent" style="cursor:ns-resize"/>`; }
   if (VSTYLE === 'vss') g += `<line class="fsep" x1="${P.l + iw}" x2="${P.l + iw}" y1="0" y2="${H1}"/>`;
-  g += `<rect id="axisGrab" x="${P.l + iw}" y="0" width="${P.r}" height="${H1 - (VSTYLE === 'vss' ? P.b : 0)}" fill="transparent" style="cursor:ns-resize"/>`;
-  // V20: Trennlinie über der Zeitleiste, Ziehen an der Zeitleiste = Zeit zusammenschieben/auseinanderziehen; Countdown ganz oben (deckend)
-  if (VSTYLE === 'vss') g += `<line class="fsep" x1="0" x2="${W}" y1="${H1 - P.b}" y2="${H1 - P.b}"/><rect id="xGrabP" x="${P.l}" y="${H1 - P.b}" width="${iw}" height="${P.b}" fill="transparent" style="cursor:ew-resize"/>`;
+  // V20: Trennlinie über der Zeitleiste; Countdown deckend
+  if (VSTYLE === 'vss') g += `<line class="fsep" x1="0" x2="${W}" y1="${H1 - P.b}" y2="${H1 - P.b}"/>`;
   g += cdSvg;
+  // V21: Zieh-Flächen für Skala und Zeitleiste ganz oben (vorher lagen Beschriftungen darüber → Zieh-Symbol fehlte oft); Zeitleiste über die ganze Breite
+  g += `<rect id="axisGrab" class="grab" x="${P.l + iw}" y="0" width="${P.r}" height="${H1 - (VSTYLE === 'vss' ? P.b : 0)}" fill="transparent" style="cursor:ns-resize"/>`;
+  if (VSTYLE === 'vss') g += `<rect id="xGrabP" class="grab" x="0" y="${H1 - P.b}" width="${W}" height="${P.b}" fill="transparent" style="cursor:ew-resize"/>`;
+  // V21: Dreieck oben am Ende der Kerzen (wie MT4) – ziehen = Abstand zum rechten Rand
+  if (VSTYLE === 'vss' && X12.shiftTri !== false && atEnd && !RC_IDX) g += `<path id="shiftGrab" d="M${(xEnd - 7).toFixed(1)},1 L${(xEnd + 7).toFixed(1)},1 L${xEnd.toFixed(1)},13 Z" fill="#f6c453" stroke="#160b1b" stroke-width="1" style="cursor:ew-resize"><title>${t('shiftTip')}</title></path>`;
   g += `<line id="yh1" x1="${P.l}" x2="${P.l + iw}" y1="0" y2="0" stroke="#fff" stroke-opacity=".4" stroke-dasharray="3 4" visibility="hidden"/><g id="ylb1" visibility="hidden"><rect x="${P.l + iw + 2}" y="-10" width="${Math.max(60, P.r - 8)}" height="20" rx="5" fill="#f4eef8"/><text x="${P.l + iw + 2 + Math.max(60, P.r - 8) / 2}" y="4.5" fill="#160b1b" font-size="12" font-weight="800" text-anchor="middle"></text></g>`;
+  if (VSTYLE === 'vss') g += `<g id="xlb1" visibility="hidden"><rect x="-56" y="${H1 - P.b + 3}" width="112" height="${P.b - 6}" rx="5" fill="#f4eef8"/><text x="0" y="${H1 - P.b / 2 + 4}" fill="#160b1b" font-size="11.5" font-weight="800" text-anchor="middle"></text></g>`;
   g += `<line id="xh1" x1="0" x2="0" y1="0" y2="${H1}" stroke="#fff" stroke-opacity=".35" stroke-dasharray="3 4" visibility="hidden"/><circle id="hv1" r="5" fill="#fff" stroke="#160b1b" stroke-width="2" visibility="hidden"/>`;
   if (!RC_IDX) { const svg1 = $('priceChart'); svg1.setAttribute('viewBox', `0 0 ${W} ${H1}`); svg1.innerHTML = g; }
 
@@ -3959,10 +4216,24 @@ function renderCharts0() {
     <clipPath id="ac"><path d="${area}"/></clipPath>
     <filter id="iglow" x="-5%" y="-40%" width="110%" height="180%"><feGaussianBlur stdDeviation="3"/></filter>
     <clipPath id="plot2"><rect x="${P.l}" y="${Q.t - 4}" width="${iw}" height="${ih2 + 4}"/></clipPath></defs><g clip-path="url(#plot2)">`;
-  if (candles) {
+  // V21: Kerzengröße des Index-Charts – gekoppelt wie das Kurs-Chart (Stunde/Tag/Woche/Monat), sonst wie gewählt
+  const itf = IDXTF !== 'auto' ? IDXTF : !COUPLE ? '1d' : typeof CDIV === 'number' ? '1h' : CDIV === 'w' ? '1w' : CDIV === 'mo' || CDIV === 'y' ? '1mo' : '1d';
+  const hv = itf === '1h' ? D?.idxHourly?.v?.[mkey()] : null, hh0 = D?.idxHourly?.h0 ?? Infinity;
+  if (candles && (itf === '1w' || itf === '1mo')) {
+    const gk = d => itf === '1mo' ? d.slice(0, 7) : vwMonday(d), groups = []; data.forEach((d, i) => { const k = gk(d[0]); if (groups.length && groups.at(-1).k === k) groups.at(-1).i1 = i; else groups.push({ k, i0: i, i1: i }); });
+    for (const gq of groups) { const prev = gq.i0 ? data[gq.i0 - 1][colI] : all[VIEW.s - 1]?.[colI] ?? data[gq.i0][colI], cl = data[gq.i1][colI]; let hi = Math.max(prev, cl), lo = Math.min(prev, cl);
+      for (let i = gq.i0; i <= gq.i1; i++) { const v = data[i][colI], rw = IDXW === 'none' ? v : data[i][rcol] ?? v; hi = Math.max(hi, v, rw); lo = Math.min(lo, v, rw); }
+      const xc = (X(gq.i0) + X(gq.i1)) / 2, cw = Math.min(CWMAX(), Math.max(1.5, (gq.i1 - gq.i0 + 1) * bw * 0.7)), c = color(cl), yT = Y2(Math.max(prev, cl)), yB = Y2(Math.min(prev, cl));
+      h += `<line x1="${xc.toFixed(1)}" x2="${xc.toFixed(1)}" y1="${Y2(hi)}" y2="${Y2(lo)}" stroke="${c}" stroke-width="1"/><rect x="${(xc - cw / 2).toFixed(1)}" y="${yT.toFixed(1)}" width="${cw.toFixed(1)}" height="${Math.max(1.5, yB - yT).toFixed(1)}" fill="${c}"/>`; }
+  } else if (candles) {
     // Kerzen: Eröffnung = Vortag, Schluss = heute, Docht = Tageswert ohne Mittelung
-    const cw = Math.max(1, bw * 0.62);
+    const cw = Math.min(CWMAX(), Math.max(1, bw * 0.62));
+    // V21: Stundenkerzen aus dem Live-Mitschnitt (letzte 7 Tage, ohne Mittelung) – davor weiter Tageskerzen
+    if (hv) { const cwh = Math.min(CWMAX(), Math.max(1, bw / 24 * 0.62)); let pv = null;
+      hv.forEach((v, k) => { if (v == null) return; const ts = hh0 + k * 36e5, xx = XT(ts + 18e5), o = pv ?? v; pv = v; if (xx < P.l || xx > P.l + iw) return;
+        const c = color(v), yT = Y2(Math.max(o, v)), yB = Y2(Math.min(o, v)); h += `<rect x="${(xx - cwh / 2).toFixed(1)}" y="${yT.toFixed(1)}" width="${cwh.toFixed(1)}" height="${Math.max(1.5, yB - yT).toFixed(1)}" fill="${c}"/>`; }); }
     data.forEach((d, i) => {
+      if (hv && Date.parse(d[0]) + 864e5 > hh0) return;
       const prev = i ? data[i - 1][colI] : all[VIEW.s - 1]?.[colI] ?? d[colI], cl = d[colI], raw = d[rcol] ?? cl;
       const rw = IDXW === 'none' ? cl : raw, hi = Math.max(prev, cl, rw), lo = Math.min(prev, cl, rw), c = color(cl), yT = Y2(Math.max(prev, cl)), yB = Y2(Math.min(prev, cl));
       h += `<line x1="${X(i)}" x2="${X(i)}" y1="${Y2(hi)}" y2="${Y2(lo)}" stroke="${c}" stroke-width="1"/><rect x="${(X(i) - cw / 2).toFixed(1)}" y="${yT.toFixed(1)}" width="${cw.toFixed(1)}" height="${Math.max(1.5, yB - yT).toFixed(1)}" fill="${c}"/>`;
@@ -4026,7 +4297,18 @@ function renderCharts0() {
   }
   // V20: Kreuz zweier Index-Linien (z. B. EMA 8 × SMA 20) – Kreis mit × am Kreuzungspunkt
   if (VZ && SMA.cross?.length) { const im3 = new Map(data.map((d, i) => [d[0], i])); for (const x of ilxList(colI)) { const i = im3.get(x.d); if (i == null) continue; const y = Y2(x.b), xx = X(i), c = x.up ? '#33d39a' : '#ff4d5e'; h += `<g><title>${x.na} × ${x.nb} · ${x.up ? 'Long' : 'Short'} · ${dmy(x.d)}</title><circle cx="${xx}" cy="${y}" r="6.5" fill="${c}" stroke="#160b1b" stroke-width="1.4"/><text x="${xx}" y="${y + 3.5}" fill="#0b0b10" font-size="10" font-weight="900" text-anchor="middle">×</text></g>`; } }
-  if (OPT.off) { let off = '', prev = -2; o7.forEach((v, i) => { if (v == null) return; off += (i === prev + 1 ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y2(v).toFixed(1); prev = i; }); h += `<path d="${off}" fill="none" stroke="${ST.offColor}" stroke-width="2" stroke-dasharray="5 4"/>`; }
+  // V21: Index-Alarme als Linien im Index-Chart (🔔 + Wert rechts)
+  if (VSTYLE === 'vss') for (const a of IDXAL) { if (a.on === false || a.src !== 'i' || a.v < lo2 || a.v > hi2) continue; const y = Y2(a.v);
+    h += `<line x1="${P.l}" x2="${P.l + iw}" y1="${y}" y2="${y}" stroke="#f6c453" stroke-width="1.3" stroke-dasharray="6 4"/><text x="${P.l + iw - 4}" y="${y - 4}" fill="#f6c453" font-size="11" font-weight="800" text-anchor="end" paint-order="stroke" stroke="#160b1b" stroke-width="3">🔔 ${a.v}${a.dir && a.dir !== 'both' ? (a.dir === 'up' ? ' ↑' : ' ↓') : ''}</text>`; }
+  // V21: Index-VWAP – Index gewichtet mit dem Bitcoin-Volumen je Tag (Woche/Monat/Quartal/Jahr), nur als Orientierung (der Index selbst hat kein Volumen)
+  if (VSTYLE === 'vss' && IVW.on) { const key = VW_KEY[IVW.a] || VW_KEY.M, vw = memo('ivw' + IVW.a + colI + all.length, () => { let k0 = null, sv = 0, vv = 0; return all.map(r => { const k = key(r[0]); if (k !== k0) { k0 = k; sv = vv = 0; } const v = r[18] || 0; if (r[colI] != null && v > 0) { sv += r[colI] * v; vv += v; } return vv ? sv / vv : null; }); });
+    let d = '', pk = null; for (let i = VIEW.s; i <= lastI; i++) { const v = vw[i]; if (v == null) { pk = null; continue; } const k = key(all[i][0]); d += (k !== pk ? 'M' : 'L') + X(i - VIEW.s).toFixed(1) + ',' + Y2(v).toFixed(1); pk = k; }
+    if (d) h += `<path d="${d}" fill="none" stroke="#b48cff" stroke-width="1.6" opacity=".95"><title>${esc(t('ivwTip', { a: t('vwA_' + IVW.a) }))}</title></path>`; }
+  // V21: offizieller Index wahlweise als Kerzen (Eröffnung = Vortag, Schluss = heute, Docht = Tageswert des Anbieters)
+  if (OPT.off && OFFST === 'candle' && VSTYLE === 'vss') { const cw = Math.min(CWMAX(), Math.max(1, bw * 0.5));
+    o7.forEach((v, i) => { if (v == null) return; const pv = i ? o7[i - 1] : null, o = pv ?? v, rw = data[i][oc] ?? v, hi = Math.max(o, v, rw), lo = Math.min(o, v, rw), up = v >= o, yT = Y2(Math.max(o, v)), yB = Y2(Math.min(o, v));
+      h += `<line x1="${X(i)}" x2="${X(i)}" y1="${Y2(hi)}" y2="${Y2(lo)}" stroke="${ST.offColor}" stroke-width="1"/><rect x="${(X(i) - cw / 2).toFixed(1)}" y="${yT.toFixed(1)}" width="${cw.toFixed(1)}" height="${Math.max(1.5, yB - yT).toFixed(1)}" fill="${up ? ST.offColor : '#160b1b'}" stroke="${ST.offColor}" stroke-width="1"/>`; }); }
+  if (OPT.off && !(OFFST === 'candle' && VSTYLE === 'vss')) { let off = '', prev = -2; o7.forEach((v, i) => { if (v == null) return; off += (i === prev + 1 ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y2(v).toFixed(1); prev = i; }); h += `<path d="${off}" fill="none" stroke="${ST.offColor}" stroke-width="2" stroke-dasharray="5 4"/>`; }
   // V19: Signale des offiziellen Index auch im Index-Chart (Stufen wie eingestellt), auf der offiziellen Linie
   if (VZ && LAY.sigOffI) {
     const io = new Map(data.map((d, i) => [d[0], i]));
@@ -4074,11 +4356,14 @@ function renderCharts0() {
   } else [[100, ST.axisColor, 0], [50, ST.axisColor, 0], [0, ST.axisColor, 0], ...lvLines.map(([v, c]) => [v, c, 1])].forEach(([v, c, b]) => h += `<text x="${W - 30}" y="${Y2(v) + 4}" fill="${c}" font-size="${ST.axisSize}" text-anchor="end" font-weight="${b ? 800 : 500}">${v}</text>`);
   data.forEach((d, i) => { if (tick(d, i)) h += `<text x="${n <= 12 ? X(i) : X(i)}" y="${H2 - 6}" fill="${ST.axisColor}" font-size="${ST.axisSize}" text-anchor="middle">${tickLabel(d)}</text>`; });
   if (VZ) h += `<line class="fsep" x1="${P.l + iw}" x2="${P.l + iw}" y1="0" y2="${H2 - Q.b}"/><line class="fsep" x1="0" x2="${W}" y1="${H2 - Q.b}" y2="${H2 - Q.b}"/>`;
-  h += `<rect id="xGrab" x="${P.l}" y="${H2 - Q.b}" width="${iw}" height="${Q.b}" fill="transparent" style="cursor:ew-resize"/>`;
+  h += `<rect id="xGrab" class="grab" x="0" y="${H2 - Q.b}" width="${W}" height="${Q.b}" fill="transparent" style="cursor:ew-resize"/>`;
+  // V21: freies Fadenkreuz im Index-Chart: waagerechte Linie + Wert an der Skala, Zeit an der Zeitleiste
+  h += `<line id="yh2" x1="${P.l}" x2="${P.l + iw}" y1="0" y2="0" stroke="#fff" stroke-opacity=".4" stroke-dasharray="3 4" visibility="hidden"/><g id="ylb2" visibility="hidden"><rect x="${P.l + iw + 2}" y="-10" width="${Math.max(46, P.r - 8)}" height="20" rx="5" fill="#f4eef8"/><text x="${P.l + iw + 2 + Math.max(46, P.r - 8) / 2}" y="4.5" fill="#160b1b" font-size="12" font-weight="800" text-anchor="middle"></text></g>`;
+  h += `<g id="xlb2" visibility="hidden"><rect x="-56" y="${H2 - Q.b + 3}" width="112" height="${Q.b - 6}" rx="5" fill="#f4eef8"/><text x="0" y="${H2 - Q.b / 2 + 4}" fill="#160b1b" font-size="11.5" font-weight="800" text-anchor="middle"></text></g>`;
   h += `<line id="xh2" x1="0" x2="0" y1="0" y2="${H2}" stroke="#fff" stroke-opacity=".35" stroke-dasharray="3 4" visibility="hidden"/><circle id="hv2" r="4.5" fill="#fff" stroke="#160b1b" stroke-width="2" visibility="hidden"/><circle id="hv3" r="4.5" fill="${ST.offColor}" stroke="#160b1b" stroke-width="2" visibility="hidden"/>`;
   const svg2 = $('idxChart'); svg2.setAttribute('viewBox', `0 0 ${W} ${H2}`); svg2.innerHTML = h;
-  if (RC_IDX) { chartGeom2 = { W, iw, P, n, bw, X, Y, Y2, XT, t0, ySpan: yh - yl, pts, hourly: false, yl, yh, ih, H1, H2, ih2, colI }; chartData2 = data; chartO72 = o7; return; }
-  chartGeom = { W, iw, P, n, bw, X, Y, Y2, XT, t0, ySpan: yh - yl, pts, hourly: !!hourly, yl, yh, ih, H1, H2, ih2, colI };
+  if (RC_IDX) { chartGeom2 = { W, iw, P, n, bw, X, Y, Y2, XT, t0, ySpan: yh - yl, pts, hourly: false, yl, yh, ih, H1, H2, ih2, colI, lo2, hi2, Qt: Q.t, Qb: Q.b }; chartData2 = data; chartO72 = o7; return; }
+  chartGeom = { W, iw, P, n, bw, X, Y, Y2, XT, t0, ySpan: yh - yl, pts, hourly: !!hourly, yl, yh, ih, H1, H2, ih2, colI, lo2, hi2, Qt: Q.t, Qb: Q.b };
   renderHeatInfo(); renderSigStats(); renderDir();
 }
 // Tooltip wie im Video: Datum, Bitcoin, Index · Zone, Offiziell, laufende Extremphasen
@@ -4103,7 +4388,8 @@ function hover0(e, svg) {
     const ts = HOURS?.[best]?.[0] ?? Date.now(), dt = new Date(ts);
     title = `${WD[LANG][dt.getDay()]}, ${String(dt.getDate()).padStart(2, '0')}.${String(dt.getMonth() + 1).padStart(2, '0')}. · ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
   } else {
-    if (x > G.P.l + G.n * G.bw + G.bw) { hideHover(); return; }
+    // V21: rechts neben den Kerzen (leerer Bereich) trotzdem Fadenkreuz mit Preis/Wert und Zeit – nur ohne Tooltip
+    if (x > G.P.l + G.n * G.bw + G.bw) { freeCross(e, svg, x); return; }
     i = clamp(Math.floor((x - G.P.l) / G.bw), 0, G.n - 1); price = G.pts[i].c; px = G.X(i); py = G.Y(price);
     const d = chartData[i][0];
     title = `${WD[LANG][new Date(d + 'T12:00:00Z').getUTCDay()]}, ${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}`;
@@ -4121,6 +4407,7 @@ function hover0(e, svg) {
   const d = chartData[i], v = d[col], offV = d[o.col];
   const set = (id, a, b) => { const el = $(id); if (!el) return; if (id.startsWith('xh')) { el.setAttribute('x1', a); el.setAttribute('x2', a); } else { el.setAttribute('cx', a); el.setAttribute('cy', b); } el.setAttribute('visibility', 'visible'); };
   set('xh1', px); set('xh2', px); set('hv1', px, py); set('hv2', G.X(i), G.Y2(G.colI != null && d[G.colI] != null ? d[G.colI] : v));
+  crossLabels(e, svg, px, title);
   if (OPT.off && chartO7[i] != null) set('hv3', G.X(i), G.Y2(chartO7[i])); else $('hv3')?.setAttribute('visibility', 'hidden');
   $('hv1').setAttribute('fill', color(v));
   { const yl = $('yh1'), lb = $('ylb1'); if (freeY != null && yl && lb) { yl.setAttribute('y1', freeY); yl.setAttribute('y2', freeY); yl.setAttribute('visibility', 'visible'); lb.setAttribute('transform', `translate(0,${freeY.toFixed(1)})`); lb.querySelector('text').textContent = fmt(price, 0); lb.setAttribute('visibility', 'visible'); } else { yl?.setAttribute('visibility', 'hidden'); lb?.setAttribute('visibility', 'hidden'); } }
@@ -4139,6 +4426,11 @@ function hover0(e, svg) {
   if (VSTYLE === 'vss') { const sg = daySignals(d[0]); if (sg.length) tt.innerHTML += `<div class="ttsig">${sg.join('')}</div>`; }
   tt.style.left = Math.min(e.clientX + 18, innerWidth - tt.offsetWidth - 12) + 'px'; tt.style.top = Math.min(e.clientY + 18, innerHeight - tt.offsetHeight - 12) + 'px';
 }
+// V21: Beschreibung einer Signal-Marke (Tooltip direkt an der Marke)
+function daySigTitle(kind, o) {
+  try { if (kind === 'lv') { const { k, s } = o; return `${s.type === 'fear' ? '▲ Long' : '▼ Short'} · ${alarmText(s.kind, { ...s, hi: LV[k].hi, lo: LV[k].lo }, LANG).title.replace(/^[^\p{L}⚠]+/u, '')} · ${LV[k].hi}/${LV[k].lo} · ${dmy(s.d)}`; } } catch { }
+  return '';
+}
 function daySignals(day) {
   const out = [], G = '#33d39a', R = '#ff4d5e', row = (c, s) => `<div style="color:${c};font-weight:700">${s}</div>`;
   try {
@@ -4148,23 +4440,64 @@ function daySignals(day) {
     if (LAY.vwS) for (const x of vwSigList()) if (x.d === day) out.push(row(x.up ? '#2ee6c8' : '#ff8c42', `VWAP · ${t('vwt_' + x.vt)} ${t('vwA_' + x.anchor)} · ${x.up ? 'Long' : 'Short'}${x.against ? ` <span style="color:#ffcc4d">⚠ ${t('cdlAgainst')}</span>` : ''}`));
     for (const x of smaAll(avgCol(idxCol7(), rawCol(), AVGI))) if (x.d === day && smaDirOk(x)) out.push(row(smaCol(x), `${x.up ? '▲' : '▼'} ${t('sma_' + x.type)} · ${x.up ? 'Long' : 'Short'} (Index ${x.v} / ${lineName(x.line)} ${fmt(x.sma, 1)})`));
     if (LAY.div) for (const x of divList()) if (x.conf === day) out.push(row(x.type.includes('bull') ? ST.divBull : ST.divBear, `${x.type[0] === 'h' ? 'H ' : ''}${x.type.includes('bull') ? 'Bull' : 'Bear'} · ${t('btnDiv')}`));
+    // V21: auch offizielle Signale, Kreuze der Index-Linien, Fraktale und MA-Alarme beschreiben
+    if (LAY.sigOff) { if (OFFSIG.ext) for (const s of offExitList()) if (s.d === day) out.push(row(ST.sigOffColor, `${s.up ? '▲' : '▼'} ${t('osExitT', { l: s.lim, e: s.ext, d: dmy(s.extDay) })} · ${s.up ? 'Long' : 'Short'}`));
+      if (OFFSIG.frac) for (const f of offFracList()) if (f.d === day) out.push(row(ST.sigOffColor, `◆ ${t(f.fb ? (f.up ? 'osFbLo' : 'osFbHi') : (f.up ? 'frLo' : 'frHi'))} · ${t('osFracFor', { d: dmy(f.from) })}`));
+      if (OFFSIG.x?.length) for (const x of offCrossAll()) if (x.d === day) out.push(row(ST.sigOffColor, `× ${t('os_x', { l: x.name })} · ${x.up ? 'Long' : 'Short'}`)); }
+    if (SMA.cross?.length) for (const x of ilxList(avgCol(idxCol7(), rawCol(), AVGI))) if (x.d === day) out.push(row(x.up ? G : R, `⊗ ${x.na} × ${x.nb} (Index) · ${x.up ? 'Long' : 'Short'}`));
+    if (LAY.frP) for (const x of priceFracList()) if (x.d === day) out.push(row(x.t === 'lo' ? G : R, `◇ ${t(x.t === 'lo' ? 'frLo' : 'frHi')} · ${moneyK(conv(x.p))}`));
+    if (typeof maEvents === 'function') for (const x of maEvents()) if (x.d === day) out.push(row(x.up ? G : R, `MA · ${esc(x.name || x.id || '')} ${x.nameX ? '× ' + esc(x.nameX) : ''} · ${x.up ? 'Long' : 'Short'}`));
   } catch { }
   return out;
 }
-const hideHover = () => { $('tt').style.display = 'none'; ['xh1', 'xh2', 'hv1', 'hv2', 'hv3', 'yh1', 'ylb1'].forEach(x => $(x)?.setAttribute('visibility', 'hidden')); };
+const hideHover = () => { $('tt').style.display = 'none'; ['xh1', 'xh2', 'hv1', 'hv2', 'hv3', 'yh1', 'ylb1', 'yh2', 'ylb2', 'xlb1', 'xlb2'].forEach(x => $(x)?.setAttribute('visibility', 'hidden')); };
+// V21: Fadenkreuz frei im ganzen Chart (wie TradingView) – Wert an der Skala (Kurs oben, Index unten) und Zeit an der Zeitleiste
+function crossLabels(e, svg, px, title) {
+  const G = chartGeom; if (!G) return; const r = svg.getBoundingClientRect();
+  const lab = (id, x) => { const el = $(id); if (!el) return; el.setAttribute('transform', `translate(${clamp(x, 56, G.W - 56).toFixed(1)},0)`); el.querySelector('text').textContent = title; el.setAttribute('visibility', 'visible'); };
+  if (VSTYLE === 'vss') { lab('xlb1', px); lab('xlb2', px); }
+  if (svg.id === 'idxChart' && G.ih2) {
+    const my = (e.clientY - r.top) / r.height * G.H2, v = G.lo2 + (1 - (my - G.Qt) / G.ih2) * (G.hi2 - G.lo2), yl = $('yh2'), lb = $('ylb2');
+    if (yl && lb && my >= G.Qt && my <= G.H2 - G.Qb) { yl.setAttribute('y1', my); yl.setAttribute('y2', my); yl.setAttribute('visibility', 'visible'); lb.setAttribute('transform', `translate(0,${my.toFixed(1)})`); lb.querySelector('text').textContent = fmt(v, 1); lb.setAttribute('visibility', 'visible'); }
+  } else ['yh2', 'ylb2'].forEach(x => $(x)?.setAttribute('visibility', 'hidden'));
+}
+function qmenuShow() { }   // V21: Schnellmenü am Preis – wird weiter unten (Zeichenwerkzeuge) ersetzt
+function freeCross(e, svg, x) {
+  const G = chartGeom; $('tt').style.display = 'none'; ['hv1', 'hv2', 'hv3'].forEach(k => $(k)?.setAttribute('visibility', 'hidden'));
+  for (const id of ['xh1', 'xh2']) { const el = $(id); if (el) { el.setAttribute('x1', x); el.setAttribute('x2', x); el.setAttribute('visibility', 'visible'); } }
+  const ts = G.t0 + (x - G.P.l) / G.bw * 864e5, dt = new Date(ts);
+  crossLabels(e, svg, x, `${String(dt.getDate()).padStart(2, '0')}.${String(dt.getMonth() + 1).padStart(2, '0')}.${String(dt.getFullYear()).slice(2)}`);
+  if (svg.id === 'priceChart') { const r = svg.getBoundingClientRect(), my = (e.clientY - r.top) / r.height * G.H1, price = G.yl + (1 - (my - G.P.t) / G.ih) * (G.yh - G.yl), yl = $('yh1'), lb = $('ylb1');
+    if (yl && lb) { yl.setAttribute('y1', my); yl.setAttribute('y2', my); yl.setAttribute('visibility', 'visible'); lb.setAttribute('transform', `translate(0,${my.toFixed(1)})`); lb.querySelector('text').textContent = moneyK(price); lb.setAttribute('visibility', 'visible'); }
+    qmenuShow(svg, my, price); }
+}
 // Bedienung wie TradingView: Mausrad = Zeit zoomen, ziehen = verschieben, Preis-/Zeitachse ziehen = zoomen, Doppelklick = zurücksetzen
+const PTRS = new Map(); let PINCH = null;
 function setWindow(s, width) { const n = ALL.length; width = clamp(Math.round(width), 5, n + Math.round(n * 0.5)); s = clamp(Math.round(s), 0, n - 2); VIEW = { s, e: s + width - 1 }; }
 for (const id of ['priceChart', 'idxChart']) {
   const svg = $(id), isPrice = id === 'priceChart';
   svg.style.touchAction = 'none';
   svg.addEventListener('pointerdown', e => {
     if (!chartGeom) return;
+    // V21: zwei Finger = zusammenschieben/auseinanderziehen (waagerecht = Zeit, senkrecht = Kurs bzw. Index)
+    PTRS.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (PTRS.size === 2) { const [a, b] = [...PTRS.values()], dec = !COUPLE && VSTYLE === 'vss' && !isPrice, v0 = { ...(dec ? VIEW2 || VIEW : VIEW) };
+      PINCH = { dec, dx: Math.max(30, Math.abs(a.x - b.x)), dy: Math.max(30, Math.abs(a.y - b.y)), cx: (a.x + b.x) / 2, view: v0, zoom: yZoom, r2: Y2R.hi - Y2R.lo, c2: (Y2R.hi + Y2R.lo) / 2, isPrice, rect: svg.getBoundingClientRect() };
+      drag = null; hideHover(); svg.setPointerCapture(e.pointerId); return; }
     const tid = e.target.id;
     const dec = !COUPLE && VSTYLE === 'vss' && !isPrice;
-    drag = { dec, x: e.clientX, y: e.clientY, view: { ...(dec ? VIEW2 || VIEW : VIEW) }, zoom: yZoom, shift: yShift, mode: tid === 'axisGrab' ? 'y' : tid === 'axisGrab2' ? 'y2' : tid === 'xGrab' || tid === 'xGrabP' ? 'x' : tid.startsWith('own-') ? 'line' : 'pan', line: tid.startsWith('own-') ? tid.slice(4) : null, r2: Y2R.hi - Y2R.lo, c2: (Y2R.hi + Y2R.lo) / 2, rect: svg.getBoundingClientRect(), price: isPrice, span: chartGeom.ySpan || 1, moved: false };
+    drag = { dec, x: e.clientX, y: e.clientY, view: { ...(dec ? VIEW2 || VIEW : VIEW) }, zoom: yZoom, shift: yShift, mode: tid === 'axisGrab' ? 'y' : tid === 'axisGrab2' ? 'y2' : tid === 'xGrab' || tid === 'xGrabP' ? 'x' : tid === 'shiftGrab' ? 'shift' : tid.startsWith('own-') ? 'line' : 'pan', line: tid.startsWith('own-') ? tid.slice(4) : null, r2: Y2R.hi - Y2R.lo, c2: (Y2R.hi + Y2R.lo) / 2, rect: svg.getBoundingClientRect(), price: isPrice, span: chartGeom.ySpan || 1, moved: false };
     svg.setPointerCapture(e.pointerId);
   });
   svg.addEventListener('pointermove', e => {
+    if (PTRS.has(e.pointerId)) PTRS.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (PINCH && PTRS.size >= 2) { const [a, b] = [...PTRS.values()], G = chartGeom; if (!G) return;
+      const sx = PINCH.dx / Math.max(30, Math.abs(a.x - b.x)), sy = PINCH.dy / Math.max(30, Math.abs(a.y - b.y)), width0 = PINCH.view.e - PINCH.view.s + 1;
+      let keepV = null; if (PINCH.dec) { keepV = VIEW; VIEW = VIEW2 || { ...keepV }; }
+      const f = clamp(((PINCH.cx - PINCH.rect.left) / PINCH.rect.width * G.W - G.P.l) / G.iw, 0, 1), nw = clamp(width0 * sx, 5, ALL.length + Math.round(ALL.length * 0.5)), anchor = PINCH.view.s + f * width0;
+      setWindow(anchor - f * nw, nw);
+      if (Math.abs(a.y - b.y) > 40) { if (PINCH.isPrice) yZoom = clamp(PINCH.zoom * sy, 0.05, 10); else setY2(PINCH.c2, PINCH.r2 * sy); }
+      if (keepV) { VIEW2 = VIEW; VIEW = keepV; } rerender(); return; }
     if (!drag) { hover(e, svg); return; }
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y, width = drag.view.e - drag.view.s + 1;
     if (Math.abs(dx) + Math.abs(dy) > 3) { drag.moved = true; hideHover(); }
@@ -4178,12 +4511,16 @@ for (const id of ['priceChart', 'idxChart']) {
     }
     else if (drag.mode === 'y2') setY2(drag.c2, drag.r2 * Math.exp(dy * 0.006));
     else if (drag.mode === 'pan' && !drag.price && VSTYLE === 'vss' && drag.r2 < 100) { setWindow(drag.view.s - dx / pxPerDay, width); setY2(drag.c2 + dy / (drag.rect.height * chartGeom.ih2 / chartGeom.H2) * drag.r2, drag.r2); }
+    else if (drag.mode === 'shift') { const G = chartGeom, mx = (e.clientX - drag.rect.left) / drag.rect.width * G.W, pad = clamp(Math.round((G.P.l + G.iw - mx) / G.bw), 0, Math.round(width * 0.8));
+      VIEW = { s: Math.max(0, ALL.length - 1 + pad - width + 1), e: ALL.length - 1 + pad }; CHART.pct = Math.round(pad / width * 100); CHART.shift = pad > 0; store.set('fg10_chart', JSON.stringify(CHART)); }
     else if (drag.mode === 'y') yZoom = clamp(drag.zoom * Math.exp(dy * 0.006), 0.05, 10);
     else if (drag.mode === 'x') { const nw = width * Math.exp(-dx * 0.006); setWindow(drag.view.e - nw + 1, nw); }
     else { setWindow(drag.view.s - dx / pxPerDay, width); if (drag.price) yShift = drag.shift + dy / drag.rect.height * drag.span; }
     if (keepV) { VIEW2 = VIEW; VIEW = keepV; }
     rerender();
   });
+  const endP = e => { PTRS.delete(e.pointerId); if (PTRS.size < 2) PINCH = null; };
+  svg.addEventListener('pointerup', endP); svg.addEventListener('pointercancel', endP);
   const end = () => { if (drag?.mode === 'line' && drag.moved) { delete LSIDE[drag.line]; saveLines(); renderHeatInfo(); if ($('setModal').classList.contains('open')) renderLineSet(); } drag = null; };
   svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
   svg.addEventListener('mouseleave', () => { if (!drag) hideHover(); });
@@ -4213,9 +4550,9 @@ for (const [id, isIdx] of [['splitter', false], ['splitter2', true]]) { const sp
   sp.addEventListener('dblclick', () => { if (VSTYLE !== 'vss') { CH1 = 360; CH2 = 200; } else if (isIdx) CH2 = 200; else CH1 = 360; store.set('fg6_h1', CH1); store.set('fg6_h2', CH2); renderCharts(); }); }
 
 /* ================= Alarme im Browser ================= */
-const AL_DEF = { sound: true, notify: true, p1: true, p2: true, turn: true, heat: true, react: true, lines: true, div: true, off: false, pivot: true, f50: true, cdl: true, sma: true, vwap: true, frac: true, ma: true, fib: true,
-  snd: { signal: 'bell', off: 'soft', div: 'down', cluster: 'double', react: 'up', lines: 'soft', pivot: 'alarm', f50: 'up', cdl: 'chime', sma: 'up', vwap: 'ping', frac: 'chime', ma: 'double', fib: 'ping', test: 'bell' },
-  rep: { signal: { iv: 0, max: 3 }, off: { iv: 0, max: 3 }, div: { iv: 0, max: 3 }, cluster: { iv: 0, max: 3 }, react: { iv: 0, max: 3 }, lines: { iv: 0, max: 3 }, pivot: { iv: 120, max: 5 }, f50: { iv: 0, max: 3 }, cdl: { iv: 0, max: 3 }, sma: { iv: 0, max: 3 }, vwap: { iv: 0, max: 3 }, frac: { iv: 0, max: 3 }, ma: { iv: 0, max: 3 }, fib: { iv: 0, max: 3 } } };
+const AL_DEF = { sound: true, notify: true, p1: true, p2: true, turn: true, heat: true, react: true, lines: true, div: true, off: false, pivot: true, f50: true, cdl: true, sma: true, vwap: true, frac: true, ma: true, fib: true, idxal: true,
+  snd: { signal: 'bell', off: 'soft', div: 'down', cluster: 'double', react: 'up', lines: 'soft', pivot: 'alarm', f50: 'up', cdl: 'chime', sma: 'up', vwap: 'ping', frac: 'chime', ma: 'double', fib: 'ping', idxal: 'chime', test: 'bell' },
+  rep: { signal: { iv: 0, max: 3 }, off: { iv: 0, max: 3 }, div: { iv: 0, max: 3 }, cluster: { iv: 0, max: 3 }, react: { iv: 0, max: 3 }, lines: { iv: 0, max: 3 }, pivot: { iv: 120, max: 5 }, f50: { iv: 0, max: 3 }, cdl: { iv: 0, max: 3 }, sma: { iv: 0, max: 3 }, vwap: { iv: 0, max: 3 }, frac: { iv: 0, max: 3 }, ma: { iv: 0, max: 3 }, fib: { iv: 0, max: 3 }, idxal: { iv: 0, max: 3 } } };
 let AL = jget('fg6_alerts', AL_DEF);
 // V16: verschiedene Töne je Alarmart
 const SOUNDS = { bell: [[880, 0], [1175, .18], [1568, .36]], double: [[988, 0], [988, .24]], up: [[523, 0], [659, .12], [784, .24], [1047, .36]], down: [[1047, 0], [784, .14], [587, .28]], alarm: [[880, 0], [660, .2], [880, .4], [660, .6], [880, .8]], soft: [[660, 0]], chime: [[784, 0], [1175, .16], [784, .32], [1175, .48]], ping: [[1319, 0], [1760, .12], [1319, .24]] };
@@ -4507,6 +4844,429 @@ load(true);
 livePrice();
 // Neue Daten holen: am PC jede Minute (Programm-Intervall), online alle 2 Minuten, Einzeldatei alle 10 Minuten neu berechnen
 setInterval(() => { if (Date.now() - lastLoad > (window.FG_STANDALONE ? 600000 : SRV ? Math.max(1, SRV.intervals?.data || 1) * 60000 - 5000 : 115000)) load(false); }, 15000);
+</script>
+<!-- ===== V21 (aus der Testkopie fear-greed-v2): Ticker-Aussehen zum Durchschalten (Original / B1 / B2 / B3), Zahlen ausgeschrieben oder in Mio.,
+     Feineinstellung (🔧): alle Größen und Abstände mit Schiebereglern – je Stil und Bildschirmgröße gespeichert ===== -->
+<style id="tkv">
+  /* gemeinsam für B1–B3 – das dreispaltige Layout nur ab 900 px; schmaler (Tablet hochkant, Handy) bleibt der Ticker gestapelt */
+  html.tkv-on .ticker .arr.tick b{font-size:var(--tk-arr,clamp(44px,3.4vw,68px))!important}
+  html.tkv-on #arrTick::after{display:none!important}
+  html.tkv-on #liqCur{display:none!important}
+  html.tkv-on .tkvcur{height:28px!important;padding:0 26px 0 10px!important;font-size:13px!important;margin-left:12px;vertical-align:3px}
+  html:not(.tkv-on) .tkvcur{display:none}
+  @media (min-width:900px){
+    html.tkv-on .ticker{grid-template-columns:auto minmax(0,1fr) auto!important}
+    html.tkv-on .liqtitle{justify-content:space-between!important;padding:6px 16px 9px!important;min-width:0;overflow:hidden;align-items:stretch!important}
+    html.tkv-on .tk4{flex:1;justify-content:space-between!important;margin-top:6px;line-height:1.15!important;min-width:0;width:100%}
+    html.tkv-on .liq{justify-content:space-between!important;padding:9px 16px 6px!important;gap:0!important;width:auto!important}
+  }
+  html.tkv-on .tk4>div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.tkv-on .liq .sd,html.tkv-on .liq .sd span,html.tkv-on .liq .sd small{white-space:nowrap!important}
+  html.tkv-on .liq .sd{gap:5px!important}
+  html.tkv-on .segbar{height:14px!important}
+  /* B1: Preise 39 px, Liquidationen bis 15 px */
+  html.tkv-b1 #tPrice,html.tkv-b1 #tEur{font-size:39px!important}
+  html.tkv-b1 .liq .sd{font-size:17px!important} html.tkv-b1 .liq .sd small{font-size:11.5px!important}
+  html.tkv-b1 .pcts{font-size:22px!important}
+  html.tkv-b1{--tkv-liq:15px}
+  /* B2: kompakt – Preise 37 px, Liquidationen bis 13 px */
+  html.tkv-b2 #tPrice,html.tkv-b2 #tEur{font-size:37px!important}
+  html.tkv-b2 .liq .sd{font-size:16px!important} html.tkv-b2 .liq .sd small{font-size:10.5px!important}
+  html.tkv-b2 .liq .vs{width:28px!important;height:28px!important;font-size:11px!important}
+  html.tkv-b2 .pcts{font-size:21px!important}
+  html.tkv-b2{--tkv-liq:13px}
+  /* B3: Preise kleiner (34 px), Liquidationen größer (bis 16 px) */
+  html.tkv-b3 #tPrice,html.tkv-b3 #tEur{font-size:34px!important}
+  html.tkv-b3 .liqtitle>span:first-child{font-size:22px!important}
+  html.tkv-b3 .liq .sd{font-size:17px!important} html.tkv-b3 .liq .sd small{font-size:11.5px!important}
+  html.tkv-b3 .pcts{font-size:21px!important}
+  html.tkv-b3{--tkv-liq:16px}
+  /* Tablet quer (900–1279 px) in B1–B3: Schrift wächst mit der Bildschirmbreite statt fester Pixel */
+  @media (min-width:900px) and (max-width:1279px){
+    html.tkv-on #tPrice,html.tkv-on #tEur{font-size:clamp(24px,2.7vw,36px)!important}
+    html.tkv-on .liq .sd{font-size:clamp(13px,1.35vw,17px)!important}
+    html.tkv-on .liq .sd small{font-size:clamp(9px,.9vw,11.5px)!important}
+    html.tkv-on .pcts{font-size:clamp(15px,1.6vw,22px)!important}
+    html.tkv-on .liqtitle>span:first-child{font-size:clamp(14px,1.6vw,21px)!important}
+  }
+  /* schmale Bildschirme in B1–B3: Preise und Liquidationen kleiner, damit nichts abgeschnitten wird */
+  @media (max-width:899px){
+    html.tkv-on #tPrice,html.tkv-on #tEur{font-size:clamp(20px,4.2vw,30px)!important}
+    html.tkv-on .liq .sd{font-size:clamp(13px,2.6vw,18px)!important}
+    html.tkv-on .liq .sd small{font-size:clamp(9px,1.6vw,11.5px)!important}
+    html.tkv-on .pcts{font-size:clamp(14px,2.6vw,20px)!important}
+  }
+  /* Tasten am Ticker (neben ⇅ und ▾) */
+  .tcol.tkvb{right:114px;width:auto;min-width:64px;padding:0 9px!important;font-size:12px;font-weight:800;color:#f6c453}
+  .tcol.tknb{right:186px;width:auto;min-width:64px;padding:0 9px!important;font-size:12px;font-weight:800}
+  .tcol.tkfb{right:258px;width:auto;min-width:64px;padding:0 9px!important;font-size:12px;font-weight:800;color:#f6c453}
+  .tcol.tkfb.on{background:#3a2a05;border-color:#f6c453}
+  @media (max-width:560px){ .tcol.tkvb,.tcol.tknb,.tcol.tkfb{min-width:0;font-size:11px;padding:0 6px!important} .tcol.tknb{right:166px} .tcol.tkfb{right:216px} }
+  /* Feineinstellung */
+  #tkfPanel{position:fixed;z-index:120;width:min(390px,calc(100vw - 16px));overflow:auto;overscroll-behavior:contain;background:#140a18f7;
+    border:2px solid #f6c453;border-radius:14px;padding:10px 12px 12px;color:#f4eef8;font:13px/1.35 'Plus Jakarta Sans',system-ui,sans-serif;box-shadow:0 12px 34px #000b}
+  #tkfPanel[hidden]{display:none}
+  #tkfPanel .hd{display:flex;align-items:center;gap:6px;position:sticky;top:-10px;margin:-10px -12px 8px;padding:9px 12px 8px;background:#140a18;border-bottom:1px solid #3a2747;z-index:1}
+  #tkfPanel .hd b{font-size:15px;color:#f6c453;flex:1}
+  #tkfPanel button{background:#241530;border:1px solid #4a3556;color:#f4eef8;border-radius:8px;padding:4px 9px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700}
+  #tkfPanel button:hover{border-color:#f6c453}
+  #tkfPanel .info{font-size:12px;color:#a397ae;margin:0 0 8px}
+  #tkfPanel .info b{color:#f4eef8}
+  #tkfPanel details{border:1.5px solid #3a2747;border-radius:10px;margin:6px 0;padding:2px 10px}
+  #tkfPanel details[open]{border-color:#6b5578;padding-bottom:8px}
+  #tkfPanel summary{cursor:pointer;font-weight:800;padding:6px 0;color:#f6c453;list-style:none}
+  #tkfPanel summary::-webkit-details-marker{display:none}
+  #tkfPanel summary::before{content:'▸ ';color:#a397ae}
+  #tkfPanel details[open]>summary::before{content:'▾ '}
+  #tkfPanel summary small{color:#a397ae;font-weight:600}
+  #tkfPanel .rw{display:grid;grid-template-columns:minmax(0,1fr) 62px 26px;gap:3px 6px;align-items:center;margin:7px 0 0}
+  #tkfPanel .rw label{grid-column:1/-1;font-size:12.5px;color:#e9dcf3}
+  #tkfPanel .rw label i{font-style:normal;color:#a397ae;font-size:11.5px}
+  #tkfPanel .rw input[type=range]{width:100%;accent-color:#f6c453}
+  #tkfPanel .rw input[type=number]{width:62px;background:#120916;border:1px solid #4a3556;color:#f4eef8;border-radius:7px;padding:3px 4px;font:inherit;font-size:12.5px}
+  #tkfPanel .rw button{padding:2px 0;width:26px}
+  #tkfPanel .rw.auto input[type=number]{color:#8d7f99}
+  #tkfPanel .rw.auto input[type=range]{opacity:.55}
+  #tkfPanel .rw.auto button{visibility:hidden}
+  #tkfPanel .rw.off{opacity:.45;pointer-events:none}
+  #tkfPanel .ck{display:flex;gap:8px;align-items:center;margin:8px 0 0;font-size:12.5px}
+  #tkfPanel .ft{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  #tkfPanel .ft button{flex:1 1 auto}
+  #tkfPanel .ft .rot{border-color:#7a2a3a;color:#ffb3c1}
+  #tkfPanel textarea{width:100%;height:70px;margin-top:8px;background:#120916;border:1px solid #4a3556;color:#f4eef8;border-radius:8px;font:11px monospace;padding:6px}
+  #tkfPanel .msg{font-size:12px;color:#5ee0b0;min-height:16px;margin-top:6px}
+</style>
+<script>
+/* Ticker-Varianten der Testkopie. Wahl merkt sich der Browser (tkv_stil, tkv_zahlen, Feineinstellung: tkf_sets). */
+(function () {
+  var STILE = ['orig', 'b1', 'b2', 'b3'], NAMEN = { orig: 'Original', b1: 'B1', b2: 'B2', b3: 'B3' };
+  var get = function (k, d) { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
+  var set = function (k, v) { try { localStorage.setItem(k, v); } catch (e) { } };
+  var stil = get('tkv_stil', 'b1'), zahlen = get('tkv_zahlen', 'voll');
+  // per Link wählbar: ?tickerstil=orig|b1|b2|b3 und ?tickerzahlen=voll|kurz
+  var Q = new URLSearchParams(location.search);
+  if (STILE.indexOf(Q.get('tickerstil')) >= 0) stil = Q.get('tickerstil');
+  if (/^(voll|kurz)$/.test(Q.get('tickerzahlen'))) zahlen = Q.get('tickerzahlen');
+  if (STILE.indexOf(stil) < 0) stil = 'b1';
+  var $ = function (id) { return document.getElementById(id); };
+  var busy = false;
+
+  /* ===== Feineinstellung: jede Zeile = ein Regler. css: Selektor + Eigenschaften; js: wird beim Ausrichten verrechnet ===== */
+  var GRUPPEN = [
+    ['gesamt', 'Ticker gesamt', 'Höhe und Spaltenbreiten'],
+    ['btc', '₿-Zeichen', 'Größe und Lage'],
+    ['arr', 'TICK und 24 H', 'Beschriftung, Pfeile, Prozent'],
+    ['preis', 'Preis $ / €', 'Schrift und Lage der Zeilen'],
+    ['tf', 'Zeitrahmen 4H · 1H · 15M · 5M', 'Liste neben dem Preis'],
+    ['liq', 'Liquidationen (Mitte)', 'Titel und Zeilen'],
+    ['ls', 'Longs / Shorts (rechts)', 'Zahlen, Kreis, Balken, Prozent']
+  ];
+  var F = [
+    { k: 'g_minh', g: 'gesamt', l: 'Mindesthöhe des Tickers', css: '.ticker:not(.collapsed)', p: ['min-height'], min: 0, max: 400 },
+    { k: 'g_pw', g: 'gesamt', l: 'Breite Preis-Bereich (links)', i: 'mindestens', css: '.ticker>div.price', p: ['min-width'], min: 0, max: 1000 },
+    { k: 'g_lw', g: 'gesamt', l: 'Breite Longs/Shorts (rechts)', i: 'die Mitte bekommt den Rest', css: '.ticker>div.liq', p: ['width', 'min-width', 'max-width'], min: 120, max: 1100 },
+    { k: 'b_scale', g: 'btc', l: '₿ Größe', i: '% – 100 = bündig mit „TICK“ und 24h-Prozent', js: 1, def: 100, min: 30, max: 170, u: '%' },
+    { k: 'b_dy', g: 'btc', l: '₿ hoch/runter', i: '– = höher', js: 1, def: 0, min: -80, max: 80 },
+    { k: 'b_pl', g: 'btc', l: 'Abstand links', css: '.ticker .price>.b', p: ['padding-left'], min: 0, max: 80 },
+    { k: 'b_pr', g: 'btc', l: 'Abstand rechts', css: '.ticker .price>.b', p: ['padding-right'], min: 0, max: 80 },
+    { k: 'a_lbl', g: 'arr', l: 'Schrift „TICK“ / „24 H“', css: '.ticker .arr.tick small:first-child,.ticker .arr.day small:first-child', p: ['font-size'], min: 6, max: 40, st: 0.5 },
+    { k: 'a_lt', g: 'arr', l: 'Abstand oben', css: '.ticker .arr.tick small:first-child,.ticker .arr.day small:first-child', p: ['margin-top'], min: 0, max: 60 },
+    { k: 'a_arr', g: 'arr', l: 'Pfeil-Größe (beide gleich)', css: '.ticker .arr.tick b,.ticker .arr.day b', p: ['font-size'], min: 10, max: 160 },
+    { k: 'a_pct', g: 'arr', l: 'Schrift 24h-Prozent', css: '.ticker .arr .pct', p: ['font-size'], min: 6, max: 40, st: 0.5 },
+    { k: 'a_pb', g: 'arr', l: 'Abstand unten', css: '.ticker .arr.tick,.ticker .arr.day', p: ['padding-bottom'], min: 0, max: 60 },
+    { k: 'a_px', g: 'arr', l: 'Innenabstand links/rechts', css: '.ticker .arr.tick,.ticker .arr.day', p: ['padding-left', 'padding-right'], min: 0, max: 60 },
+    { k: 'p_usd', g: 'preis', l: 'Schrift $-Preis', css: '#tPrice', p: ['font-size'], min: 10, max: 100, st: 0.5 },
+    { k: 'p_eur', g: 'preis', l: 'Schrift €-Preis', css: '#tEur', p: ['font-size'], min: 10, max: 100, st: 0.5 },
+    { k: 'p_dyu', g: 'preis', l: '$-Zeile hoch/runter', i: '– = höher', js: 1, def: 0, min: -60, max: 60 },
+    { k: 'p_dye', g: 'preis', l: '€-Zeile hoch/runter', i: '+ = tiefer', js: 1, def: 0, min: -60, max: 60 },
+    { k: 'p_pl', g: 'preis', l: 'Abstand links', css: '.ticker .price>.pp', p: ['padding-left'], min: 0, max: 80 },
+    { k: 'p_pr', g: 'preis', l: 'Abstand rechts', css: '.ticker .price>.pp', p: ['padding-right'], min: 0, max: 80 },
+    { k: 't_fs', g: 'tf', l: 'Schriftgröße', css: '.ticker .tfl', p: ['font-size'], min: 6, max: 40, st: 0.5 },
+    { k: 't_px', g: 'tf', l: 'Spaltenabstand', css: '.ticker .tfl>*', p: ['padding-left', 'padding-right'], min: 0, max: 40 },
+    { k: 't_pl', g: 'tf', l: 'Abstand zur Trennlinie links', css: '.ticker .tfl', p: ['padding-left'], min: 0, max: 40 },
+    { k: 'l_title', g: 'liq', l: 'Schrift „LIQUIDATIONEN“', css: '.liqtitle>span:first-child', p: ['font-size'], min: 8, max: 50, st: 0.5 },
+    { k: 'l_fs', g: 'liq', l: 'Schrift der Zeilen', i: 'größte Schrift', js: 1, def: 0, min: 6, max: 40, st: 0.25 },
+    { k: 'l_auto', g: 'liq', l: 'Automatisch verkleinern, wenn eine Zeile zu lang ist', js: 1, check: 1, def: 1 },
+    { k: 'l_lh', g: 'liq', l: 'Zeilenhöhe', i: '× Schriftgröße', css: '#heatTick4', p: ['line-height'], min: 0.8, max: 2.6, st: 0.05, u: '' },
+    { k: 'l_mt', g: 'liq', l: 'Abstand Titel → Zeilen', css: '#heatTick4', p: ['margin-top'], min: 0, max: 40 },
+    { k: 'l_px', g: 'liq', l: 'Innenabstand links/rechts', css: '.ticker>div.liqtitle', p: ['padding-left', 'padding-right'], min: 0, max: 60 },
+    { k: 'l_pt', g: 'liq', l: 'Innenabstand oben', css: '.ticker>div.liqtitle', p: ['padding-top'], min: 0, max: 40 },
+    { k: 'l_pb', g: 'liq', l: 'Innenabstand unten', css: '.ticker>div.liqtitle', p: ['padding-bottom'], min: 0, max: 40 },
+    { k: 'r_num', g: 'ls', l: 'Schrift Zahlen', css: '.liq .sd', p: ['font-size'], min: 8, max: 70, st: 0.5 },
+    { k: 'r_lbl', g: 'ls', l: 'Schrift „LONGS“ / „SHORTS“', css: '.liq .sd.l>small:first-of-type,.liq .sd.s>small:last-of-type', p: ['font-size'], min: 6, max: 40, st: 0.5 },
+    { k: 'r_usdt', g: 'ls', l: 'Schrift „USDT“', css: '.liq .sd.l>small:last-of-type,.liq .sd.s>small:first-of-type', p: ['font-size'], min: 6, max: 40, st: 0.5 },
+    { k: 'r_gap', g: 'ls', l: 'Abstand Zahl ↔ Beschriftung', css: '.liq .sd', p: ['gap'], min: 0, max: 30 },
+    { k: 'r_vs', g: 'ls', l: 'Größe „vs.“-Kreis', css: '.liq .vs', p: ['width', 'height', 'min-width'], min: 14, max: 90 },
+    { k: 'r_vsf', g: 'ls', l: 'Schrift „vs.“', css: '.liq .vs', p: ['font-size'], min: 6, max: 30, st: 0.5 },
+    { k: 'r_bar', g: 'ls', l: 'Balken-Höhe', css: '.segbar', p: ['height'], min: 2, max: 60 },
+    { k: 'r_pct', g: 'ls', l: 'Schrift Prozent', css: '.pcts', p: ['font-size'], min: 8, max: 60, st: 0.5 },
+    { k: 'r_rg', g: 'ls', l: 'Abstand Zahlen · Balken · Prozent', css: '.ticker>div.liq', p: ['row-gap'], min: 0, max: 40 },
+    { k: 'r_pt', g: 'ls', l: 'Abstand oben', css: '.ticker>div.liq', p: ['padding-top'], min: 0, max: 40 },
+    { k: 'r_pb', g: 'ls', l: 'Abstand unten', css: '.ticker>div.liq', p: ['padding-bottom'], min: 0, max: 40 },
+    { k: 'r_px', g: 'ls', l: 'Innenabstand links/rechts', css: '.ticker>div.liq', p: ['padding-left', 'padding-right'], min: 0, max: 60 }
+  ];
+  var FK = {}; F.forEach(function (f) { FK[f.k] = f; });
+  var SETS = (function () { try { return JSON.parse(get('tkf_sets', '{}')) || {}; } catch (e) { return {}; } })();
+  var klasse = function () { return innerWidth < 700 ? 'handy' : innerWidth < 1280 ? 'tablet' : 'computer'; };
+  var KLNAME = { handy: 'Handy (unter 700 px)', tablet: 'Tablet (700–1279 px)', computer: 'Computer (ab 1280 px)' };
+  var schluessel = function () { return stil + '|' + klasse(); };
+  var satz = function () { return SETS[schluessel()] || {}; };
+  var wert = function (k) { var v = satz()[k], f = FK[k]; return v == null ? f.def : v; };
+  var speichern = function () { set('tkf_sets', JSON.stringify(SETS)); };
+
+  function cssBauen() {
+    var s = satz(), out = [];
+    F.forEach(function (f) {
+      if (!f.css || s[f.k] == null) return;
+      var sel = f.css.split(',').map(function (x) { return 'html.tkf body ' + x.trim(); }).join(',');
+      out.push(sel + '{' + f.p.map(function (p) { return p + ':' + s[f.k] + (f.u == null ? 'px' : f.u) + '!important'; }).join(';') + '}');
+    });
+    var st = $('tkfCss'); if (!st) { st = document.createElement('style'); st.id = 'tkfCss'; document.body.appendChild(st); }
+    var txt = out.join('\n'); if (st.textContent !== txt) st.textContent = txt;
+    document.documentElement.classList.add('tkf');
+  }
+
+  function classes() {
+    // am <html>-Element, weil die Seite die Klassen am <body> selbst neu setzt
+    var b = document.documentElement; STILE.forEach(function (s) { b.classList.toggle('tkv-' + s, s === stil); });
+    b.classList.toggle('tkv-on', stil !== 'orig'); b.classList.toggle('tkn-kurz', zahlen === 'kurz');
+  }
+  function buttons() {
+    var tp = $('tPos'); if (!tp) return;
+    if (!$('tkvBtn')) {
+      tp.insertAdjacentHTML('afterend', '<button class="tcol tkvb" id="tkvBtn" title="Ticker-Aussehen durchschalten: Original → B1 → B2 → B3"></button>' +
+        '<button class="tcol tknb" id="tknBtn" title="Longs/Shorts: Zahl ausgeschrieben oder in Mio."></button>' +
+        '<button class="tcol tkfb" id="tkfBtn" title="Ticker anpassen: alle Größen und Abstände einstellen"></button>');
+      $('tkvBtn').onclick = function () { stil = STILE[(STILE.indexOf(stil) + 1) % STILE.length]; set('tkv_stil', stil); neu(); panelFuellen(); };
+      $('tknBtn').onclick = function () { zahlen = zahlen === 'voll' ? 'kurz' : 'voll'; set('tkv_zahlen', zahlen); neu(); };
+      $('tkfBtn').onclick = function () { panelUmschalten(); };
+    }
+    // nur bei Änderung setzen – sonst stößt jede Beschriftung den Beobachter neu an (Endlosschleife)
+    var t1 = '🎨 ' + NAMEN[stil], t2 = zahlen === 'voll' ? '1.234' : 'Mio.', t3 = '🔧 Anpassen';
+    if ($('tkvBtn').textContent !== t1) $('tkvBtn').textContent = t1;
+    if ($('tknBtn').textContent !== t2) $('tknBtn').textContent = t2;
+    if ($('tkfBtn').textContent !== t3) $('tkfBtn').textContent = t3;
+    var auf = !!($('tkfPanel') && !$('tkfPanel').hidden);
+    if ($('tkfBtn').classList.contains('on') !== auf) $('tkfBtn').classList.toggle('on', auf);
+  }
+  // Stand der Seite wiederherstellen (eigene Verschiebungen weg) und neu ausrichten
+  function zuruecksetzen() {
+    var bt = document.querySelector('.ticker .price > .b'); if (bt) { bt.style.removeProperty('font-size'); bt.style.top = ''; }
+    var tD = $('tDir'); if (tD) tD.style.top = '';
+    ['tPrice', 'tEur'].forEach(function (id) { var e = $(id); if (e) Array.prototype.forEach.call(e.parentElement.children, function (c) { c.style.transform = ''; }); });
+    var t4 = $('heatTick4'); if (t4) t4.style.fontSize = '';
+  }
+  function neu() {
+    zuruecksetzen(); classes(); cssBauen(); buttons();
+    try { if (typeof renderTicker === 'function') renderTicker(); if (typeof applyTicker === 'function') applyTicker(); } catch (e) { }
+    fix(); fix();
+  }
+  function nachziehen() { zuruecksetzen(); cssBauen(); fix(); fix(); fix(); }
+  // Text-Änderungen: "-$" / "-€", "vs.", Zahlen in Mio.
+  function texte() {
+    if (stil === 'orig') return;
+    document.querySelectorAll('#heatTick4 > div').forEach(function (d) {
+      if (/\d [$€£¥₺]/.test(d.innerHTML)) d.innerHTML = d.innerHTML.replace(/(\d) ([$€£¥₺])/g, '$1-$2');
+    });
+    ['tPrice', 'tEur'].forEach(function (id) { var e = $(id); if (e && / [$€£¥₺]$/.test(e.textContent)) e.textContent = e.textContent.replace(/ ([$€£¥₺])$/, '-$1'); });
+    var vs = document.querySelector('.liq .vs'); if (vs && vs.textContent !== 'vs.') vs.textContent = 'vs.';
+    if (zahlen === 'kurz') ['liqL', 'liqS'].forEach(function (id) {
+      var e = $(id); if (!e || /Mio\.$/.test(e.textContent)) return;
+      var n = +e.textContent.replace(/\D/g, ''); if (!n) return;
+      e.textContent = (n / 1e6).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' Mio.';
+    });
+  }
+  // €/$-Auswahlfeld statt der zwei Knöpfe (steuert die vorhandenen Knöpfe)
+  function waehrung() {
+    var c = $('liqCur'); if (!c) return;
+    var s = document.querySelector('.tkvcur');
+    if (!s) { c.insertAdjacentHTML('afterend', '<select class="csel tsel tkvcur" title="Währung der Liquidations-Zeilen"></select>'); s = document.querySelector('.tkvcur');
+      s.onchange = function () { var b = c.querySelector('button[data-v="' + s.value + '"]'); if (b) b.click(); }; }
+    var html = Array.prototype.map.call(c.querySelectorAll('button'), function (b) { return '<option value="' + b.dataset.v + '"' + (b.classList.contains('on') ? ' selected' : '') + '>' + b.textContent + ' ' + b.dataset.v.toUpperCase() + '</option>'; }).join('');
+    if (s.dataset.h !== html) { s.innerHTML = html; s.dataset.h = html; }
+  }
+  // liegt der Ticker in einer Reihe (Computer, Tablet quer)? Gestapelt (schmal) wird nicht ausgerichtet
+  function einreihig() {
+    var p = document.querySelector('.ticker>div.price'), l = document.querySelector('.ticker>div.liq');
+    return !!(p && l && Math.abs(p.getBoundingClientRect().top - l.getBoundingClientRect().top) < 4);
+  }
+  // Ausrichtung: TICK-Pfeil wie 24h, ₿ und $/€-Werte bündig mit "TICK" oben und der 24h-Prozentzeile unten (+ eigene Verschiebung)
+  function ausrichten() {
+    if (stil === 'orig' || !einreihig()) return;
+    var at = $('arrTick'), dp = $('tDayPct'), lbl = at && at.querySelector('small'), tD = $('tDir'), dD = $('tDayDir');
+    if (!at || !dp || !lbl) return;
+    if (!at.querySelector('.tkvpct')) { var cl = dp.cloneNode(true); cl.removeAttribute('id'); cl.classList.add('tkvpct'); cl.style.visibility = 'hidden'; at.appendChild(cl); }
+    var sicht = dp.getBoundingClientRect().height > 0;  // in der Ansicht „SMC“ ist die 24h-Spalte ausgeblendet
+    if (tD && dD && sicht) { var cur = parseFloat(tD.style.top) || 0, dy = dD.getBoundingClientRect().top - tD.getBoundingClientRect().top;
+      if (Math.abs(dy) > 0.5) { tD.style.position = 'relative'; tD.style.top = (cur + dy) + 'px'; } }
+    // unten bündig mit der 24h-Prozentzeile – ist sie ausgeblendet, mit ihrer unsichtbaren Kopie in der TICK-Spalte
+    var top = lbl.getBoundingClientRect().top + 3, bot = (sicht ? dp : at.querySelector('.tkvpct')).getBoundingClientRect().bottom - 3;
+    if (!(bot - top > 10)) return;
+    var z = parseFloat(getComputedStyle(document.querySelector('.ticker')).zoom) || 1;  // eigene Werte sind CSS-Pixel, Messungen Bildschirm-Pixel
+    var b = document.querySelector('.ticker .price > .b');
+    if (b) {
+      var hoehe = (bot - top) * wert('b_scale') / 100, ziel = top + ((bot - top) - hoehe) / 2 + wert('b_dy') * z;
+      var cs = getComputedStyle(b), cv = document.createElement('canvas').getContext('2d'), fs = parseFloat(cs.fontSize);
+      cv.font = cs.fontWeight + ' ' + fs + 'px ' + cs.fontFamily; var m = cv.measureText('₿');
+      var ink = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) * z, nfs = fs * hoehe / ink;
+      if (Math.abs(nfs - fs) > 0.5) b.style.setProperty('font-size', nfs + 'px', 'important');
+      else { var r = b.getBoundingClientRect(), fa = m.fontBoundingBoxAscent * z, fd = m.fontBoundingBoxDescent * z;
+        var inkTop = r.top + (r.height - (fa + fd)) / 2 + fa - m.actualBoundingBoxAscent * z, c0 = parseFloat(b.style.top) || 0, d0 = (ziel - inkTop) / z;
+        if (Math.abs(d0) > 0.5) { b.style.position = 'relative'; b.style.top = (c0 + d0) + 'px'; } }
+    }
+    // $-Zeile nach oben, €-Zeile nach unten (weniger Leerraum über und unter den Preisen)
+    // (die Zeilen selbst sind display:contents – deshalb Flagge und Preis darin verschieben)
+    var pu = $('tPrice'), pe = $('tEur');
+    var versatz = function (el) { return parseFloat((el.style.transform.match(/-?[\d.]+/) || [0])[0]); };
+    var schiebe = function (el, d) { Array.prototype.forEach.call(el.parentElement.children, function (c) {
+      c.style.transform = 'translateY(' + (versatz(c) + d) + 'px)'; }); };
+    if (pu && pe) {
+      // automatisch nur auseinander schieben ($ höher, € tiefer) – ist der Ticker zu niedrig, bleiben die Zeilen, wo sie sind
+      var ru = pu.getBoundingClientRect(), re = pe.getBoundingClientRect();
+      var natU = ru.top - versatz(pu) * z, natE = re.bottom - versatz(pe) * z;
+      var du = (Math.min(natU, top - 4) + wert('p_dyu') * z - ru.top) / z, de = (Math.max(natE, bot + 4) + wert('p_dye') * z - re.bottom) / z;
+      if (Math.abs(du) > 0.5) schiebe(pu, du);
+      if (Math.abs(de) > 0.5) schiebe(pe, de);
+    }
+  }
+  // Liquidations-Schrift so groß wie eingestellt, aber (wenn gewünscht) nie abgeschnitten
+  function passend() {
+    if (stil === 'orig') return;
+    var t4 = $('heatTick4'); if (!t4 || !t4.children.length) return;
+    var std = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tkv-liq')) || 14;
+    var fs = wert('l_fs') || std;
+    if (!einreihig()) fs = Math.min(fs, 13);
+    t4.style.fontSize = fs + 'px';
+    if (!wert('l_auto')) return;
+    var zu = function () { return Array.prototype.some.call(t4.children, function (d) { return d.scrollWidth > d.clientWidth + 1; }); };
+    while (zu() && fs > 8) { fs -= 0.25; t4.style.fontSize = fs + 'px'; }
+  }
+  function fix() {
+    if (busy || !document.querySelector('.ticker')) return;
+    busy = true;
+    try { buttons(); waehrung(); texte(); passend(); ausrichten(); } catch (e) { }
+    busy = false;
+  }
+
+  /* ===== Panel ===== */
+  var SEITE = get('tkf_seite', 'rechts');
+  function zahl(v, f) { var st = f.st || 1; return Math.round(v / st) * st; }
+  function aktuell(f) {
+    // Wert, den die Seite gerade benutzt (für Regler im Automatik-Zustand)
+    if (f.js) return f.k === 'l_fs' ? (parseFloat(($('heatTick4') || {}).style && $('heatTick4').style.fontSize) || f.def) : f.def;
+    var el = document.querySelector(f.css.split(',')[0]); if (!el) return f.min;
+    var cs = getComputedStyle(el), v = parseFloat(cs.getPropertyValue(f.p[0]));
+    if (f.u === '') v = (parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2) / parseFloat(cs.fontSize);
+    return isFinite(v) ? v : f.min;
+  }
+  function panelBauen() {
+    if ($('tkfPanel')) return;
+    var html = '<div class="hd"><b>🔧 Ticker anpassen</b><button id="tkfSeite" title="Fenster auf die andere Seite schieben">⇄</button><button id="tkfZu" title="Schließen">✕</button></div>' +
+      '<p class="info" id="tkfInfo"></p>' +
+      GRUPPEN.map(function (g, gi) {
+        return '<details' + (gi === 0 ? ' open' : '') + '><summary>' + g[1] + ' <small>· ' + g[2] + '</small></summary>' +
+          F.filter(function (f) { return f.g === g[0]; }).map(function (f) {
+            if (f.check) return '<label class="ck" data-k="' + f.k + '"><input type="checkbox"> ' + f.l + '</label>';
+            return '<div class="rw" data-k="' + f.k + '"><label>' + f.l + (f.i ? ' <i>(' + f.i + ')</i>' : '') + '</label>' +
+              '<input type="range" min="' + f.min + '" max="' + f.max + '" step="' + (f.st || 1) + '"><input type="number" min="' + f.min + '" max="' + f.max + '" step="' + (f.st || 1) + '">' +
+              '<button title="Zurück auf automatisch">↺</button></div>';
+          }).join('') + '</details>';
+      }).join('') +
+      '<div class="ft"><button id="tkfKopie" title="Alle deine Einstellungen als Code kopieren – zum Schicken oder Sichern">📋 Code kopieren</button>' +
+      '<button id="tkfLink" title="Link kopieren, der deine Einstellungen mitnimmt (z. B. aufs iPad)">🔗 Link kopieren</button>' +
+      '<button id="tkfRein" title="Einen kopierten Code wieder einsetzen">📥 Code einfügen</button>' +
+      '<button id="tkfAlles" class="rot" title="Alle Regler dieses Stils und dieser Bildschirmgröße auf automatisch">↺ Alles zurück</button></div>' +
+      '<div class="msg" id="tkfMsg"></div>';
+    var p = document.createElement('div'); p.id = 'tkfPanel'; p.hidden = true; p.innerHTML = html; document.body.appendChild(p);
+    p.addEventListener('input', function (e) {
+      var row = e.target.closest('[data-k]'); if (!row) return;
+      var f = FK[row.dataset.k], s = SETS[schluessel()] = SETS[schluessel()] || {};
+      if (f.check) s[f.k] = e.target.checked ? 1 : 0;
+      else { var v = parseFloat(e.target.value); if (!isFinite(v)) return; s[f.k] = Math.max(f.min, Math.min(f.max, v)); }
+      speichern(); nachziehen(); zeileFuellen(row, true);
+    });
+    p.addEventListener('click', function (e) {
+      var row = e.target.closest('.rw');
+      if (row && e.target.tagName === 'BUTTON') { var s = SETS[schluessel()]; if (s) { delete s[row.dataset.k]; speichern(); } nachziehen(); panelFuellen(); }
+    });
+    $('tkfZu').onclick = function () { panelUmschalten(false); };
+    $('tkfSeite').onclick = function () { SEITE = SEITE === 'rechts' ? 'links' : 'rechts'; set('tkf_seite', SEITE); platzieren(); };
+    $('tkfAlles').onclick = function () { if (!confirm('Alle Regler für ' + NAMEN[stil] + ' · ' + KLNAME[klasse()] + ' zurück auf automatisch?')) return; delete SETS[schluessel()]; speichern(); nachziehen(); panelFuellen(); meldung('Zurückgesetzt.'); };
+    $('tkfKopie').onclick = function () { kopieren(code(), 'Code kopiert – du kannst ihn mir einfach schicken.'); };
+    $('tkfLink').onclick = function () { kopieren(location.origin + location.pathname + '?tkcode=' + encodeURIComponent(code()), 'Link kopiert – auf einem anderen Gerät öffnen, dann sind deine Einstellungen dort.'); };
+    $('tkfRein').onclick = function () { var c = prompt('Code hier einfügen:'); if (c) einlesen(c.trim()); };
+    addEventListener('resize', function () { if (!p.hidden) { platzieren(); panelFuellen(); } });
+  }
+  function zeileFuellen(row, nurZahl) {
+    var f = FK[row.dataset.k], s = satz(), gesetzt = s[f.k] != null;
+    if (f.check) { row.querySelector('input').checked = !!wert(f.k); row.classList.toggle('off', stil === 'orig'); return; }
+    var v = gesetzt ? s[f.k] : aktuell(f), r = row.querySelector('input[type=range]'), n = row.querySelector('input[type=number]');
+    row.classList.toggle('auto', !gesetzt); row.classList.toggle('off', !!f.js && stil === 'orig');
+    if (document.activeElement !== n) n.value = zahl(v, f);
+    if (!nurZahl || document.activeElement !== r) r.value = v;
+  }
+  function panelFuellen() {
+    var p = $('tkfPanel'); if (!p || p.hidden) return;
+    $('tkfInfo').innerHTML = 'Gilt für <b>' + NAMEN[stil] + '</b> auf <b>' + KLNAME[klasse()] + '</b>. Graue Werte = automatisch; ' +
+      'sobald du einen Regler bewegst, gilt dein Wert (↺ = wieder automatisch).' + (stil === 'orig' ? ' <b>Im Stil „Original“ wirken die ₿-, Preis- und Zeilen-Regler nicht – dafür mit 🎨 auf B1–B3 schalten.</b>' : '');
+    p.querySelectorAll('[data-k]').forEach(function (row) { zeileFuellen(row); });
+  }
+  function platzieren() {
+    var p = $('tkfPanel'), tk = document.querySelector('.ticker'); if (!p || !tk) return;
+    var r = tk.getBoundingClientRect(), oben = tk.classList.contains('attop');
+    p.style.left = SEITE === 'links' ? '8px' : ''; p.style.right = SEITE === 'rechts' ? '8px' : '';
+    if (oben) { p.style.top = (r.bottom + 34) + 'px'; p.style.bottom = ''; p.style.maxHeight = (innerHeight - r.bottom - 46) + 'px'; }
+    else { p.style.bottom = (innerHeight - r.top + 34) + 'px'; p.style.top = ''; p.style.maxHeight = Math.max(220, r.top - 46) + 'px'; }
+  }
+  function panelUmschalten(an) {
+    panelBauen(); var p = $('tkfPanel');
+    p.hidden = an == null ? !p.hidden : !an;
+    if (!p.hidden) { platzieren(); panelFuellen(); }
+    buttons();
+  }
+  function meldung(t) { var m = $('tkfMsg'); if (m) { m.textContent = t; clearTimeout(meldung.t); meldung.t = setTimeout(function () { m.textContent = ''; }, 6000); } }
+  function code() {
+    var d = { v: 1, stil: stil, zahlen: zahlen, sets: SETS };
+    return 'TK1:' + btoa(unescape(encodeURIComponent(JSON.stringify(d))));
+  }
+  function einlesen(c) {
+    try {
+      var d = JSON.parse(decodeURIComponent(escape(atob(c.replace(/^TK1:/, '')))));
+      if (!d || typeof d.sets !== 'object') throw 0;
+      SETS = d.sets; speichern();
+      if (STILE.indexOf(d.stil) >= 0) { stil = d.stil; set('tkv_stil', stil); }
+      if (/^(voll|kurz)$/.test(d.zahlen)) { zahlen = d.zahlen; set('tkv_zahlen', zahlen); }
+      neu(); panelFuellen(); meldung('Einstellungen übernommen.');
+      return true;
+    } catch (e) { meldung('Der Code ist nicht lesbar.'); alert('Der Code ist nicht lesbar.'); return false; }
+  }
+  function kopieren(txt, ok) {
+    var fallback = function () { panelUmschalten(true); var ta = $('tkfTa'); if (!ta) { ta = document.createElement('textarea'); ta.id = 'tkfTa'; $('tkfMsg').before(ta); }
+      ta.value = txt; ta.select(); meldung('Bitte markierten Text kopieren (Strg+C).'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(function () { meldung(ok); }, fallback);
+    else fallback();
+  }
+
+  // sofort nach jeder Änderung nachziehen (kein Flackern); Schutzbremse: mehr als 60 Läufe pro Sekunde -> 2 s Pause
+  var laeufe = 0, seit = 0, pause = false;
+  function bald() {
+    if (pause) return;
+    var t = Date.now(); if (t - seit > 1000) { seit = t; laeufe = 0; }
+    if (++laeufe > 60) { pause = true; setTimeout(function () { pause = false; fix(); }, 2000); return; }
+    fix();
+  }
+  function start() {
+    classes(); cssBauen(); fix();
+    var c = Q.get('tkcode');
+    if (c && einlesen(c)) { Q.delete('tkcode'); history.replaceState(null, '', location.pathname + (Q.toString() ? '?' + Q : '') + location.hash); }
+    var tk = document.querySelector('.ticker');
+    if (tk) new MutationObserver(bald).observe(tk, { childList: true, subtree: true, characterData: true });
+    var kl = klasse();
+    addEventListener('resize', function () { if (klasse() !== kl) { kl = klasse(); nachziehen(); } else fix(); });
+    setInterval(fix, 1500);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
 </script>
 </body>
 </html>

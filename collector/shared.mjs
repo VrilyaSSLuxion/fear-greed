@@ -58,7 +58,8 @@ export const OFF_COL = { alt: 4, cmc: 5, cfgi: 6, coinglass: 7, cr: 19 };
 /* ---------- Pivots: höchstes Hoch und tiefstes Tief (danach oder im ganzen Zeitraum) ---------- */
 // Zeiträume in Tagen (Schlüssel wie im Chart-Knopf): 7T, 1M, 3M, 6M, 12M, gesamt
 export const PV_DAYS = { '7': 7, '30': 30, '91': 91, '182': 182, '365': 365, all: 99999 };
-export const PV_ORDER = ['7', '30', '91', '182', '365', 'all'];
+// V21: mehr Zeiträume (1 und 3 Tage, 2 Wochen, 2 Monate, 2 Jahre)
+export const PV_ORDER = ['1', '3', '7', '14', '30', '61', '91', '182', '365', '730', 'all'];
 // rows = Verlaufszeilen mit Kurs; lowMode 'after' = tiefstes Tief nach dem höchsten Hoch (gibt es danach keins: tiefstes Tief im Zeitraum), 'range' = tiefstes Tief im ganzen Zeitraum
 // V16: mode 'range' = höchstes Hoch und tiefstes Tief im Zeitraum (Standard), 'after' = Tief nach dem höchsten Hoch,
 // 'afterLow' = Hoch nach dem tiefsten Tief; gibt es danach (noch) keins, gilt das Extrem im ganzen Zeitraum
@@ -666,13 +667,13 @@ export function heatEvents(list, price, h) {
 /* ---------- Alarm-Texte (Browser + Telegram) ---------- */
 const nf = (n, lang) => n == null ? '–' : Math.round(n).toLocaleString(lang === 'de' ? 'de-DE' : 'en-US') + ' $';
 const PVN = {
-  de: { '7': '7 Tage', '30': '1 Monat', '91': '3 Monate', '182': '6 Monate', '365': '12 Monate', all: 'gesamter Verlauf' },
-  en: { '7': '7 days', '30': '1 month', '91': '3 months', '182': '6 months', '365': '12 months', all: 'all-time' },
-  ar: { '7': '7 أيام', '30': 'شهر', '91': '3 أشهر', '182': '6 أشهر', '365': '12 شهراً', all: 'كامل السجل' } };
+  de: { '1': '1 Tag (heute)', '3': '3 Tage', '7': '7 Tage', '14': '2 Wochen', '30': '1 Monat', '61': '2 Monate', '91': '3 Monate', '182': '6 Monate', '365': '12 Monate', '730': '2 Jahre', all: 'gesamter Verlauf' },
+  en: { '1': '1 day (today)', '3': '3 days', '7': '7 days', '14': '2 weeks', '30': '1 month', '61': '2 months', '91': '3 months', '182': '6 months', '365': '12 months', '730': '2 years', all: 'all-time' },
+  ar: { '1': 'يوم (اليوم)', '3': '3 أيام', '7': '7 أيام', '14': 'أسبوعان', '30': 'شهر', '61': 'شهران', '91': '3 أشهر', '182': '6 أشهر', '365': '12 شهراً', '730': 'سنتان', all: 'كامل السجل' } };
 export const PVS = {
-  de: { '7': '7T', '30': '1M', '91': '3M', '182': '6M', '365': '12M', all: 'Alles' },
-  en: { '7': '7D', '30': '1M', '91': '3M', '182': '6M', '365': '12M', all: 'All' },
-  ar: { '7': '7ي', '30': '1ش', '91': '3ش', '182': '6ش', '365': '12ش', all: 'الكل' } };
+  de: { '1': '1T', '3': '3T', '7': '7T', '14': '2W', '30': '1M', '61': '2M', '91': '3M', '182': '6M', '365': '12M', '730': '2J', all: 'Alles' },
+  en: { '1': '1D', '3': '3D', '7': '7D', '14': '2W', '30': '1M', '61': '2M', '91': '3M', '182': '6M', '365': '12M', '730': '2Y', all: 'All' },
+  ar: { '1': '1ي', '3': '3ي', '7': '7ي', '14': '2أ', '30': '1ش', '61': '2ش', '91': '3ش', '182': '6ش', '365': '12ش', '730': '2س', all: 'الكل' } };
 const dmyS = d => d ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '';
 const F50N = {
   de: { bounce: 'Bounce an der 50', reject: 'Ablehnung an der 50', brkUp: 'Durchbruch über 50', brkDn: 'Durchbruch unter 50', retL: 'Retest der 50 hält (Long)', retS: 'Retest der 50 hält (Short)', failUp: 'Fehlausbruch über 50 (Bullenfalle)', failDn: 'Fehlausbruch unter 50 (Bärenfalle)' },
