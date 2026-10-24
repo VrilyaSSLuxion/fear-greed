@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BTC Fear & Greed</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#140a1c; --panel:#1a0f24; --line:#2c1d38; --text:#f3eef8; --muted:#8f8499; --track:#2e2238;
+    --accent:#d65ac9; --buy:#3fd6a3; --sell:#f06a5a; --warn:#f39a3a; --hold:#b9a6ff;
+    --alt:#3fd6c3; --cmc:#5aa9ff; --cg:#f5d46a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:14px;
+    display:flex;flex-direction:column;align-items:center;padding:16px 16px 40px;gap:12px}
+  .wrap{width:100%;max-width:960px}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .brand{font-weight:800;font-size:17px;letter-spacing:.02em}
+  .brand small{font-weight:500;font-size:12px;color:var(--muted);margin-left:8px}
+  .seg{display:inline-flex;background:#1f1329;border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+  .seg button{background:none;border:0;color:var(--muted);font:600 13px Inter,sans-serif;padding:6px 12px;border-radius:7px;cursor:pointer}
+  .seg button.on{background:#3a2147;color:var(--text)}
+  .seg.small button{font-size:12px;padding:4px 9px}
+  .offline{display:none;background:#3a1620;border:1px solid #6b2433;color:#ffd3d9;border-radius:10px;padding:12px 14px;line-height:1.5}
+
+  /* ---- Hauptkarte ---- */
+  .card{position:relative;border-radius:16px;overflow:hidden;
+    background:radial-gradient(ellipse at 50% 38%,#4a1f4c 0%,#2a1233 35%,#170b20 70%,#120819 100%);
+    border:1px solid #2a1a35;padding:20px 22px 16px}
+  .grid{position:relative;display:grid;grid-template-columns:1fr 240px 1fr;align-items:center;gap:8px;z-index:1}
+  .col h3{font-size:11px;letter-spacing:.14em;color:var(--muted);font-weight:700;margin-bottom:8px;text-transform:uppercase}
+  .col.left h3{text-align:right;padding-right:58px}
+  .col.right h3{padding-left:58px}
+  .item{display:flex;align-items:center;gap:12px;height:56px}
+  .col.left .item{justify-content:flex-end}
+  .col.left .txt{text-align:right}
+  .txt{min-width:0}
+  .txt .name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+  .txt .val{font-size:12px;color:var(--muted);margin-top:1px;white-space:nowrap}
+  .txt .nq{font-size:10px;color:#6f6478;margin-left:4px}
+  .gauge{position:relative;width:46px;height:46px;flex:none;cursor:help}
+  .gauge svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .gauge .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+  .center{position:relative;width:240px;height:240px;justify-self:center}
+  .center svg{position:absolute;inset:0;transform:rotate(-90deg)}
+  .center .inner{position:absolute;inset:22px;border-radius:50%;
+    background:radial-gradient(circle at 50% 40%,#1c1024,#0f0814);box-shadow:0 0 60px rgba(214,90,201,.25) inset;
+    display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .center .lbl{font-size:11px;letter-spacing:.14em;color:var(--muted);font-weight:700}
+  .center .big{font-size:90px;font-weight:900;line-height:1;margin:2px 0}
+  .center .zone{font-size:19px;font-weight:800}
+  .center .sub{font-size:11px;color:var(--muted);margin-top:4px;text-align:center}
+  #wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+
+  .scale{position:relative;margin:34px 8px 0;height:44px}
+  .segs{display:flex;gap:4px;height:10px;position:absolute;left:0;right:0;top:18px}
+  .segs div{border-radius:5px;height:100%}
+  .mk{position:absolute;transform:translateX(-50%);transition:left .8s}
+  .mk.cur{top:10px;width:6px;height:26px;border-radius:3px;background:#fff;box-shadow:0 0 0 2px #120819}
+  .mk.off{top:31px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:9px solid}
+  .mlabel{position:absolute;top:-8px;transform:translateX(-50%);font-weight:700;font-size:12px;transition:left .8s}
+  .zones{display:flex;margin:2px 8px 0;font-size:12px;color:#6f6478}
+  .zones span{text-align:center}
+  .zones span.on{color:var(--accent);font-weight:700}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+  .chip{display:flex;align-items:center;gap:6px;background:#1c1026;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12px;color:var(--muted)}
+  .chip b{color:var(--text)}
+  .dot{width:8px;height:8px;border-radius:50%}
+
+  /* ---- Ticker ---- */
+  .ticker{display:grid;grid-template-columns:auto auto 1fr;background:#0d1a17;border:1px solid #1d3a33;border-radius:10px;overflow:hidden;font-weight:800}
+  .ticker>div{padding:8px 14px;display:flex;align-items:center}
+  .price{font-size:22px;color:#e9f6f2;gap:8px}
+  .price .b{color:#f7a531}
+  .liqtitle{border-left:1px solid #1d3a33;border-right:1px solid #1d3a33;letter-spacing:.08em;font-size:13px;flex-direction:column;align-items:flex-start!important;gap:2px}
+  .liqtitle small{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:0}
+  .liq{flex-direction:column;align-items:stretch!important;gap:5px}
+  .liq .row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:18px}
+  .liq .l{color:var(--buy)} .liq .s{color:var(--sell)}
+  .liq small{font-size:10px;color:var(--muted);letter-spacing:.1em}
+  .bar{display:flex;height:7px;border-radius:4px;overflow:hidden;background:#222}
+  .bar .bl{background:var(--buy);transition:width .5s} .bar .bs{background:var(--sell);flex:1}
+
+  /* ---- Panels ---- */
+  .row2{display:grid;grid-template-columns:330px 1fr;gap:12px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+  .panel h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .ph{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+  .sig-label{font-size:24px;font-weight:900;margin:10px 0 4px}
+  .sig-text{font-size:13px;line-height:1.5;color:#d9cfe3}
+  .sig-list{list-style:none;margin-top:12px;display:flex;flex-direction:column;gap:7px;font-size:13px}
+  .sig-list li{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:7px}
+  .sig-list li span:first-child{color:var(--muted)}
+  .sig-list li span:last-child{text-align:right;font-weight:600}
+  .disc{font-size:11px;color:#6f6478;margin-top:12px;line-height:1.4}
+  #chart{width:100%;height:auto;display:block}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);margin-top:6px}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+
+  .tw{overflow-x:auto;margin-top:8px}
+  table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
+  th{font-size:11px;color:var(--muted);font-weight:600;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}
+  td{padding:7px 8px;text-align:right;border-bottom:1px solid #22162c;font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left}
+  tr.sel td{background:#22152c}
+  .pill{display:inline-block;min-width:34px;text-align:center;font-weight:800;border-radius:6px;padding:2px 6px;background:#1f1329}
+  .zt{font-size:11px;color:var(--muted);margin-left:5px;display:inline-block;min-width:66px;text-align:left}
+  .up{color:var(--buy)} .down{color:var(--sell)} .flat{color:var(--muted)}
+  .note{font-size:11px;color:#6f6478;margin-top:8px;line-height:1.5}
+  details.panel summary{cursor:pointer;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .srcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 16px;margin-top:10px;font-size:12px}
+  .srcs div{display:flex;gap:8px;align-items:baseline}
+  .srcs .st{flex:none;width:8px;height:8px;border-radius:50%;transform:translateY(-1px)}
+  .srcs .m{color:#6f6478;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  @media (max-width:860px){
+    .grid{grid-template-columns:1fr}
+    .center{order:-1}
+    .col.left .item{justify-content:flex-start;flex-direction:row-reverse}
+    .col.left .txt{text-align:left}
+    .col.left h3,.col.right h3{text-align:left;padding:0}
+    #wires{display:none}
+    .ticker{grid-template-columns:1fr}
+    .liqtitle{border:none}
+    .zones{font-size:10px}
+    .row2{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap top">
+  <div class="brand">BTC Fear &amp; Greed <small id="upd">verbinde…</small></div>
+  <div class="seg" id="modeSeg">
+    <button data-mode="binance">Binance</button>
+    <button data-mode="multi">Multi-Source</button>
+  </div>
+</div>
+<div class="wrap offline" id="offline">
+  <b>Keine Verbindung zum Daten-Server.</b><br>
+  Starte <code>start.bat</code> im Ordner des Dashboards und öffne dann <a href="http://localhost:8787" style="color:#fff">http://localhost:8787</a>.
+</div>
+
+<div class="wrap card" id="card">
+  <svg id="wires"></svg>
+  <div class="grid">
+    <div class="col left" id="left"><h3>Futures-Markt</h3></div>
+    <div class="center" id="center">
+      <svg viewBox="0 0 240 240">
+        <circle cx="120" cy="120" r="114" fill="none" stroke="#3a2442" stroke-width="2"/>
+        <circle cx="120" cy="120" r="102" fill="none" stroke="#2a1b31" stroke-width="9"/>
+        <circle id="mainArc" cx="120" cy="120" r="102" fill="none" stroke="var(--accent)" stroke-width="9"
+          stroke-dasharray="0 1000" style="transition:stroke-dasharray 1s,stroke .5s"/>
+      </svg>
+      <div class="inner">
+        <div class="lbl">INDEX</div>
+        <div class="big" id="idx">--</div>
+        <div class="zone" id="zone">lädt…</div>
+        <div class="sub" id="idxSub">Live</div>
+      </div>
+    </div>
+    <div class="col right" id="right"><h3>Flows und Makro</h3></div>
+  </div>
+
+  <div class="scale">
+    <div class="segs">
+      <div style="flex:25;background:#7a5cf0"></div>
+      <div style="flex:20;background:linear-gradient(90deg,#9a5ce0,#c85ccf)"></div>
+      <div style="flex:10;background:#e0506e"></div>
+      <div style="flex:20;background:linear-gradient(90deg,#f0663c,#f39a3a)"></div>
+      <div style="flex:25;background:#f5d46a"></div>
+    </div>
+    <div class="mlabel" id="curLbl" style="left:50%">--</div>
+    <div class="mk cur" id="curMk" style="left:50%"></div>
+    <div id="offMks"></div>
+  </div>
+  <div class="zones" id="zones">
+    <span style="flex:25">Extreme Angst</span><span style="flex:20">Angst</span><span style="flex:10">Neutral</span><span style="flex:20">Gier</span><span style="flex:25">Extreme Gier</span>
+  </div>
+  <div class="chips" id="chips"></div>
+</div>
+
+<div class="wrap ticker">
+  <div class="price"><span class="b">₿</span><span id="btc">--</span></div>
+  <div class="liqtitle">LIQUIDATIONEN<small id="liqSince">24h</small></div>
+  <div class="liq">
+    <div class="row"><span class="l"><small>LONGS </small><span id="liqL">0</span> <small>USD</small></span>
+      <span class="s"><span id="liqS">0</span> <small>USD SHORTS</small></span></div>
+    <div class="bar"><div class="bl" id="liqBar" style="width:50%"></div><div class="bs"></div></div>
+  </div>
+</div>
+
+<div class="wrap row2">
+  <div class="panel">
+    <h2>Signal</h2>
+    <div class="sig-label" id="sigLabel">–</div>
+    <div class="sig-text" id="sigText">Warte auf Daten…</div>
+    <ul class="sig-list" id="sigList"></ul>
+    <div class="disc">Regelbasiertes Signal aus Indexstand, Trend und Abweichung zum offiziellen Index. Keine Anlageberatung.</div>
+  </div>
+  <div class="panel">
+    <div class="ph"><h2>Verlauf</h2>
+      <div class="seg small" id="rangeSeg"><button data-r="30">30 T</button><button data-r="90">90 T</button><button data-r="365">1 J</button></div>
+    </div>
+    <svg id="chart" viewBox="0 0 600 240"></svg>
+    <div class="legend" id="legend"></div>
+  </div>
+</div>
+
+<div class="wrap panel">
+  <h2>Tageswerte</h2>
+  <div class="tw"><table id="histTable"></table></div>
+  <p class="note">* rückwirkend berechnet aus historischen Daten. Liquidationen gibt es nur ab Server-Start, Long/Short und Open Interest bei Binance nur 30 Tage zurück. Ältere Tage haben deshalb weniger Indikatoren. Heute = Live-Wert.</p>
+</div>
+
+<div class="wrap panel">
+  <h2>Trends</h2>
+  <div class="tw"><table id="trendTable"></table></div>
+  <p class="note">Trend = Veränderung der Regressionsgeraden über den Zeitraum (in Indexpunkten). ↑ ab +5, ↓ ab −5 Punkten.</p>
+</div>
+
+<details class="wrap panel">
+  <summary>Datenquellen &amp; Status</summary>
+  <div class="srcs" id="srcs"></div>
+  <p class="note">API-Keys für CoinGlass und SoSoValue trägst du in <code>config.json</code> ein. Sie werden ohne Neustart beim nächsten Abruf genutzt.</p>
+</details>
+
+<script>
+const $ = id => document.getElementById(id);
+const clamp = (v,a=0,b=100) => Math.max(a,Math.min(b,v));
+const fmt = (n,d=0) => n.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d});
+const sgn = (n,d=0) => (n>0?'+':n<0?'−':'±')+fmt(Math.abs(n),d);
+const store = { get(k,d){try{return localStorage.getItem(k)??d}catch{return d}}, set(k,v){try{localStorage.setItem(k,v)}catch{}} };
+
+let MODE = store.get('fg_mode','multi'), RANGE = +store.get('fg_range','90');
+let S = null, H = [];
+const OFF = [
+  {k:'alt', name:'alternative.me', color:'var(--alt)'},
+  {k:'cmc', name:'CoinMarketCap', color:'var(--cmc)'},
+  {k:'coinglass', name:'CoinGlass', color:'var(--cg)'}
+];
+const MODE_NAME = {binance:'Binance', multi:'Multi-Source'};
+
+/* ---------- Farben & Zonen ---------- */
+const STOPS=[[0,[109,93,252]],[25,[160,92,230]],[42,[214,90,201]],[52,[230,80,110]],[65,[240,110,60]],[80,[243,160,58]],[100,[245,215,110]]];
+function color(s){
+  if(s==null) return '#6f6478';
+  for(let i=1;i<STOPS.length;i++) if(s<=STOPS[i][0]){
+    const [a,c1]=STOPS[i-1],[b,c2]=STOPS[i],t=(s-a)/(b-a);
+    return `rgb(${c1.map((c,k)=>Math.round(c+(c2[k]-c)*t)).join(',')})`;
+  }
+  return 'rgb(245,215,110)';
+}
+const zone = s => s<25?'Extreme Angst':s<45?'Angst':s<55?'Neutral':s<75?'Gier':'Extreme Gier';
+const zoneIdx = s => s<25?0:s<45?1:s<55?2:s<75?3:4;
+const pill = v => v==null ? '<span class="flat">–</span>' : `<span class="pill" style="color:${color(v)}">${v}</span>`;
+const pillZ = v => v==null ? '<span class="flat">–</span>' : pill(v)+`<span class="zt">${zone(v)}</span>`;
+
+/* ---------- Mode / Range Umschalter ---------- */
+function bindSeg(id, attr, get, set){
+  const seg=$(id);
+  const upd=()=>[...seg.children].forEach(b=>b.classList.toggle('on', b.dataset[attr]==String(get())));
+  seg.addEventListener('click',e=>{const b=e.target.closest('button'); if(!b)return; set(b.dataset[attr]); upd(); renderAll();});
+  upd();
+}
+bindSeg('modeSeg','mode',()=>MODE,v=>{MODE=v;store.set('fg_mode',v)});
+bindSeg('rangeSeg','r',()=>RANGE,v=>{RANGE=+v;store.set('fg_range',v)});
+
+/* ---------- Gauges ---------- */
+const GC = 2*Math.PI*20;
+let built=false;
+function build(components){
+  for(const side of ['left','right']){
+    const col=$(side);
+    for(const c of components.filter(c=>c.side===side)){
+      const el=document.createElement('div'); el.className='item';
+      const txt=`<div class="txt"><div class="name" title="${c.name}">${c.name}</div><div class="val"><span id="v-${c.id}">–</span><span class="nq" id="q-${c.id}"></span></div></div>`;
+      const g=`<div class="gauge" id="g-${c.id}"><svg viewBox="0 0 46 46">
+        <circle cx="23" cy="23" r="22" fill="#1a0f22"/>
+        <circle cx="23" cy="23" r="20" fill="none" stroke="var(--track)" stroke-width="3"/>
+        <circle class="arc" cx="23" cy="23" r="20" fill="none" stroke="#666" stroke-width="3" stroke-linecap="round"
+          stroke-dasharray="0 ${GC}" style="transition:stroke-dasharray .8s"/></svg><div class="num">–</div></div>`;
+      el.innerHTML = side==='left' ? txt+g : g+txt;
+      col.appendChild(el);
+    }
+  }
+  built=true;
+}
+function setGauge(c){
+  const g=$('g-'+c.id), arc=g.querySelector('.arc'), num=g.querySelector('.num');
+  $('v-'+c.id).textContent = c.text ?? '–';
+  const n=(c.sources||[]).length;
+  $('q-'+c.id).textContent = MODE==='multi' && n>1 ? `· ${n} Quellen` : '';
+  g.title = (c.sources||[]).length ? c.name+'\n'+c.sources.map(s=>`• ${s.name}: ${typeof s.value==='number'?fmt(s.value, Math.abs(s.value)<1?4:2):s.value}`).join('\n') : c.name+': keine Daten';
+  if(c.score==null){ arc.setAttribute('stroke-dasharray',`0 ${GC}`); num.textContent='–'; num.style.color='#a88fd8'; return; }
+  const col=color(c.score);
+  arc.setAttribute('stroke',col); arc.setAttribute('stroke-dasharray',`${GC*c.score/100} ${GC}`);
+  num.textContent=c.score; num.style.color=col;
+}
+
+/* ---------- Verlaufshilfen ---------- */
+const todayKey = () => new Date().toISOString().slice(0,10);
+const dayKey = off => new Date(Date.now()-off*864e5).toISOString().slice(0,10);
+const histBy = () => new Map(H.map(r=>[r.date,r]));
+function series(key){ // [{date, v}] inkl. Live-Wert für heute
+  const t=todayKey();
+  const out=H.filter(r=>r.date!==t && r[key]!=null).map(r=>({date:r.date,v:r[key]}));
+  const live = key==='binance'||key==='multi' ? S?.modes?.[key]?.index : S?.officials?.[key];
+  if(live!=null) out.push({date:t,v:live});
+  return out;
+}
+function trend(key, days){ // {avg, delta, n} über die letzten "days" Tage
+  const from=dayKey(days), pts=series(key).filter(p=>p.date>from);
+  if(pts.length < Math.max(4, days*0.5)) return {n:pts.length};
+  const t0=Date.parse(pts[0].date);
+  const xs=pts.map(p=>(Date.parse(p.date)-t0)/864e5), ys=pts.map(p=>p.v);
+  const mx=xs.reduce((a,b)=>a+b)/xs.length, my=ys.reduce((a,b)=>a+b)/ys.length;
+  let num=0,den=0; xs.forEach((x,i)=>{num+=(x-mx)*(ys[i]-my);den+=(x-mx)**2});
+  return {avg:my, delta:den?num/den*days:0, n:pts.length};
+}
+const arrow = d => d==null ? '<span class="flat">–</span>' :
+  d>5 ? `<span class="up">↑ ${sgn(d,0)}</span>` : d<-5 ? `<span class="down">↓ ${sgn(d,0)}</span>` : `<span class="flat">→ ${sgn(d,0)}</span>`;
+const word = d => d>5?'steigend':d<-5?'fallend':'seitwärts';
+
+/* ---------- Rendering ---------- */
+function renderMain(){
+  const m=S.modes[MODE];
+  if(!built) build(m.components);
+  m.components.forEach(setGauge);
+  const v=m.index, c=color(v);
+  $('idx').textContent=v??'--'; $('idx').style.color=c;
+  $('zone').textContent=v==null?'–':zone(v); $('zone').style.color=c;
+  const t7=trend(MODE,7);
+  const n=m.components.filter(x=>x.score!=null).length;
+  $('idxSub').innerHTML=`Live · ${n} von ${m.components.length} Indikatoren`+(t7.avg!=null?`<br>7-Tage-Mittel ${Math.round(t7.avg)}`:'');
+  const C=2*Math.PI*102, arc=$('mainArc');
+  arc.setAttribute('stroke-dasharray',`${C*(v??0)/100} ${C}`); arc.setAttribute('stroke',c);
+  $('curMk').style.left=(v??50)+'%'; $('curLbl').style.left=(v??50)+'%'; $('curLbl').textContent=v??'--';
+  [...$('zones').children].forEach((s,i)=>s.classList.toggle('on',v!=null&&i===zoneIdx(v)));
+
+  // offizielle Indizes: Markierungen + Chips
+  let mk='', chips=`<span class="chip"><span class="dot" style="background:#fff"></span>Unser (${MODE_NAME[MODE]}) <b>${v??'–'}</b></span>`;
+  for(const o of OFF){
+    const ov=S.officials[o.k];
+    if(ov==null){ if(o.k==='coinglass') continue; chips+=`<span class="chip"><span class="dot" style="background:${o.color}"></span>${o.name} <b>–</b></span>`; continue; }
+    mk+=`<div class="mk off" style="left:${ov}%;border-bottom-color:${o.color}" title="${o.name}: ${ov}"></div>`;
+    chips+=`<span class="chip"><span class="dot" style="background:${o.color}"></span>${o.name} <b>${ov}</b> ${zone(ov)}</span>`;
+  }
+  const other = MODE==='binance'?'multi':'binance';
+  chips+=`<span class="chip">${MODE_NAME[other]}: <b>${S.modes[other].index??'–'}</b></span>`;
+  $('offMks').innerHTML=mk; $('chips').innerHTML=chips;
+
+  // Ticker
+  if(S.btc) $('btc').textContent='$'+fmt(S.btc,2);
+  const L=S.liq[MODE];
+  $('liqL').textContent=fmt(L.L); $('liqS').textContent=fmt(L.S);
+  $('liqBar').style.width=(L.L+L.S?L.L/(L.L+L.S)*100:50)+'%';
+  const hrs=(Date.now()-S.liq.since)/36e5;
+  $('liqSince').textContent=(hrs>=23.5?'letzte 24h':'seit '+fmt(hrs,1)+' h')+' · '+(MODE==='multi'?'Binance, Bybit, OKX':'Binance');
+
+  $('upd').textContent='aktualisiert '+new Date(S.updated||Date.now()).toLocaleTimeString('de-DE');
+  $('srcs').innerHTML=S.status.map(s=>`<div><span class="st" style="background:${s.ok===true?'var(--buy)':s.ok===false?'var(--sell)':'#6f6478'}"></span>
+    <span>${s.name}</span><span class="m" title="${s.msg||''}">${s.ok===true?'ok':s.msg||''}</span></div>`).join('');
+  requestAnimationFrame(drawWires);
+}
+
+function renderSignal(){
+  const v=S.modes[MODE].index;
+  if(v==null) return;
+  const t7=trend(MODE,7), t30=trend(MODE,30);
+  const d7=t7.delta, up=d7!=null&&d7>4, down=d7!=null&&d7<-4;
+  let r;
+  if(v<25) r = up ? ['Kaufzone','buy','Extreme Angst, aber die Stimmung dreht nach oben. Solche Phasen waren historisch oft gute Einstiegszonen.']
+                  : ['Abwarten – Kapitulation','sell','Extreme Angst und weiter fallend: starker Verkaufsdruck, ein Boden ist noch nicht bestätigt.'];
+  else if(v<45) r = up ? ['Akkumulieren','buy','Angst, aber mit steigender Tendenz – der Markt beginnt sich zu erholen.']
+                  : down ? ['Verkaufsdruck','sell','Die Angst nimmt zu – Verkäufer dominieren gerade.']
+                  : ['Halten / beobachten','hold','Angst ohne klare Richtung.'];
+  else if(v<55) r = up ? ['Halten – Tendenz Gier','hold','Neutral mit steigender Tendenz.']
+                  : down ? ['Halten – Tendenz Angst','warn','Neutral mit fallender Tendenz.']
+                  : ['Halten','hold','Neutral, kein klares Signal.'];
+  else if(v<75) r = up ? ['Halten – Trend intakt','hold','Die Gier steigt, der Trend ist intakt.']
+                  : down ? ['Gewinne absichern','warn','Die Gier lässt nach – das Momentum schwächt sich ab.']
+                  : ['Halten','hold','Gier, stabil.'];
+  else r = up ? ['Überhitzt – Teilgewinne','sell','Extreme Gier und weiter steigend: hohes Rückschlagrisiko.']
+              : ['Verkaufszone','sell','Extreme Gier lässt nach – historisch oft in der Nähe lokaler Hochs.'];
+  const tone={buy:'var(--buy)',sell:'var(--sell)',warn:'var(--warn)',hold:'var(--hold)'}[r[1]];
+  $('sigLabel').textContent=r[0]; $('sigLabel').style.color=tone;
+  $('sigText').textContent=r[2];
+  const alt=S.officials.alt, cmc=S.officials.cmc;
+  const li=[[`Niveau (${MODE_NAME[MODE]})`, `${v} · ${zone(v)}`],
+    ['Trend 7 Tage', d7==null?`zu wenig Daten (${t7.n})`:`${word(d7)} (${sgn(d7,0)})`],
+    ['Trend 30 Tage', t30.delta==null?`zu wenig Daten (${t30.n})`:`${word(t30.delta)} (${sgn(t30.delta,0)})`]];
+  if(alt!=null){
+    const d=v-alt;
+    li.push(['vs. alternative.me', `${sgn(d,0)} Punkte`]);
+    if(Math.abs(d)>=10) li.push(['Einordnung', d<0?'Markt schwächer als offiziell angezeigt':'Markt stärker als offiziell angezeigt']);
+  }
+  if(cmc!=null) li.push(['vs. CoinMarketCap', `${sgn(v-cmc,0)} Punkte`]);
+  $('sigList').innerHTML=li.map(([a,b])=>`<li><span>${a}</span><span>${b}</span></li>`).join('');
+}
+
+function renderTables(){
+  const by=histBy(), t=todayKey();
+  const hasCG = H.some(r=>r.coinglass!=null) || S?.officials?.coinglass!=null;
+  const rows=[['Heute',0],['Gestern',1],['Vorgestern',2],['Vor 7 Tagen',7],['Vor 14 Tagen',14],['Vor 30 Tagen',30],['Vor 100 Tagen',100],['Vor 200 Tagen',200],['Vor 1 Jahr',365]];
+  let h=`<tr><th>Zeitpunkt</th><th>Datum</th><th>Binance</th><th>Multi-Source</th><th>alternative.me</th><th>CoinMarketCap</th>${hasCG?'<th>CoinGlass</th>':''}<th>Abw. zu alt.me</th><th>BTC</th></tr>`;
+  for(const [label,off] of rows){
+    const d=dayKey(off); let r=by.get(d)||{};
+    if(off===0) r={...r, binance:S?.modes.binance.index, multi:S?.modes.multi.index, alt:S?.officials.alt??r.alt, cmc:S?.officials.cmc??r.cmc, coinglass:S?.officials.coinglass??r.coinglass, btc:S?.btc??r.btc, src:'live'};
+    const mine=r[MODE], diff=mine!=null&&r.alt!=null?mine-r.alt:null;
+    const star=r.src==='calc'?'*':'';
+    h+=`<tr${off===0?' class="sel"':''}><td>${label}</td><td>${d.slice(8,10)}.${d.slice(5,7)}.${d.slice(0,4)}</td>
+      <td>${pill(r.binance??null)}${r.binance!=null?star:''}</td><td>${pill(r.multi??null)}${r.multi!=null?star:''}</td>
+      <td>${pillZ(r.alt??null)}</td><td>${pill(r.cmc??null)}</td>${hasCG?`<td>${pill(r.coinglass??null)}</td>`:''}
+      <td>${diff==null?'<span class="flat">–</span>':`<span class="${diff>0?'up':diff<0?'down':'flat'}">${sgn(diff,0)}</span>`}</td>
+      <td>${r.btc?'$'+fmt(r.btc):'–'}</td></tr>`;
+  }
+  $('histTable').innerHTML=h;
+
+  const btcSeries=H.filter(r=>r.btc).map(r=>({date:r.date,v:r.btc}));
+  let tr=`<tr><th>Zeitraum</th><th>Ø Unser (${MODE_NAME[MODE]})</th><th>Trend Unser</th><th>Ø alternative.me</th><th>Trend alt.me</th><th>Ø CMC</th><th>Trend CMC</th><th>BTC</th></tr>`;
+  for(const [label,days] of [['7 Tage',7],['30 Tage',30],['100 Tage',100],['200 Tage',200],['1 Jahr',365]]){
+    const a=trend(MODE,days), b=trend('alt',days), c=trend('cmc',days);
+    const from=dayKey(days), bs=btcSeries.filter(p=>p.date>=from);
+    const bch = bs.length>1 && (S?.btc||bs.at(-1).v) ? ((S?.btc||bs.at(-1).v)/bs[0].v-1)*100 : null;
+    const avg=x=>x.avg==null?`<span class="flat">– (${x.n} T)</span>`:pill(Math.round(x.avg));
+    tr+=`<tr><td>${label}</td><td>${avg(a)}</td><td>${arrow(a.delta)}</td><td>${avg(b)}</td><td>${arrow(b.delta)}</td><td>${avg(c)}</td><td>${arrow(c.delta)}</td>
+      <td>${bch==null?'–':`<span class="${bch>0?'up':'down'}">${sgn(bch,1)} %</span>`}</td></tr>`;
+  }
+  $('trendTable').innerHTML=tr;
+}
+
+function renderChart(){
+  const W=600,Hh=240,P={l:28,r:46,t:8,b:22}, iw=W-P.l-P.r, ih=Hh-P.t-P.b;
+  const from=dayKey(RANGE), dates=[];
+  for(let i=RANGE;i>=0;i--) dates.push(dayKey(i));
+  const xi=new Map(dates.map((d,i)=>[d,i]));
+  const X=i=>P.l+i/(dates.length-1)*iw, Y=v=>P.t+(1-v/100)*ih;
+  let g='';
+  [[0,25,'#7a5cf0'],[25,45,'#b65ce0'],[45,55,'#e0506e'],[55,75,'#f08a3c'],[75,100,'#f5d46a']].forEach(([a,b,c])=>{
+    g+=`<rect x="${P.l}" y="${Y(b)}" width="${iw}" height="${Y(a)-Y(b)}" fill="${c}" opacity=".06"/>`;
+  });
+  for(const v of [25,50,75]) g+=`<line x1="${P.l}" x2="${P.l+iw}" y1="${Y(v)}" y2="${Y(v)}" stroke="#3a2a46" stroke-dasharray="2 4"/><text x="${P.l-6}" y="${Y(v)+4}" fill="#6f6478" font-size="10" text-anchor="end">${v}</text>`;
+  const path=(pts,yf)=>{let d='',prev=-2;for(const p of pts){const i=xi.get(p.date);if(i==null)continue;d+=(i===prev+1?'L':'M')+X(i).toFixed(1)+','+yf(p.v).toFixed(1);prev=i}return d};
+  // BTC-Preis auf zweiter Achse
+  const btc=H.filter(r=>r.btc&&r.date>=from).map(r=>({date:r.date,v:r.btc}));
+  if(S?.btc) btc.push({date:todayKey(),v:S.btc});
+  if(btc.length>1){
+    const lo=Math.min(...btc.map(p=>p.v)), hi=Math.max(...btc.map(p=>p.v)), yb=v=>P.t+(1-(v-lo)/((hi-lo)||1))*ih;
+    g+=`<path d="${path(btc,yb)}" fill="none" stroke="#8a7f94" stroke-width="1.2" opacity=".55"/>`;
+    g+=`<text x="${W-P.r+6}" y="${P.t+10}" fill="#8a7f94" font-size="10">$${fmt(hi/1000,0)}k</text><text x="${W-P.r+6}" y="${P.t+ih}" fill="#8a7f94" font-size="10">$${fmt(lo/1000,0)}k</text>`;
+  }
+  const lines=[{k:'alt',c:'#3fd6c3',w:1.6},{k:'cmc',c:'#5aa9ff',w:1.6},{k:'coinglass',c:'#f5d46a',w:1.6},{k:MODE,c:'#ffffff',w:2.4}];
+  let leg=`<span><i style="background:#fff"></i>Unser (${MODE_NAME[MODE]})</span>`;
+  for(const l of lines){
+    const pts=series(l.k).filter(p=>p.date>=from);
+    if(pts.length<2) continue;
+    g+=`<path d="${path(pts,Y)}" fill="none" stroke="${l.c}" stroke-width="${l.w}" stroke-linejoin="round"/>`;
+    if(l.k!==MODE) leg+=`<span><i style="background:${l.c}"></i>${OFF.find(o=>o.k===l.k).name}</span>`;
+  }
+  leg+=`<span><i style="background:#8a7f94"></i>BTC-Preis (rechte Achse)</span>`;
+  const step=Math.ceil(dates.length/6);
+  dates.forEach((d,i)=>{ if(i%step===0) g+=`<text x="${X(i)}" y="${Hh-6}" fill="#6f6478" font-size="10" text-anchor="middle">${d.slice(8,10)}.${d.slice(5,7)}.</text>` });
+  $('chart').innerHTML=g; $('legend').innerHTML=leg;
+}
+
+/* ---------- Verbindungslinien Gauge -> Zentrum ---------- */
+function drawWires(){
+  const svg=$('wires'), card=$('card').getBoundingClientRect(), cen=$('center').getBoundingClientRect();
+  if(getComputedStyle(svg).display==='none') return;
+  const cx=cen.left+cen.width/2-card.left, cy=cen.top+cen.height/2-card.top, R=cen.width/2-4;
+  svg.setAttribute('viewBox',`0 0 ${card.width} ${card.height}`);
+  let out='';
+  document.querySelectorAll('.gauge').forEach(g=>{
+    const r=g.getBoundingClientRect(), left=r.left+r.width/2<cx+card.left;
+    const gx=(left?r.right:r.left)-card.left, gy=r.top+r.height/2-card.top;
+    const phi=Math.asin(clamp((gy-cy)/R*0.35,-0.6,0.6));
+    const ex=cx+(left?-1:1)*Math.cos(phi)*R, ey=cy+Math.sin(phi)*R, mx=(gx+ex)/2;
+    const c=S?.modes[MODE].components.find(x=>x.id===g.id.slice(2));
+    const col=c?.score!=null?color(c.score):'#5a4a66';
+    out+=`<path d="M${gx},${gy} C${mx},${gy} ${mx},${ey} ${ex},${ey}" fill="none" stroke="${col}" stroke-opacity=".45" stroke-width="1.3"/>`;
+  });
+  svg.innerHTML=out;
+}
+window.addEventListener('resize',drawWires);
+
+/* ---------- Laden ---------- */
+function renderAll(){
+  if(!S?.ready) return;
+  renderMain(); renderSignal(); renderTables(); renderChart();
+}
+async function loadState(){
+  try{
+    const r=await fetch('/api/state',{cache:'no-store'});
+    S=await r.json(); $('offline').style.display='none';
+    if(!S.ready){ $('upd').textContent='Server sammelt Daten…'; return; }
+    renderMain(); renderSignal();
+  }catch{ $('offline').style.display='block'; $('upd').textContent='offline'; }
+}
+async function loadHistory(){
+  try{ H=await (await fetch('/api/history',{cache:'no-store'})).json(); renderAll(); }catch{}
+}
+loadState().then(loadHistory);
+setInterval(loadState,5000);
+setInterval(loadHistory,120000);
+</script>
+</body>
+</html>
