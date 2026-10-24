@@ -343,20 +343,32 @@ const interp = (pts, x) => { // P(über x) aus der Preisleiter
 const LEVERAGE = [[5, 0.10], [10, 0.30], [25, 0.30], [50, 0.20], [100, 0.10]];
 const hourOf = t => Math.floor(t / 3600e3) * 3600e3;
 // V15: stündliches Open Interest von Bybit (3 Seiten à 200) und OKX (5 Seiten à 100), jeweils in BTC – alle 10 Minuten neu
-const XOI = { t: 0, bybit: null, okx: null, gate: null, htx: null, kraken: null };
+const XOI = { t: 0, bybit: null, okx: null, gate: null, htx: null, kraken: null, binancecm: null, bybitinv: null, okxinv: null };
+// V21: weitere Börsen mit stündlichem Verlauf – Binance COIN-M (BTCUSD, Wert schon in BTC), Bybit invers (BTCUSD, in US-Dollar → mit dem Stundenkurs in BTC), OKX invers (BTC-USD-SWAP, oiCcy in BTC)
+async function oiBinCm(get) { const j = await get('https://dapi.binance.com/futures/data/openInterestHist?pair=BTCUSD&contractType=PERPETUAL&period=1h&limit=500'); return (Array.isArray(j) ? j : []).map(x => [+x.timestamp, +x.sumOpenInterestValue]).filter(x => x[1] > 0); }
+async function oiBybitInv(get) { const out = []; let cursor = ''; for (let p = 0; p < 3; p++) { const j = await get('https://api.bybit.com/v5/market/open-interest?category=inverse&symbol=BTCUSD&intervalTime=1h&limit=200' + (cursor ? '&cursor=' + encodeURIComponent(cursor) : '')); out.push(...(j.result?.list || []).map(x => [+x.timestamp, +x.openInterest])); cursor = j.result?.nextPageCursor; if (!cursor) break; } return out; }
+async function oiOkxInv(get) { const out = []; let end = ''; for (let p = 0; p < 5; p++) { const j = await get('https://www.okx.com/api/v5/rubik/stat/contracts/open-interest-history?instId=BTC-USD-SWAP&period=1H&limit=100' + (end ? '&end=' + end : '')); const d = j.data || []; if (!d.length) break; out.push(...d.map(x => [+x[0], +x[2]])); end = d.at(-1)[0]; } return out; }
 // V18: weitere Börsen – Gate.io, HTX und Kraken haben einen stündlichen OI-Verlauf (frei, ohne Key); Bitget, Deribit und Hyperliquid liefern nur den
 // aktuellen Wert → das Programm schreibt ihn stündlich mit (state.oiRec) und nutzt die Börse, sobald 7 Tage (168 Std.) zusammen sind.
 async function oiGate(get) { const j = await get('https://api.gateio.ws/api/v4/futures/usdt/contract_stats?contract=BTC_USDT&interval=1h&limit=500'); return (Array.isArray(j) ? j : []).map(x => [x.time * 1000, +x.mark_price > 0 ? +x.open_interest_usd / +x.mark_price : null]).filter(x => x[1] > 0); }
 async function oiHtx(get) { const j = await get('https://api.hbdm.com/linear-swap-api/v1/swap_his_open_interest?contract_code=BTC-USDT&period=60min&amount_type=2&size=200'); return (j?.data?.tick || []).map(x => [+x.ts, +x.volume]).filter(x => x[1] > 0); }
 async function oiKraken(get) { const since = Math.floor(Date.now() / 1000) - 500 * 3600, j = await get(`https://futures.kraken.com/api/charts/v1/analytics/PF_XBTUSD/open-interest?interval=3600&since=${since}`), r = j?.result || {}; return (r.timestamp || []).map((ts, i) => [ts * 1000, +(r.data?.[i]?.[3] ?? NaN)]).filter(x => x[1] > 0); }
-export const OI_REC = ['bitget', 'deribit', 'hyperliquid'], OI_REC_MIN = 168;
+// V21: dazu Bitfinex, KuCoin, BingX, Aster, Phemex – liefern nur den aktuellen Wert, das Programm schreibt ihn stündlich mit (alle in BTC)
+export const OI_REC = ['bitget', 'deribit', 'hyperliquid', 'bitfinex', 'kucoin', 'bingx', 'aster', 'phemex'], OI_REC_MIN = 168;
 async function oiNow(get) {
   const tm = () => AbortSignal.timeout(15000);
   const [bitget, deribit, hyperliquid] = await Promise.all([
     get('https://api.bitget.com/api/v2/mix/market/open-interest?symbol=BTCUSDT&productType=USDT-FUTURES').then(j => +j?.data?.openInterestList?.[0]?.size).catch(() => null),
     get('https://www.deribit.com/api/v2/public/get_book_summary_by_instrument?instrument_name=BTC-PERPETUAL').then(j => { const r = j?.result?.[0]; return r && +r.mark_price > 0 ? +r.open_interest / +r.mark_price : null; }).catch(() => null),
     fetch('https://api.hyperliquid.xyz/info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'metaAndAssetCtxs' }), signal: tm() }).then(r => r.json()).then(([m, ctx]) => { const i = m?.universe?.findIndex(u => u.name === 'BTC'); return i >= 0 ? +ctx[i].openInterest : null; }).catch(() => null)]);
-  return { bitget, deribit, hyperliquid };
+  const px = async () => +(await get('https://fapi.binance.com/fapi/v1/ticker/price?symbol=BTCUSDT')).price;
+  const [bitfinex, kucoin, bingx, aster, phemex] = await Promise.all([
+    get('https://api-pub.bitfinex.com/v2/status/deriv?keys=tBTCF0:USTF0').then(j => +j?.[0]?.[18] || null).catch(() => null),
+    get('https://api-futures.kucoin.com/api/v1/contracts/XBTUSDTM').then(j => { const d = j?.data; return d ? +d.openInterest * +d.multiplier : null; }).catch(() => null),
+    get('https://open-api.bingx.com/openApi/swap/v2/quote/openInterest?symbol=BTC-USDT').then(async j => { const v = +j?.data?.openInterest; return v > 0 ? v / await px() : null; }).catch(() => null),
+    get('https://fapi.asterdex.com/fapi/v1/openInterest?symbol=BTCUSDT').then(j => +j?.openInterest || null).catch(() => null),
+    get('https://api.phemex.com/md/v3/ticker/24hr?symbol=BTCUSDT').then(j => +j?.result?.openInterestRv || null).catch(() => null)]);
+  return { bitget, deribit, hyperliquid, bitfinex, kucoin, bingx, aster, phemex };
 }
 async function oiBybit(get) {
   const out = []; let cursor = '';
@@ -384,15 +396,19 @@ async function liqHeatmap(get, st = null, recMin = OI_REC_MIN) {
     get('https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=500')
   ]);
   if (Date.now() - XOI.t > 600e3) {
-    const [by, ox, gt, hx, kr, now] = await Promise.all([oiBybit(get).catch(() => null), oiOkx(get).catch(() => null), oiGate(get).catch(() => null), oiHtx(get).catch(() => null), oiKraken(get).catch(() => null), st ? oiNow(get).catch(() => null) : null]);
+    const [by, ox, gt, hx, kr, now, bcm, byi, oxi] = await Promise.all([oiBybit(get).catch(() => null), oiOkx(get).catch(() => null), oiGate(get).catch(() => null), oiHtx(get).catch(() => null), oiKraken(get).catch(() => null), st ? oiNow(get).catch(() => null) : null,
+      oiBinCm(get).catch(() => null), oiBybitInv(get).catch(() => null), oiOkxInv(get).catch(() => null)]);
     XOI.t = Date.now(); if (by?.length) XOI.bybit = by; if (ox?.length) XOI.okx = ox; if (gt?.length) XOI.gate = gt; if (hx?.length) XOI.htx = hx; if (kr?.length) XOI.kraken = kr;
+    if (bcm?.length) XOI.binancecm = bcm; if (byi?.length) XOI.bybitinv = byi; if (oxi?.length) XOI.okxinv = oxi;
     // aktueller OI (Bitget, Deribit, Hyperliquid) stündlich mitschreiben – höchstens 700 Stunden
     if (st && now) { st.oiRec ||= {}; const hh = hourOf(Date.now()); for (const [ex, v] of Object.entries(now)) { if (!(v > 0)) continue; const a = (st.oiRec[ex] ||= []); if (a.length && a.at(-1)[0] === hh) a[a.length - 1][1] = v; else a.push([hh, v]); if (a.length > 700) a.splice(0, a.length - 700); } }
   }
   const tkM = new Map(taker.map(x => [hourOf(x.timestamp), +x.buyVol / ((+x.buyVol + +x.sellVol) || 1)]));
   // Kursverlauf und Käufer-Anteil von Binance gelten für alle Börsen (BTC-Kurs ist überall fast gleich), das Open Interest kommt je Börse
   const OIM = { binance: new Map(oi.map(x => [hourOf(x.timestamp), +x.sumOpenInterest])) }, rm = Math.max(1, Math.round(recMin || OI_REC_MIN));
-  for (const ex of ['bybit', 'okx', 'gate', 'htx', 'kraken']) if (XOI[ex]?.length) OIM[ex] = new Map(XOI[ex].map(([t, v]) => [hourOf(t), v]));
+  for (const ex of ['bybit', 'okx', 'gate', 'htx', 'kraken', 'binancecm', 'okxinv']) if (XOI[ex]?.length) OIM[ex] = new Map(XOI[ex].map(([t, v]) => [hourOf(t), v]));
+  // Bybit invers: US-Dollar → BTC mit dem Schlusskurs der jeweiligen Stunde
+  if (XOI.bybitinv?.length) { const pxM = new Map(kl.map(k => [hourOf(k[0]), +k[4]])), last = +kl.at(-1)[4]; OIM.bybitinv = new Map(XOI.bybitinv.map(([t, v]) => [hourOf(t), v / (pxM.get(hourOf(t)) || last)])); }
   const exState = {};
   for (const ex of OI_REC) { const a = st?.oiRec?.[ex] || []; exState[ex] = a.length; if (a.length >= rm) OIM[ex] = new Map(a.map(([t, v]) => [hourOf(t), v])); }
   const lv = Object.fromEntries(Object.entries(OIM).map(([ex, m]) => [ex, liqLevels(m, tkM, kl)]));
@@ -401,6 +417,13 @@ async function liqHeatmap(get, st = null, recMin = OI_REC_MIN) {
   for (const [ex, a] of Object.entries(lv)) out.ex[ex] = liqMap(a, kl).rows;
   const hNow = hourOf(Date.now());
   for (const [per, h] of Object.entries(HM_PER_E)) { out.exP[per] = {}; for (const [ex, m] of Object.entries(OIM)) out.exP[per][ex] = liqMap(liqLevels(m, tkM, kl, hNow - h * 3600e3), kl).rows; }
+  // V21: grobe Zeiträume 1 und 3 Monate aus Tageswerten (Tageskerzen + tägliches Open Interest: Binance nur 30 Tage, Bybit 200 Tage)
+  try {
+    const [kd, bo, yo] = await Promise.all([get('https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1d&limit=200'), get('https://fapi.binance.com/futures/data/openInterestHist?symbol=BTCUSDT&period=1d&limit=30').catch(() => []),
+      get('https://api.bybit.com/v5/market/open-interest?category=linear&symbol=BTCUSDT&intervalTime=1d&limit=200').catch(() => null)]);
+    const dM = { binance: new Map((Array.isArray(bo) ? bo : []).map(x => [hourOf(x.timestamp), +x.sumOpenInterest])), bybit: new Map((yo?.result?.list || []).map(x => [hourOf(+x.timestamp), +x.openInterest])) };
+    for (const [per, days] of [['1mo', 30], ['3mo', 91]]) { out.exP[per] = {}; for (const [ex, m] of Object.entries(dM)) if (m.size >= Math.min(25, days * 0.8) || (ex === 'binance' && per === '1mo' && m.size >= 25)) out.exP[per][ex] = liqMap(liqLevels(m, new Map(), kd, hNow - days * 864e5), kl).rows; }
+  } catch { }
   return out;
 }
 function liqLevels(oiM, tkM, kl, fromT = 0) {

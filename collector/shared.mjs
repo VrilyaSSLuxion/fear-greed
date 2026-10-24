@@ -518,7 +518,8 @@ export function evalSignals(sig, H, turns, win = 14, from = null) {
 }
 
 /* ---------- V18: Heatmap aus beliebig vielen Börsen kombinieren (Stufen je Börse aufsummieren, dann Cluster wie im Programm) ---------- */
-export const HM_EX = ['binance', 'bybit', 'okx', 'gate', 'htx', 'kraken', 'bitget', 'deribit', 'hyperliquid'];
+// V21: + Binance COIN-M, Bybit invers, OKX invers (mit Verlauf) und Bitfinex, KuCoin, BingX, Aster, Phemex (mitgeschrieben)
+export const HM_EX = ['binance', 'bybit', 'okx', 'gate', 'htx', 'kraken', 'bitget', 'deribit', 'hyperliquid', 'binancecm', 'bybitinv', 'okxinv', 'bitfinex', 'kucoin', 'bingx', 'aster', 'phemex'];
 export const hmParts = k => !k || k === 'binance' ? ['binance'] : k === 'all' ? ['binance', 'bybit', 'okx'] : String(k).split('+').filter(x => HM_EX.includes(x));
 export function liqFromRows(rows, price, bin, hours) {
   const below = rows.filter(r => r[0] < price && r[1] > 0), above = rows.filter(r => r[0] > price && r[2] > 0);
@@ -535,18 +536,45 @@ export function liqFromRows(rows, price, bin, hours) {
   return { price, bin, rows, longNear: zone(below, 1, nearL), shortNear: zone(above, 2, nearS), longTop: zone(below, 1, topL), shortTop: zone(above, 2, topS), longs: peaks(below, 1), shorts: peaks(above, 2), hours, updated: Date.now() };
 }
 // V20: Heatmap-Zeitraum – nur Positionen, die in den letzten 12 Std. / 1 Tag / … eröffnet wurden (hm.exP[per][ex]); 'all' = alles (≈ 3 Wochen)
-export const HM_PER = { '12h': 12, '1d': 24, '3d': 72, '1w': 168, '2w': 336 };
+export const HM_PER = { '12h': 12, '1d': 24, '3d': 72, '1w': 168, '2w': 336, '1mo': 720, '3mo': 2184 };
 // V20: Dollar-Wert einer Binance-Liquidation (!forceOrder@arr). COIN-M-Kontrakte (z. B. BTCUSD_PERP, ETHUSD_251226) zählen in Kontrakten
 // zu 100 $ (BTC) bzw. 10 $ (alle anderen) – vorher Kontrakte × Kurs gerechnet, dadurch rund 800× zu hoch. USDⓈ-M: Menge in Coins × Durchschnittspreis.
 export function liqUsd(o) { const q = +o.z || +o.q || 0; return /USD_(PERP|\d{6})$/.test(o.s || '') ? q * (/^BTCUSD_/.test(o.s) ? 100 : 10) : q * +(o.ap || o.p || 0); }
 export function liqCombine(hm, parts, per) {
   if (!hm) return hm;
   const EX = per && per !== 'all' && hm.exP?.[per] ? hm.exP[per] : null, src = EX || hm.ex || {};
-  const P = (parts?.length ? parts : ['binance']).filter(p => p === 'binance' || src[p]?.length);
+  let P = (parts?.length ? parts : ['binance']).filter(p => p === 'binance' || src[p]?.length);
+  // V21: grobe Zeiträume (1/3 Monate) gibt es nicht für jede Börse – dann die vorhandenen nehmen
+  if (EX && !P.some(p => EX[p]?.length)) P = Object.keys(EX).filter(p => EX[p]?.length);
   if (!EX && (!P.length || (P.length === 1 && P[0] === 'binance'))) return hm;
   const m = new Map();
   for (const p of P.length ? P : ['binance']) for (const r of (p === 'binance' ? (src.binance || (EX ? [] : hm.rows)) : src[p] || [])) { const x = m.get(r[0]) || [r[0], 0, 0]; x[1] += r[1]; x[2] += r[2]; m.set(r[0], x); }
   return { ...liqFromRows([...m.values()].sort((a, b) => a[0] - b[0]), hm.price, hm.bin, EX ? HM_PER[per] : hm.hours), src: (P.length ? P : ['binance']).join('+'), parts: P.length ? P : ['binance'], ex: hm.ex, exP: hm.exP, exState: hm.exState, recMin: hm.recMin, per: EX ? per : 'all' };
+}
+/* ---------- V21: Mitte-Stufen zwischen Long- und Short-Cluster, Handelsplan aus den Clustern ---------- */
+// 0 % = Long-Cluster, 100 % = Short-Cluster; Paar: stärkste (L1/S1), nächste (L2/S2) oder fernste (LF/SF)
+export const MID_DEF = { pair: 'top', lv: [50], ticker: true, al: false };
+export function midLevels(CL, o = MID_DEF) {
+  const pick = side => CL.find(c => c.id === side + (o.pair === 'near' ? '2' : o.pair === 'far' ? 'F' : '1')) || CL.find(c => c.id === side + '1');
+  const L = pick('L'), S = pick('S'); if (!L || !S) return [];
+  return [...(o.lv?.length ? o.lv : [50])].sort((a, b) => a - b).map(f => ({ f, p: L.z.p + (S.z.p - L.z.p) * f / 100, L: L.id, S: S.id }));
+}
+// SL hinter dem nächsten Cluster der eigenen Seite (Puffer in %), wahlweise halber Weg dorthin; TP = nächste Cluster der Gegenseite
+export const TPLAN_DEF = { on: false, sl: 'cluster', tps: 3, buf: 0.15, hook: '' };
+export function tradePlan(CL, price, up, o = TPLAN_DEF) {
+  if (!(price > 0) || !CL?.length) return null;
+  const dist = c => Math.abs(c.z.p - price);
+  const own = CL.filter(c => c.side === (up ? 'L' : 'S') && (up ? c.z.p < price : c.z.p > price)).sort((a, b) => dist(a) - dist(b));
+  const opp = [...new Map(CL.filter(c => c.side === (up ? 'S' : 'L') && (up ? c.z.p > price : c.z.p < price)).sort((a, b) => dist(a) - dist(b)).map(c => [Math.round(c.z.p), c])).values()];
+  const n = own[0], b = (o.buf ?? 0.15) / 100;
+  let sl = n ? (o.sl === 'half' ? (price + n.z.p) / 2 : up ? n.z.p * (1 - b) : n.z.p * (1 + b)) : (up ? price * 0.97 : price * 1.03);
+  const tps = opp.slice(0, o.tps || 3).map(c => ({ id: c.id, p: c.z.p })), risk = Math.abs(price - sl);
+  return { up, entry: price, sl, slFrom: n?.id || '3 %', tps, rr: tps.map(x => risk ? Math.abs(x.p - price) / risk : null) };
+}
+export function tradePlanText(pl, lang) {
+  if (!pl) return ''; const de = lang === 'de', ar = lang === 'ar', P = n => nf(n, lang);
+  return `\n${ar ? 'الخطة' : 'Plan'}: ${pl.up ? 'Long' : 'Short'} · ${ar ? 'الدخول' : de ? 'Einstieg' : 'entry'} ${P(pl.entry)} · SL ${P(pl.sl)} (${pl.slFrom})`
+    + pl.tps.map((x, i) => ` · TP${i + 1} ${P(x.p)} (${x.id}${pl.rr[i] ? ` · R ${pl.rr[i].toFixed(1)}` : ''})`).join('') + `\n${ar ? '(ليست نصيحة استثمارية)' : de ? '(keine Anlageberatung)' : '(not financial advice)'}`;
 }
 /* ---------- V20: offizieller Index – eigene Grenzen (z. B. 13 / 70) ---------- */
 // Long: die offizielle Linie war auf/unter lo und geht wieder darüber → Signal am Tag des Austritts (ext = tiefster Wert, extDay = dessen Tag);

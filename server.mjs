@@ -8,7 +8,7 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { collect, vkey, BASE_VARIANTS, SRCS, WINS } from './collector/engine.mjs';
-import { liqUsd, methodSignals, phaseSignals, trig, trendInfo, applyTrend, mean7, divergences, divRows, clusterSet, heatEvents, alarmText, touchTrack, nextCluster, pivotEvents, pivotPayload, fiftySignals, F50_TYPES, candleSignals, CDL_TYPES, smaSignals, SMA_DEF, vwapSignals, liqCombine, hmParts,
+import { tradePlan, tradePlanText, TPLAN_DEF, liqUsd, methodSignals, phaseSignals, trig, trendInfo, applyTrend, mean7, divergences, divRows, clusterSet, heatEvents, alarmText, touchTrack, nextCluster, pivotEvents, pivotPayload, fiftySignals, F50_TYPES, candleSignals, CDL_TYPES, smaSignals, SMA_DEF, vwapSignals, liqCombine, hmParts,
   avgMap, OFF_COL, fractals, fracBreaks, fracIdxFilter, fracNear, FRAC_DEF, maCrossEvents, maLine, lineName, offExitSignals, offFracSignals, seriesCross, HM_PER, vwapCalc } from './collector/shared.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -29,6 +29,8 @@ const DEF = { sosovalueApiKey: '', coinglassApiKey: '', coinalyzeApiKey: '', cry
   idx: { src: 'binance', win: '90' }, off: { src: 'alt', avg: true },
   // V20: offizielle Signale mit eigenen Grenzen (Austritt aus 13 / 70), Fraktal dazu, Stufen-Signale wie bisher (aus), Kreuz mit Index-Linien; Mitschnitt-Schwelle
   offSig: { lo: 13, hi: 70, ext: true, frac: true, before: 5, after: 0, lv: false, x: [] }, oiRecMin: 168,
+  // V21: Handelsplan (SL/TP aus den Clustern) an Signal-Nachrichten, optional als Webhook (JSON) für einen Bot
+  tplan: { ...TPLAN_DEF },
   frac: { price: { ...FRAC_SIDE }, idx: { ...FRAC_SIDE, minMove: 0 }, al: { conf: true, brk: true } }, maAl: [],
   heat: { src: 'binance', pct: 1, approach: true, zone: true, poc: true, nearest: true, extra: 2, alarmExtra: false, cool: 720, far: true, farPct: 50, farRange: 20, reactOn: true, react: 1, brk: 1, reactH: 24 }, lines: [],
   div: { left: 5, right: 5, minGap: 5, maxGap: 60, hidden: false, zone: true, src: '7', win: 'auto', official: false }, sig: { method: 'std', trigger: 'entry', minDays: 3, tol: 0, trend: { basis: ['ema'], mode: 'mark', emaN: 200, adxMin: 25 } },
@@ -90,9 +92,18 @@ async function telegram(text) {
   const j = await r.json(); if (!j.ok) throw new Error(j.description || 'Fehler');
 }
 const ZNAME = v => v == null ? '' : v >= 75 ? 'Extreme Gier' : v >= 55 ? 'Gier' : v >= 45 ? 'Neutral' : v >= 25 ? 'Angst' : 'Extreme Angst';
+// V21: zuletzt berechnete Cluster und Kurs – für den Handelsplan an Signal-Nachrichten
+let LASTCL = null, LASTPX = null;
+const PLAN_KEYS = /^(sig|sma|ilx|vwap|vwt|frac|fracb|ma|cdl|f50|pv|pivot|react|offx|offf|offc|div|bos|clsig)[:_]/;
 async function send1(key, a, sent, minMs = Infinity) {
   if (sent[key] && (minMs === Infinity || Date.now() - sent[key] < minMs)) return;
-  try { await telegram(`<b>${a.title}</b>\n${a.body}`); sent[key] = Date.now(); log('Telegram gesendet:', key); } catch (e) { log('Telegram-Fehler:', e.message); }
+  const c = cfg(), tp = c.tplan || {}; let body = a.body, plan = null;
+  if (tp.on && LASTCL && LASTPX && PLAN_KEYS.test(key)) { const up = /🟢|▲|Long/.test(a.title) && !/🔴|▼|Short/.test(a.title), dn = /🔴|▼|Short/.test(a.title);
+    if (up || dn) { plan = tradePlan(LASTCL, LASTPX, up, tp); body += tradePlanText(plan, 'de'); } }
+  let ok = false;
+  if (c.telegram?.token && c.telegram?.chatId) { try { await telegram(`<b>${a.title}</b>\n${body}`); ok = true; log('Telegram gesendet:', key); } catch (e) { log('Telegram-Fehler:', e.message); } }
+  if (tp.hook && /^https:\/\//i.test(tp.hook) && !process.env.FG_NOPUBLISH) { try { await fetch(tp.hook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, title: a.title, text: body.replace(/<[^>]+>/g, ''), plan, time: new Date().toISOString(), source: 'VrilyaSS Fear & Greed V21' }), signal: AbortSignal.timeout(15000) }); ok = true; log('Webhook gesendet:', key); } catch (e) { log('Webhook-Fehler:', e.message); } }
+  if (ok) sent[key] = Date.now();
 }
 // Spalten wie auf der Seite – V19: Datenquelle und Vergleichszeitraum wie auf der Seite gewählt (Standard: Binance, 90 Tage)
 const selKey = (latest, c) => { const k = vkey(c.idx.src, c.idx.win); return latest.vcols?.[k] ? k : 'binance90'; };
@@ -233,6 +244,18 @@ async function checkMaTouch(latest, history) {
 // V15: Heatmap-Quelle wie auf der Seite gewählt (Binance / Bybit / OKX / kombiniert)
 // V18: beliebige Börsen-Kombination aus den Stufen je Börse
 const HMs = (latest, c) => liqCombine(latest.heatmap, hmParts(c.heat.src), c.heat.per);
+// V21: Cluster-Größen alle 5 Minuten mitschreiben (data/clusterlog.jsonl, 30 Tage) – Grundlage, um Cluster-Signale später ehrlich auszuwerten
+let clLogT = 0;
+function logClusters(latest) {
+  const c = cfg(), hm = HMs(latest, c), px = latest.btc?.price; if (!hm || !px) return;
+  LASTCL = clusterSet(hm, { nearest: true, extra: 6, far: { pct: c.heat.farPct ?? 50, range: c.heat.farRange ?? 20 } }); LASTPX = px;
+  if (Date.now() - clLogT < 295e3) return; clLogT = Date.now();
+  const near = (side, pct) => (side === 'L' ? hm.longs : hm.shorts || []).filter(z => Math.abs(z.p / px - 1) * 100 <= pct).reduce((a, z) => a + z.usd, 0);
+  const pick = id => { const x = LASTCL.find(q => q.id === id); return x ? [Math.round(x.z.p), Math.round(x.z.usd / 1e5) / 10] : null; };
+  const row = { t: Date.now(), px: Math.round(px), L1: pick('L1'), S1: pick('S1'), L2: pick('L2'), S2: pick('S2'), LF: pick('LF'), SF: pick('SF'), nL5: Math.round(near('L', 5) / 1e5) / 10, nS5: Math.round(near('S', 5) / 1e5) / 10, nL10: Math.round(near('L', 10) / 1e5) / 10, nS10: Math.round(near('S', 10) / 1e5) / 10 };
+  const f = path.join(DATA, 'clusterlog.jsonl'); fs.appendFileSync(f, JSON.stringify(row) + '\n');
+  try { if (fs.statSync(f).size > 4e6) { const keep = fs.readFileSync(f, 'utf8').split('\n').filter(Boolean).filter(l => { try { return JSON.parse(l).t > Date.now() - 30 * 864e5; } catch { return false; } }); fs.writeFileSync(f, keep.join('\n') + '\n'); } } catch { }
+}
 async function checkHeatAlerts(latest) {
   const c = cfg(), t = c.telegram; if (!t.enabled || !t.token || !t.chatId || !t.events.includes('heat')) return;
   const sent = (state.alertsSent ||= {}), price = latest.btc.price, idx = curIdx(latest);
@@ -310,6 +333,7 @@ async function run() {
     // Tagebuch: aktueller Stand je Lauf (für spätere Auswertung, ab wann ein Punkt verlässlich war) – V19: nur die vier bisherigen Varianten (die übrigen stehen stündlich in idxrec.json)
     fs.appendFileSync(path.join(DATA, 'journal.jsonl'), JSON.stringify({ t: Date.now(), btc: latest.btc.price, idx: Object.fromEntries(BASE_VARIANTS.map(({ key: k }) => [k, [latest.modes[k]?.index, latest.modes[k]?.live]])) }) + '\n');
     buildSite();
+    try { logClusters(latest); } catch (e) { log('Cluster-Mitschnitt:', e.message); }
     await checkAlerts(latest, history); await checkHeatAlerts(latest); await checkLineAlerts(latest); await checkReactAlerts(latest); await checkPivotAlerts(latest, history); await checkMaTouch(latest, history); await checkVwTouch(latest, history); saveState();
     lastRun = Date.now(); lastError = null;
     if (!lastPublish || Date.now() - lastPublish >= I.publish * 60e3 - 5000) await publish();
@@ -470,6 +494,7 @@ const server = http.createServer(async (req, res) => {
       const lines = Array.isArray(Q.lines) ? Q.lines.filter(l => l && /^i[1-3]$/.test(l.id) && ['sma', 'ema'].includes(l.type) && +l.n >= 2 && +l.n <= 1000).map(l => ({ id: l.id, type: l.type, n: Math.round(+l.n), sig: !!l.sig, ms: Array.isArray(l.ms) ? l.ms.filter(x => ['m1', 'm2', 'm3'].includes(x)) : ['m1', 'm2', 'm3'] })) : DEF.sma.lines;
       c.sma = { n: Math.round(num(Q.n, 20, 5, 100)), dir: ['both', 'long', 'short'].includes(Q.dir) ? Q.dir : 'both', m1: M(Q.m1, DEF.sma.m1), m2: M(Q.m2, DEF.sma.m2), m3: M3(Q.m3, DEF.sma.m3), lines, cross: Array.isArray(Q.cross) ? Q.cross.filter(x => /^i[1-3]i[1-3]$/.test(x) && x.slice(0, 2) !== x.slice(2)) : [] }; }
     // V20: offizielle Signale, Mitschnitt-Schwelle, Heatmap-Zeitraum
+    if (b.tplan && typeof b.tplan === 'object') { const q = b.tplan; c.tplan = { on: !!q.on, sl: ['cluster', 'half', 'allper'].includes(q.sl) ? q.sl : 'cluster', tps: Math.min(3, Math.max(1, Math.round(+q.tps) || 3)), buf: Math.min(3, Math.max(0, +q.buf || 0)), hook: typeof q.hook === 'string' && /^https:\/\//i.test(q.hook.trim()) ? q.hook.trim().slice(0, 500) : '' }; }
     if (b.offSig && typeof b.offSig === 'object') { const Q = b.offSig, num = (v, d, lo, hi) => isFinite(+v) && +v >= lo && +v <= hi ? +v : d;
       c.offSig = { lo: num(Q.lo, 13, 1, 50), hi: num(Q.hi, 70, 50, 99), ext: Q.ext !== false, frac: Q.frac !== false, before: Math.round(num(Q.before, 5, 0, 30)), after: Math.round(num(Q.after, 0, 0, 30)), lv: !!Q.lv, x: Array.isArray(Q.x) ? Q.x.filter(x => /^i[1-3]$/.test(x)) : [] }; }
     if (b.oiRecMin != null && isFinite(+b.oiRecMin)) c.oiRecMin = Math.min(168, Math.max(24, Math.round(+b.oiRecMin)));
