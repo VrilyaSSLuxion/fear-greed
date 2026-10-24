@@ -969,6 +969,11 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
   .impform input[type=number]{width:72px}
   #priceChart.drawing{cursor:crosshair}
   .impform input,.impform select{background:#120916;color:var(--text,#eee);border:1px solid #4a3556;border-radius:7px;padding:4px 6px;font:inherit;font-size:13px}
+  /* V21: Kopfzeile „Was das jetzt heißt“ mit Mittelungs-Auswahl darf umbrechen (lief sonst über den Rand) */
+  .h:has(> #actAvgSel){flex-wrap:wrap;row-gap:4px}
+  #actAvgSel{max-width:100%;min-width:0}
+  /* V21: schmale Bildschirme – Knopfgruppen der Chart-Leiste dürfen umbrechen (Heatmap/Cluster-Gruppe und Zeitraum-Leiste waren breiter als das Handy) */
+  @media (max-width:600px){ .ctools .hcgrp,.ctools #rangeSeg,.ctools .tgrp{flex-wrap:wrap;max-width:100%;height:auto!important} .ctools .hcgrp>.tgrp{height:auto!important} .ctools .tgrp>.tog,.ctools .tgrp>.ddwrap,.ctools .tgrp>.ddwrap>.tog,.ctools .seg>button{height:calc(var(--cth) - 6px)!important} .ctools .hcgrp .tog{display:inline-flex!important;align-items:center;justify-content:center;padding-top:0!important;padding-bottom:0!important;box-sizing:border-box} .ctools{max-width:100%} .card > .h{flex-wrap:wrap;row-gap:4px} .card > .h .hr{flex-wrap:wrap;max-width:100%} }
 </style>
 <link rel="stylesheet" href="../nav.css">
 </head>
@@ -3894,7 +3899,8 @@ function renderCharts0() {
   $('togLv1').textContent = LV.p1.hi + '/' + LV.p1.lo; $('togLv1').classList.toggle('on', LV.p1.show);
   $('togLv2').textContent = LV.p2.hi + '/' + LV.p2.lo; $('togLv2').classList.toggle('on', LV.p2.show);
   const wideLbl = VSTYLE === 'vss' && ((D.heatmap && (LAY.cl || LAY.bell || LAY.own)) || LAY.pivot || LAY.fib);
-  const P = { l: 4, r: wideLbl ? Math.max(124, PRW) : 78, t: 16, b: VSTYLE === 'vss' ? 30 : 8 }, iw = W - P.l - P.r, ih = H1 - P.t - P.b, bw = iw / (n + padR), xEnd = P.l + n * bw;
+  // V21: auf schmalen Bildschirmen (< 700 px) bekommen die Beschriftungen rechts höchstens 38 % der Breite
+  const P = { l: 4, r: wideLbl ? Math.max(124, W < 700 ? Math.min(PRW, W * 0.38) : PRW) : 78, t: 16, b: VSTYLE === 'vss' ? 30 : 8 }, iw = W - P.l - P.r, ih = H1 - P.t - P.b, bw = iw / (n + padR), xEnd = P.l + n * bw;
   const X = i => P.l + (i + 0.5) * bw;
   const candles = (CTYPE === 'candle' || CTYPE === 'ha') && VSTYLE === 'vss';
   // 7-Tage-Ansicht: Preis stündlich (wie im Video)
