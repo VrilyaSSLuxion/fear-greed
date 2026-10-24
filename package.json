@@ -1,0 +1,9 @@
+{
+  "name": "smart-money-fear-greed",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "collect": "node collector/collect.mjs --out dist"
+  }
+}
