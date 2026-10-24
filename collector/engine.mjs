@@ -504,7 +504,8 @@ async function collectLiquidations(c, state, sampleMs) {
     });
     await Promise.all([
       listen('Binance Liquidationen (Stichprobe)', 'wss://fstream.binance.com/market/stream?streams=!forceOrder@arr', null,
-        m => { const o = m.data?.o; if (o) sample.b.push([o.S === 'SELL', +o.z * +o.ap]); }),
+        // V20: COIN-M-Kontrakte (…USD_PERP) zählen in Kontrakten zu 100 $ (BTC) bzw. 10 $, nicht in Coins
+        m => { const o = m.data?.o; if (o) sample.b.push([o.S === 'SELL', /USD_(PERP|\d{6})$/.test(o.s || '') ? +o.z * (/^BTCUSD_/.test(o.s) ? 100 : 10) : +o.z * +o.ap]); }),
       listen('Bybit Liquidationen (Stichprobe)', 'wss://stream.bybit.com/v5/public/linear',
         { op: 'subscribe', args: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'BNBUSDT', 'ADAUSDT', 'SUIUSDT', 'LINKUSDT', 'AVAXUSDT'].map(s => 'allLiquidation.' + s) },
         m => { for (const x of m.data || []) sample.y.push([x.S === 'Buy', +x.v * +x.p]); })

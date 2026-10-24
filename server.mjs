@@ -7,7 +7,7 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { collect, vkey, BASE_VARIANTS, SRCS, WINS } from './collector/engine.mjs';
-import { methodSignals, phaseSignals, trig, trendInfo, applyTrend, mean7, divergences, divRows, clusterSet, heatEvents, alarmText, touchTrack, nextCluster, pivotEvents, pivotPayload, fiftySignals, F50_TYPES, candleSignals, CDL_TYPES, smaSignals, SMA_DEF, vwapSignals, liqCombine, hmParts,
+import { liqUsd, methodSignals, phaseSignals, trig, trendInfo, applyTrend, mean7, divergences, divRows, clusterSet, heatEvents, alarmText, touchTrack, nextCluster, pivotEvents, pivotPayload, fiftySignals, F50_TYPES, candleSignals, CDL_TYPES, smaSignals, SMA_DEF, vwapSignals, liqCombine, hmParts,
   avgMap, OFF_COL, fractals, fracBreaks, fracIdxFilter, fracNear, FRAC_DEF, maCrossEvents, maLine, lineName, offExitSignals, offFracSignals, seriesCross, HM_PER, vwapCalc } from './collector/shared.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -72,7 +72,7 @@ function stream(name, url, sub, onMsg) {
   connect();
 }
 // V20: große Einzelmeldungen (ab 5 Mio. $) mit Symbol ins Protokoll – am 22.10.2026 kamen in 10 Minuten 807 Mio. $ „Long“ bei kaum Kursbewegung
-stream('Binance Liquidationen', 'wss://fstream.binance.com/market/stream?streams=!forceOrder@arr', null, m => { const o = m.data?.o; if (!o) return; const usd = +o.z * +o.ap;
+stream('Binance Liquidationen', 'wss://fstream.binance.com/market/stream?streams=!forceOrder@arr', null, m => { const o = m.data?.o; if (!o) return; const usd = liqUsd(o);
   if (usd >= 5e6) log(`Große Liquidation Binance: ${o.s} ${o.S === 'SELL' ? 'Long' : 'Short'} ${o.z} × ${o.ap} = ${(usd / 1e6).toFixed(1)} Mio. $`);
   addLiq('b', o.S === 'SELL', usd, o.T); });
 stream('Bybit Liquidationen', 'wss://stream.bybit.com/v5/public/linear',

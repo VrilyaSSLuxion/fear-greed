@@ -4459,7 +4459,7 @@ const BLIQ = { binance: { L: 0, S: 0 }, multi: { L: 0, S: 0 } };
 function liveLiquidations() {
   const add = (bin, isLong, v) => { if (!(v > 0)) return; const k = isLong ? 'L' : 'S'; if (bin) BLIQ.binance[k] += v; BLIQ.multi[k] += v; };
   const ws = (url, sub, fn) => { try { const w = new WebSocket(url); w.onopen = () => sub && w.send(JSON.stringify(sub)); w.onmessage = e => { try { fn(JSON.parse(e.data)); } catch { } }; w.onclose = () => setTimeout(() => ws(url, sub, fn), 5000); } catch { } };
-  ws('wss://fstream.binance.com/market/stream?streams=!forceOrder@arr', null, m => { const o = m.data?.o; if (o) add(true, o.S === 'SELL', +o.z * +o.ap); });
+  ws('wss://fstream.binance.com/market/stream?streams=!forceOrder@arr', null, m => { const o = m.data?.o; if (o) add(true, o.S === 'SELL', liqUsd(o)); });
   ws('wss://stream.bybit.com/v5/public/linear', { op: 'subscribe', args: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT'].map(s => 'allLiquidation.' + s) }, m => { for (const x of m.data || []) add(false, x.S === 'Buy', +x.v * +x.p); });
   setInterval(() => { if (D && STANDALONE) { D.liq24 = JSON.parse(JSON.stringify(BLIQ)); renderTicker(); } }, 3000);
 }
