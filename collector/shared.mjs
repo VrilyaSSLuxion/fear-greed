@@ -553,11 +553,16 @@ export function liqCombine(hm, parts, per) {
 }
 /* ---------- V21: Mitte-Stufen zwischen Long- und Short-Cluster, Handelsplan aus den Clustern ---------- */
 // 0 % = Long-Cluster, 100 % = Short-Cluster; Paar: stärkste (L1/S1), nächste (L2/S2) oder fernste (LF/SF)
-export const MID_DEF = { pair: 'top', lv: [50], ticker: true, al: false };
+// V21c: mehrere Paare gleichzeitig (pairs), z. B. Mitte L1/S1 und Mitte L2/S2; doppelte Paare (L2 fehlt → L1) nur einmal
+export const MID_DEF = { pair: 'top', pairs: ['top', 'near'], lv: [50], ticker: true, al: false };
 export function midLevels(CL, o = MID_DEF) {
-  const pick = side => CL.find(c => c.id === side + (o.pair === 'near' ? '2' : o.pair === 'far' ? 'F' : '1')) || CL.find(c => c.id === side + '1');
-  const L = pick('L'), S = pick('S'); if (!L || !S) return [];
-  return [...(o.lv?.length ? o.lv : [50])].sort((a, b) => a - b).map(f => ({ f, p: L.z.p + (S.z.p - L.z.p) * f / 100, L: L.id, S: S.id }));
+  const suf = { top: '1', near: '2', far: 'F' }, seen = new Set(), out = [];
+  for (const pr of (o.pairs?.length ? o.pairs : [o.pair || 'top'])) {
+    const pick = side => CL.find(c => c.id === side + (suf[pr] || '1')) || CL.find(c => c.id === side + '1');
+    const L = pick('L'), S = pick('S'); if (!L || !S || seen.has(L.id + S.id)) continue; seen.add(L.id + S.id);
+    for (const f of [...(o.lv?.length ? o.lv : [50])].sort((a, b) => a - b)) out.push({ f, p: L.z.p + (S.z.p - L.z.p) * f / 100, L: L.id, S: S.id });
+  }
+  return out;
 }
 // SL hinter dem nächsten Cluster der eigenen Seite (Puffer in %), wahlweise halber Weg dorthin; TP = nächste Cluster der Gegenseite
 export const TPLAN_DEF = { on: false, sl: 'cluster', tps: 3, buf: 0.15, hook: '' };
