@@ -560,7 +560,7 @@ export function midLevels(CL, o = MID_DEF) {
   for (const pr of (o.pairs?.length ? o.pairs : [o.pair || 'top'])) {
     const pick = side => CL.find(c => c.id === side + (suf[pr] || '1')) || CL.find(c => c.id === side + '1');
     const L = pick('L'), S = pick('S'); if (!L || !S || seen.has(L.id + S.id)) continue; seen.add(L.id + S.id);
-    for (const f of [...(o.lv?.length ? o.lv : [50])].sort((a, b) => a - b)) out.push({ f, p: L.z.p + (S.z.p - L.z.p) * f / 100, L: L.id, S: S.id });
+    for (const f of [...(o.lv?.length ? o.lv : [50])].sort((a, b) => a - b)) out.push({ f, p: L.z.p + (S.z.p - L.z.p) * f / 100, L: L.id, S: S.id, pr });
   }
   return out;
 }

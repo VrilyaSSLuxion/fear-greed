@@ -1021,6 +1021,10 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
   body:is(.v-vss,.v-smc2) .top #langSel{margin-left:14px}
   /* V21b: Trenner des RSI/MACD-Fensters nur zeigen, wenn das Fenster an ist (sonst zwei Griffe übereinander) */
   #splitterO[hidden],#oscWrap[hidden]{display:none!important}
+  /* V22: Währungs- und Heatmap-Knopf im Ticker gleich groß (Größe im 🔧-Menü unter „Liquidationen“ einstellbar) */
+  .liqtitle .tkvcur,.liqtitle .tkhd>.tog,.liqtitle .liqcur{box-sizing:border-box;height:28px!important;font-size:13px!important;line-height:1!important;display:inline-flex;align-items:center;vertical-align:middle}
+  .liqtitle .tkhd>.tog{padding:0 12px!important}
+  .liqtitle .liqcur{padding:0 4px}
 </style>
 <link rel="stylesheet" href="../nav.css">
 </head>
@@ -1246,9 +1250,9 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
   <div class="liqtitle"><span><span data-t="liqTitle"></span><span class="liqcur" id="liqCur"></span><span class="tkhd"><button class="tog" id="tkHeatDd">Heatmap ▾</button></span></span><div class="ddmenu tall" id="tkHeatMenu"></div><div class="tk4 xh" id="heatTick4"></div></div>
   <div class="liq">
     <div class="row">
-      <div class="sd l"><small>LONGS</small><i class="lsep"></i><span id="liqL">–</span><i class="lsep"></i><small>USDT</small></div>
+      <div class="sd l"><small>LONGS</small><i class="lsep"></i><span id="liqL">–</span><i class="lsep"></i><small id="liqUL">USDT</small></div>
       <div class="vs">vs</div>
-      <div class="sd s"><span id="liqS">–</span><i class="lsep"></i><small>USDT</small><i class="lsep"></i><small>SHORTS</small></div>
+      <div class="sd s"><span id="liqS">–</span><i class="lsep"></i><small id="liqUS">USDT</small><i class="lsep"></i><small>SHORTS</small></div>
     </div>
     <div class="segbar" id="segbar"></div>
     <div class="pcts"><span id="pL">–</span><span id="pS">–</span></div>
@@ -1659,17 +1663,22 @@ Object.assign(T.ar, {"btnBrk":"اختراق","btnVolx":"قفزة حجم","brkTip
 Object.assign(T.de, {"hMid":"Mitte"});
 Object.assign(T.en, {"hMid":"middle"});
 Object.assign(T.ar, {"hMid":"المنتصف"});
+// V22: Texte
+Object.assign(T.de, {"midN_top":"Mitte stärkste","midN_near":"Mitte nächste","midN_far":"Mitte fernste","midS_top":"stärkste","midS_near":"nächste","midS_far":"fernste"});
+Object.assign(T.en, {"midN_top":"Middle strongest","midN_near":"Middle nearest","midN_far":"Middle farthest","midS_top":"strongest","midS_near":"nearest","midS_far":"farthest"});
+Object.assign(T.ar, {"midN_top":"المنتصف الأقوى","midN_near":"المنتصف الأقرب","midN_far":"المنتصف الأبعد","midS_top":"الأقوى","midS_near":"الأقرب","midS_far":"الأبعد"});
 
 /* ================= Zustand ================= */
 const $ = id => document.getElementById(id);
 const store = { get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { } } };
-let LANG = store.get('fg9_deflang', 'de'), MODE = store.get('fg6_mode', 'binance'), RANGE = +store.get('fg6_range', '182'), TAB = 'days';
-let OPT = { nums: false, bands: false, off: true, heat: false, sig: true, ...(() => { try { return JSON.parse(store.get('fg8_opt', '{}')); } catch { return {}; } })() };
+// V22: Standard für neue Besucher – Englisch (bzw. die auf der Website gewählte Sprache), Zeitraum 1 Monat
+let LANG = store.get('fg9_deflang', '') || (() => { try { const s = sessionStorage.getItem('site_lang'); return ['de', 'en', 'ar'].includes(s) ? s : ''; } catch { return ''; } })() || 'en', MODE = store.get('fg6_mode', 'binance'), RANGE = +store.get('fg6_range', '30'), TAB = 'days';
+let OPT = { nums: false, bands: false, off: true, heat: true, sig: true, ...(() => { try { return JSON.parse(store.get('fg8_opt', '{}')); } catch { return {}; } })() };
 // Ansicht per Link einstellbar, z. B. ?range=all&nums=1&bands=1&mode=binance&lang=en&cur=eur&off=cmc
 const QS = new URLSearchParams(location.search);
 if (QS.get('range')) RANGE = QS.get('range') === 'all' ? 99999 : +QS.get('range') || RANGE;
 // V20: Zeitraum wie bei TradingView – 1 T, 5 T, 1 M, 3 M, 6 M, seit Jahresbeginn (YTD), 1 J, Alle oder ein eigener Bereich (von–bis); „Zeitraum“ = nur der sichtbare Ausschnitt
-let RKEY = store.get('fg20_rkey', '') || (QS.get('range') === 'all' ? 'all' : ({ 1: '1', 3: '5', 7: '5', 30: '30', 91: '91', 182: '182', 365: '365', 99999: 'all' })[RANGE] || '182');
+let RKEY = store.get('fg20_rkey', '') || (QS.get('range') === 'all' ? 'all' : ({ 1: '1', 3: '5', 7: '5', 30: '30', 91: '91', 182: '182', 365: '365', 99999: 'all' })[RANGE] || '30');
 let RCUST = (() => { try { return JSON.parse(store.get('fg20_rcust', '{}')) || {}; } catch { return {}; } })();
 const ytdDays = () => { const d = new Date(); return Math.max(2, Math.ceil((Date.now() - Date.UTC(d.getUTCFullYear(), 0, 1)) / 864e5) + 1); };
 const rkeyDays = k => k === 'ytd' ? ytdDays() : k === 'all' ? 99999 : +k || 182;
@@ -1684,7 +1693,7 @@ try { const sl = sessionStorage.getItem('site_lang'); if (sl && ['de', 'en', 'ar
 if (QS.get('lang')) LANG = QS.get('lang');
 let D = null, H = [], STANDALONE = false, LIVE = { price: null, ch: null, dir: 0, eur: null };
 let CUR = QS.get('cur') || store.get('fg6_cur', 'usd'), OFFSRC = QS.get('off') || store.get('fg6_off', 'alt');
-let VSTYLE = QS.get('view') || store.get('fg9_defview', 'smc'), WIN = QS.get('win') || store.get('fg6_win', '90'), CTYPE = QS.get('ctype') || store.get('fg6_ctype', 'line');
+let VSTYLE = QS.get('view') || store.get('fg9_defview', 'smc'), WIN = QS.get('win') || store.get('fg6_win', '90'), CTYPE = QS.get('ctype') || store.get('fg6_ctype', 'candle');
 // V19: Datenquelle (Multi/Binance/Bybit/OKX) × Vergleichszeitraum (7 … 1000 Tage) – Spalten kommen aus D.vcols (Einzeldatei: nur die vier bisherigen)
 const SRC_L = ['multi', 'binance', 'bybit', 'okx'], WIN_L = ['7', '14', '30', '90', '100', '180', '365', '1000'];
 if (!SRC_L.includes(MODE)) MODE = 'binance'; if (!WIN_L.includes(String(WIN))) WIN = '90'; WIN = String(WIN);
@@ -1750,7 +1759,7 @@ const STYLE_DEF = { labelBg: '#f4eef8', labelText: '#160b1b', labelSize: 14, axi
   bellColor: '#f6c453', midColor: '#c9d4ff', ownColor: '#5fb4ff', sigOffColor: '#3fd6c3', divBull: '#33d39a', divBear: '#ff5f6e',
   extTop: '#ff4d5e', extBot: '#33d39a', pivotHi: '#ff3b3b', pivotLo: '#7cfc00', fibColor: '#b39ddb' };
 // Heatmap-Cluster: Alarm-Abstand in %, Ereignisse, nächste Cluster anzeigen
-const HEAT_DEF = { per: 'all', pct: 1, approach: true, zone: true, poc: true, nearest: true, extra: 2, alarmExtra: false, cool: 720, far: true, farPct: 50, farRange: 20, reactOn: true, react: 1, brk: 1, reactH: 24 };
+const HEAT_DEF = { per: '1mo', pct: 1, approach: true, zone: true, poc: true, nearest: true, extra: 2, alarmExtra: false, cool: 720, far: true, farPct: 50, farRange: 20, reactOn: true, react: 1, brk: 1, reactH: 24 };
 // Cluster-Liste wie überall: L1/S1, L2/S2, LF/SF (fernster starker), L3… (weitere)
 const clOpt = (extra = HEAT.extra, near = HEAT.nearest) => ({ nearest: near, extra, far: HEAT.far ? { pct: HEAT.farPct, range: HEAT.farRange } : null });
 let HEAT = jget('fg6_heat', HEAT_DEF);
@@ -1758,7 +1767,7 @@ let HEAT = jget('fg6_heat', HEAT_DEF);
 const MOB = store.get('fg6_mobile', 'desktop'), SMALL = Math.min(screen.width, screen.height) < 900 && navigator.maxTouchPoints > 0;
 // Ebenen im Chart (VrilyaSS): Cluster-Linien, nächste/weitere Cluster, Glocken-Linien, Mitte, eigene Linien, Punkte, Signale offiziell, Divergenz
 // V19: Linie und Signale getrennt (50er, VWAP, offizieller Index), Fraktale im Kurs-/Index-Chart, Signale der MA-Alarme im Kurs-Chart
-const LAY_DEF = { brk: true, volx: true, ob: false, fvg: false, bos: false, tl: false, vp: false, osc: false, imp: false, cl: true, near: true, extra: true, bell: true, mid: false, own: false, dots: true, sigOff: false, div: true, divMode: 'both', ext: true, pivot: true, fib: false, ma: true, mai: true, clMode: 'all', extMode: 'cycle', f50: true, cdl: true, sma: true, vwap: true,
+const LAY_DEF = { brk: true, volx: true, ob: false, fvg: false, bos: false, tl: false, vp: true, osc: false, imp: false, cl: true, near: true, extra: true, bell: true, mid: false, own: false, dots: true, sigOff: false, div: true, divMode: 'both', ext: true, pivot: true, fib: false, ma: true, mai: true, clMode: 'all', extMode: 'cycle', f50: true, cdl: true, sma: true, vwap: true,
   f50s: true, vwS: true, sigOffI: false, frP: false, frI: false, maSig: false };
 // Trendfilter für Kauf-Signale (kombinierbar: EMA / ADX / MACD Woche), Modus aus / markieren / ausblenden
 const TREND_DEF = { basis: ['ema'], mode: 'mark', emaN: 200, adxMin: 25, sides: 'both' };
@@ -1773,7 +1782,7 @@ let LSL = jget('fg13_lsl', LSL_DEF);
 let FIBL = store.get('fg13_fib', '23.6, 38.2, 50, 61.8, 78.6');
 let ODDSF = +store.get('fg13_oddsF', '46') || 46, TZ = +store.get('fg13_tz', '1') || 1, TR = +store.get('fg13_tr', '1') || 1, TCOL = store.get('fg13_tcol', '0') === '1';
 // V15: Ticker oben/unten, Kerzengröße, aktuelle Kurslinie, Fibonacci je Stufe, Richtungs-Kasten
-let TPOS = store.get('fg15_tpos', 'bottom'), CS = store.get('fg15_cs', 'auto'), CSNOTE = '';
+let TPOS = store.get('fg15_tpos', 'bottom'), CS = store.get('fg15_cs', '1d'), CSNOTE = '';
 const PL_DEF = { style: 'dash', w: 1.5, c: '#ffffff', mode: 'fixed', cUp: '#33d39a', cDn: '#ff4d5e' };
 let PL = jget('fg15_pl', PL_DEF);
 const FIBS_DEF = [{ v: 23.6, on: false, c: '#9aa0ab' }, { v: 38.2, on: true, c: '#ff4d5e' }, { v: 50, on: true, c: '#ffffff' }, { v: 61.8, on: true, c: '#33d39a' }, { v: 78.6, on: true, c: '#5fb4ff' }, { v: 88.7, on: true, c: '#ff4d5e' }];
@@ -2145,7 +2154,7 @@ const updDefCur = selCtl('defCurSeg', curOpts, () => CUR, v => { CUR = v; store.
 $('defOffSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setOff(b.dataset.v); });
 const updDefMode = selCtl('defModeSeg', srcOpts, () => store.get('fg6_mode', 'binance'), v => { store.set('fg6_mode', v); MODE = v; VIEW = null; RUNCACHE = {}; SCACHE = {}; syncIdx(); updMode(); render(); });
 const updSels = () => { updMode(); updDefMode(); updWin(); updDefWin(); updCur(); updDefCur(); };
-const updDefLang = seg('defLangSeg', () => store.get('fg9_deflang', 'de'), v => { store.set('fg9_deflang', v); LANG = v; updLang(); render(); });
+const updDefLang = seg('defLangSeg', () => store.get('fg9_deflang', '') || LANG, v => { store.set('fg9_deflang', v); LANG = v; updLang(); render(); });
 seg('tabs', () => TAB, v => { TAB = v; renderRight(); });
 for (const [id, k] of [['togNums', 'nums'], ['togBands', 'bands'], ['togOff', 'off'], ['togHeat', 'heat'], ['togSig', 'sig']]) $(id).classList.toggle('on', OPT[k]);
 for (const k of ['p1', 'p2']) $(k === 'p1' ? 'togLv1' : 'togLv2').onclick = e => { const s = LV[k].sig ?? LV[k].show; LV[k].show = !LV[k].show; LV[k].sig = s; saveLV(); e.currentTarget.classList.toggle('on', LV[k].show); renderCharts(); };
@@ -2230,6 +2239,8 @@ function planCL() {
 }
 const saveMid = () => { store.set('fg21_mid', JSON.stringify(MIDO)); render(); };
 const hsKey = a => HSX.filter(x => a.includes(x)).join('+') || 'binance';
+// V22: neue Besucher – Heatmap aus allen Börsen (Börsen ohne genug Daten bleiben automatisch außen vor)
+if (!store.get('fg6_heat', '')) HEAT.src = hsKey(HSX);
 const hsParts = k => hmParts(k);
 const hsName = k => { const p = hsParts(k); return p.length > 3 ? p.slice(0, 2).map(x => HMN[x]).join(' + ') + ' +' + (p.length - 2) : p.map(x => HMN[x]).join(' + '); };
 function ddMenu(btnId, menuId, render, onChange) {
@@ -3260,7 +3271,7 @@ function compText(c) { // Hauptwert + Zusatz je Baustein
     case 'funding': return [sgn(c.raw, 4) + ' %', t('x_funding')];
     case 'oi': return [sgn(c.raw, 1) + ' %', t('x_oi')];
     case 'ls': return [fmt(c.raw, 2), t('x_ls_' + MODE)];
-    case 'liq': return liq && liq.L + liq.S >= 2e6 ? [`${fmt(liq.L / 1e6, 0)} / ${fmt(liq.S / 1e6, 0)} ${LANG === 'de' ? 'Mio. $' : 'M $'}`, t('x_liq')] : [t('collecting'), t('x_liq')];
+    case 'liq': return liq && liq.L + liq.S >= 2e6 ? [`${fmt(liq.L * facLive() / 1e6, 0)} / ${mioC(liq.S)}`, t('x_liq')] : [t('collecting'), t('x_liq')];
     case 'rsi': return ['RSI ' + fmt(c.raw, 0), t('x_rsi', { a: fmt(c.atr, 1) })];
     case 'etf': return c.raw == null ? [t('noKey'), t('x_etf')] : [etfFmt(c.raw) + ' · ' + t('etf5'), t('x_etf')];
     case 'stable': return [sgn(c.raw, 1) + ' %', t('x_stable')];
@@ -3519,6 +3530,10 @@ let LIQCUR = store.get('fg18_liqcur', '');
 // V19: zweite Taste = gewählte Anzeigewährung (bei $ als Anzeigewährung: €)
 const liqAlt = () => CUR === 'usd' ? 'eur' : CUR;
 const moneyT = (v, d = 0) => { let c = LIQCUR || CUR; if (c !== 'usd' && c !== liqAlt()) c = liqAlt(); return c === 'usd' ? usd(v, d) : curFmt(v * facLive(c), d, c); };
+// V22: Beträge (Liquidationen, Cluster-Größen) in der gewählten Währung – vorher immer Dollar
+const liqC = () => { let c = LIQCUR || CUR; if (c !== 'usd' && c !== liqAlt()) c = liqAlt(); return c; };
+const curSym = c => c === 'usd' ? '$' : CURS[c]?.s || c.toUpperCase();
+const mioC = (v, c = CUR) => fmt(v * facLive(c) / 1e6, 0) + (LANG === 'de' ? ' Mio. ' : LANG === 'ar' ? ' مليون ' : ' M ') + curSym(c);
 function renderLiqCur() { const el = $('liqCur'); if (!el) return; { const b = $('tkHeatDd'); if (b) { b.textContent = 'Heatmap ▾'; b.title = `${t('tkHeatTip')} ${heatSrcName()} · ${t('hp_' + (HEAT.per || 'all'))}`; } } let c = LIQCUR || CUR; if (c !== 'usd' && c !== liqAlt()) c = liqAlt(); el.innerHTML = ['usd', liqAlt()].map(v => `<button data-v="${v}" class="${c === v ? 'on' : ''}">${CURS[v].s}</button>`).join(''); el.title = t('liqCurTip'); }
 $('liqCur').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; LIQCUR = b.dataset.v; store.set('fg18_liqcur', LIQCUR); renderTicker(); });
 function renderTicker() {
@@ -3536,10 +3551,10 @@ function renderTicker() {
   }
   // V21: Mitte-Stufen im Ticker zwischen den Short- und Long-Zeilen (Menü „Cluster ▾“ → im Ticker zeigen)
   const MLt = MIDO.ticker ? midLevels(clusterSet(hm, { nearest: true, far: { pct: HEAT.farPct, range: HEAT.farRange } }), MIDO).sort((a, b) => b.p - a.p) : [], nS = tkRows.filter(r => r.c.side === 'S').length;
-  const midRows = MLt.map(m => `<div>⟂ <b style="color:${STYLE.midColor}">${m.f === 50 ? 'M' : 'M' + fmt(m.f, m.f % 1 ? 1 : 0)}</b> ${t('tkMid', { a: m.L, b: m.S })} ${moneyT(m.p, 0)} · ${sgn((m.p / pNow - 1) * 100, 1)} %</div>`);
+  const midRows = MLt.map(m => `<div>⟂ <b style="color:${STYLE.midColor}">${m.f === 50 ? 'M' : 'M' + fmt(m.f, m.f % 1 ? 1 : 0)}</b> ${t('midN_' + (m.pr || 'top'))} (${m.L}/${m.S}) ${moneyT(m.p, 0)} · ${sgn((m.p / pNow - 1) * 100, 1)} %</div>`);
   $('heatTick4').innerHTML = [...tkRows.slice(0, nS), null, ...tkRows.slice(nS)].map(r => r === null ? midRows.join('') : (({ c, k }) => {
     const col = c.side === 'L' ? STYLE.heatLong : STYLE.heatShort;
-    return `<div>🔔 <b style="color:${col}">${c.id}</b> ${k.map(x => t(x)).join(' + ')} ${c.side === 'L' ? 'Long' : 'Short'} ${moneyT(c.z.p, 0)} · ${sgn((c.z.p / pNow - 1) * 100, 1)} % · ${fmt(c.z.usd / 1e6, 0)} ${Mio} · ${t('tkFrom')} ${moneyT(alarmLevel(c, HEAT.pct), 0)}</div>`;
+    return `<div>🔔 <b style="color:${col}">${c.id}</b> ${k.map(x => t(x)).join(' + ')} ${c.side === 'L' ? 'Long' : 'Short'} ${moneyT(c.z.p, 0)} · ${sgn((c.z.p / pNow - 1) * 100, 1)} % · ${mioC(c.z.usd, liqC())} · ${t('tkFrom')} ${moneyT(alarmLevel(c, HEAT.pct), 0)}</div>`;
   })(r)).join('');
   const p = LIVE.price ?? D.btc.price;
   $('tPrice').textContent = p.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' $';
@@ -3550,7 +3565,7 @@ function renderTicker() {
   const ch24 = LIVE.ch ?? D.btc.ch24, dc = ch24 < 0 ? 'var(--red)' : 'var(--green)';
   $('tDayDir').innerHTML = ARROW(ch24 >= 0); renderTF(); renderLiqCur(); $('tDayDir').style.color = dc; $('tDayPct').textContent = sgn(ch24, 2) + ' %'; $('tDayPct').style.color = dc;
   const L = D.liq24?.[MODE] || { L: 0, S: 0 }, tot = L.L + L.S, pl = tot ? Math.round(L.L / tot * 100) : 50;
-  $('liqL').textContent = Math.round(L.L).toLocaleString('de-DE'); $('liqS').textContent = Math.round(L.S).toLocaleString('de-DE');
+  { const lc = liqC(), fx = facLive(lc), un = lc === 'usd' ? 'USDT' : lc.toUpperCase(); $('liqL').textContent = Math.round(L.L * fx).toLocaleString('de-DE'); $('liqS').textContent = Math.round(L.S * fx).toLocaleString('de-DE'); for (const id of ['liqUL', 'liqUS']) { const e = $(id); if (e) e.textContent = un; } }
   $('pL').textContent = pl + ' %'; $('pS').textContent = (100 - pl) + ' %';
   $('segbar').innerHTML = Array.from({ length: 50 }, (_, i) => `<i style="background:${i < pl / 2 ? '#3fd6a3' : '#f06a5a'}"></i>`).join('');
 }
@@ -3647,6 +3662,7 @@ function maSvg(vals, closes, s, e, m, X, Y, label, xMax = Infinity, o = MAL) {
   return out;
 }
 function resetView() {
+  ZF = { a: 0, b: 0 };
   // V20: eigener Bereich (von–bis)
   if (RKEY === 'custom' && RCUST.from && ALL.length) { const a = ALL.findIndex(r => r[0] >= RCUST.from), b0 = ALL.findIndex(r => r[0] > RCUST.to), b = b0 < 0 ? ALL.length - 1 : b0 - 1; if (a >= 0 && b > a) { VIEW = { s: a, e: b }; yZoom = 1; yShift = 0; Y2R = { lo: 0, hi: 100 }; return; } }
   const n = ALL.length, w = Math.min(RANGE === 1 ? 2 : RANGE, n), pad = CHART.shift ? Math.round(w * CHART.pct / 100) : 0; VIEW = { s: Math.max(0, n - w), e: n - 1 + pad }; yZoom = 1; yShift = 0; Y2R = { lo: 0, hi: 100 }; }
@@ -3806,7 +3822,7 @@ function renderDir() {
   const big = CL.filter(c => c.side === (up ? 'S' : 'L') && (up ? c.z.p > price : c.z.p < price)).sort((a, b) => b.z.usd - a.z.usd)[0];
   const cv = p => moneyK(p * facLive()), col = up ? '#33d39a' : '#ff4d5e';
   el.style.borderColor = col;
-  el.innerHTML = `<b style="color:${col}">${up ? '▲ ' + t('dirUp') : '▼ ' + t('dirDn')}</b> <span class="muted">(${why})</span><span class="sep">·</span>${t('dirTarget')}: <b>${pv ? `${t(up ? 'pvHi' : 'pvLo')} ${(PVS[LANG] || PVS.de)[pv.per]} ${cv(pv.p)}` : '–'}</b><span class="sep">·</span>${t(up ? 'dirBigS' : 'dirBigL')}: <b>${big ? `${big.id} ${cv(big.z.p)} (${fmt(big.z.usd / 1e6, 0)} ${t('dirMio')})` : '–'}</b>`;
+  el.innerHTML = `<b style="color:${col}">${up ? '▲ ' + t('dirUp') : '▼ ' + t('dirDn')}</b> <span class="muted">(${why})</span><span class="sep">·</span>${t('dirTarget')}: <b>${pv ? `${t(up ? 'pvHi' : 'pvLo')} ${(PVS[LANG] || PVS.de)[pv.per]} ${cv(pv.p)}` : '–'}</b><span class="sep">·</span>${t(up ? 'dirBigS' : 'dirBigL')}: <b>${big ? `${big.id} ${cv(big.z.p)} (${mioC(big.z.usd)})` : '–'}</b>`;
 }
 // Liquiditäts-Einschätzung: liegen die Longs (unten) oder die Shorts (oben) näher und dichter am Kurs?
 function liqInfo() { const HM = D?.heatmap; return HM ? liqBias(HM, LIVE.price || D.btc.price) : null; }
@@ -3822,20 +3838,20 @@ function renderHeatInfo() {
   const CL = clusterSet(HM, clOpt()), Mio = LANG === 'de' ? 'Mio. $' : 'M $';
   // V21: Tabelle mit festen Spalten (Beträge und Alarme sauber untereinander), Zeitraum im Titel, Trennstrich vor den eigenen Alarmlinien
   const trow = c => { const colr = c.side === 'L' ? STYLE.heatLong : STYLE.heatShort, al = c.kind !== 'extra' || HEAT.alarmExtra;
-    return `<tr><td><b style="color:${colr}">${c.id}</b></td><td>${t('hk_' + c.kind)} ${c.side === 'L' ? 'Long' : 'Short'}</td><td class="r"><b>${money(c.z.p, 0)}</b></td><td class="r flat">${money(c.z.lo, 0)} – ${money(c.z.hi, 0)}</td><td class="r flat">≈ ${fmt(c.z.usd / 1e6, 0)} ${Mio}</td><td class="r" style="color:${STYLE.bellColor}">${al ? `🔔 ${t('hFrom')} ${money(alarmLevel(c, HEAT.pct), 0)}` : ''}</td></tr>`; };
+    return `<tr><td><b style="color:${colr}">${c.id}</b></td><td>${t('hk_' + c.kind)} ${c.side === 'L' ? 'Long' : 'Short'}</td><td class="r"><b>${money(c.z.p, 0)}</b></td><td class="r flat">${money(c.z.lo, 0)} – ${money(c.z.hi, 0)}</td><td class="r flat">≈ ${mioC(c.z.usd)}</td><td class="r" style="color:${STYLE.bellColor}">${al ? `🔔 ${t('hFrom')} ${money(alarmLevel(c, HEAT.pct), 0)}` : ''}</td></tr>`; };
   const row = c => {
     const colr = c.side === 'L' ? STYLE.heatLong : STYLE.heatShort, al = c.kind !== 'extra' || HEAT.alarmExtra;
-    return `<br><span style="color:${colr};font-weight:800">${c.id}</span> ${t('hk_' + c.kind)} ${c.side === 'L' ? 'Long' : 'Short'}-Cluster <b>${money(c.z.p, 0)}</b> <span class="flat">(${t('hZone')} ${money(c.z.lo, 0)} – ${money(c.z.hi, 0)} · ≈ ${fmt(c.z.usd / 1e6, 0)} ${Mio})</span>${al ? ` · <span style="color:${STYLE.bellColor}">🔔 ${t('hFrom')} ${money(alarmLevel(c, HEAT.pct), 0)}</span>` : ''}`;
+    return `<br><span style="color:${colr};font-weight:800">${c.id}</span> ${t('hk_' + c.kind)} ${c.side === 'L' ? 'Long' : 'Short'}-Cluster <b>${money(c.z.p, 0)}</b> <span class="flat">(${t('hZone')} ${money(c.z.lo, 0)} – ${money(c.z.hi, 0)} · ≈ ${mioC(c.z.usd)})</span>${al ? ` · <span style="color:${STYLE.bellColor}">🔔 ${t('hFrom')} ${money(alarmLevel(c, HEAT.pct), 0)}</span>` : ''}`;
   };
   const mid = HM.longTop && HM.shortTop ? (HM.longTop.p + HM.shortTop.p) / 2 : null, own = LINES.filter(l => l.on);
   const ML = midLevels(clusterSet(HM, { nearest: true, far: { pct: HEAT.farPct, range: HEAT.farRange } }), MIDO).sort((a, b) => b.p - a.p);
   // V21b: wie V20 als Zeilen, aber die Spalten bündig untereinander (Tabelle nur so breit wie der Inhalt)
   const trow2 = c => { const colr = c.side === 'L' ? STYLE.heatLong : STYLE.heatShort, al = c.kind !== 'extra' || HEAT.alarmExtra;
-    return `<tr><td><b style="color:${colr}">${c.id}</b></td><td>${t('hk_' + c.kind)} ${c.side === 'L' ? 'Long' : 'Short'}-Cluster</td><td class="r"><b>${money(c.z.p, 0)}</b></td><td class="flat">(${t('hZone')} ${money(c.z.lo, 0)} – ${money(c.z.hi, 0)} · ≈ ${fmt(c.z.usd / 1e6, 0)} ${Mio})</td><td>${al ? `· <span style="color:${STYLE.bellColor}">🔔 ${t('hFrom')} ${money(alarmLevel(c, HEAT.pct), 0)}</span>` : ''}</td></tr>`; };
+    return `<tr><td><b style="color:${colr}">${c.id}</b></td><td>${t('hk_' + c.kind)} ${c.side === 'L' ? 'Long' : 'Short'}-Cluster</td><td class="r"><b>${money(c.z.p, 0)}</b></td><td class="flat">(${t('hZone')} ${money(c.z.lo, 0)} – ${money(c.z.hi, 0)} · ≈ ${mioC(c.z.usd)})</td><td>${al ? `· <span style="color:${STYLE.bellColor}">🔔 ${t('hFrom')} ${money(alarmLevel(c, HEAT.pct), 0)}</span>` : ''}</td></tr>`; };
   const px0 = LIVE.price || D.btc.price;
   el.innerHTML = (liqText() ? liqText() + '<hr class="hsep full">' : '') + t('heatLine3', { s: heatSrcName(), p: t('hp_' + (HEAT.per || 'all')) }).replace('<b>', '<b class="ttl">') + ' · ' + t('hAlarmPct', { p: fmt(HEAT.pct, HEAT.pct % 1 ? 1 : 0) })
     + `<table class="htab">` + CL.filter(c => c.side === 'S').sort((p, q) => q.z.p - p.z.p).map(trow2).join('')
-    + ML.map(m => `<tr class="mrow"><td><b style="color:${STYLE.midColor}">${m.f === 50 ? 'M' : 'M' + fmt(m.f, m.f % 1 ? 1 : 0)}</b></td><td>${t('hMid')} ${m.L}/${m.S}</td><td class="r"><b>${money(m.p, 0)}</b></td><td class="flat" colspan="2">· ${t('hPrice')} ${money(px0, 0)}</td></tr>`).join('')
+    + ML.map(m => `<tr class="mrow"><td><b style="color:${STYLE.midColor}">${m.f === 50 ? 'M' : 'M' + fmt(m.f, m.f % 1 ? 1 : 0)}</b></td><td>${t('midN_' + (m.pr || 'top'))} (${m.L}/${m.S})</td><td class="r"><b>${money(m.p, 0)}</b></td><td class="flat" colspan="2">· ${t('hPrice')} ${money(px0, 0)}</td></tr>`).join('')
     + CL.filter(c => c.side === 'L').sort((p, q) => q.z.p - p.z.p).map(trow2).join('') + `</table>`
     + (own.length ? '<hr class="hsep full">' + own.map(l => `<span class="hown">🔔 <b style="color:${lineCol(l.p)}">${l.id}</b> ${money(l.p, 0)} <span class="flat">(${sgn((l.p / px0 - 1) * 100, 1)} %)</span></span>`).join(' · ') : '')
     + `<hr class="hsep full">${t('heatSrcLine', { s: heatSrcName() })} <a href="https://liquidate.fun" target="_blank" rel="noopener" style="color:#8fe3c9">liquidate.fun ${t('openSite')} ↗</a>`;
@@ -3981,13 +3997,13 @@ function renderCharts0() {
   $('togLv2').textContent = LV.p2.hi + '/' + LV.p2.lo; $('togLv2').classList.toggle('on', LV.p2.show);
   const wideLbl = VSTYLE === 'vss' && ((D.heatmap && (LAY.cl || LAY.bell || LAY.own)) || LAY.pivot || LAY.fib);
   // V21: auf schmalen Bildschirmen (< 700 px) bekommen die Beschriftungen rechts höchstens 38 % der Breite
-  const P = { l: 4, r: wideLbl ? Math.max(124, W < 700 ? Math.min(PRW, W * 0.38) : PRW) : 78, t: 16, b: VSTYLE === 'vss' ? (OSCON() ? 6 : 30) : 8 }, iw = W - P.l - P.r, ih = H1 - P.t - P.b, bw = iw / (n + padR), xEnd = P.l + n * bw;
-  const X = i => P.l + (i + 0.5) * bw;
+  let P = { l: 4, r: wideLbl ? Math.max(124, W < 700 ? Math.min(PRW, W * 0.38) : PRW) : 78, t: 16, b: VSTYLE === 'vss' ? (OSCON() ? 6 : 30) : 8 }, iw = W - P.l - P.r, ih = H1 - P.t - P.b, bw = iw / (n + padR), xEnd = P.l + n * bw;
+  let xD0 = P.l; const X = i => xD0 + (i + 0.5) * bw;   // V22: xD0 = linker Rand der Tage (bei Zoom innerhalb der Tage links aus dem Bild)
   const candles = (CTYPE === 'candle' || CTYPE === 'ha') && VSTYLE === 'vss';
   // 7-Tage-Ansicht: Preis stündlich (wie im Video)
   const t0 = Date.parse(data[0][0]);
   // V15: Kerzengröße – Auto (bis 10 Tage Stundenkerzen, sonst Tageskerzen); 15m / 1h / 4h nur am aktuellen Ende, soweit die Daten zurückreichen; 1T; 1W
-  let hourly = null, IVMS = 36e5; CSNOTE = '';
+  let hourly = null, IVMS = 36e5, HFULL = null; CSNOTE = '';   // V22: HFULL = alle geladenen Kerzen dieser Größe (für Signale, die beim Zoomen nicht springen)
   // V19: Auto – bei 1–2 Tagen 5-Minuten-, bei 3 Tagen 15-Minuten-Kerzen (sobald geladen), bis 10 Tage Stundenkerzen, sonst Tageskerzen
   // V21: feinere Kerzen auch in älteren Ausschnitten (nicht nur am rechten Ende) – der Ausschnitt wird bei Binance nachgeladen; vorher sprang das Chart
   // beim Hineinzoomen in die Vergangenheit auf riesige Tageskerzen
@@ -3995,24 +4011,30 @@ function renderCharts0() {
   if (CS === 'auto') {
     const iv = n <= 2 ? '5m' : n <= 3 ? '15m' : n <= 10 && !atEnd ? '1h' : null;
     const rows = iv ? (atEnd ? chartIntra(iv) : intraRange(iv, t0, tEnd)) : null;
-    if (rows?.length && rows[0][0] <= t0 + 864e5) { hourly = rows.filter(h => h[0] >= t0 && h[0] < tEnd); IVMS = IV_MS[iv]; }
+    if (rows?.length && rows[0][0] <= t0 + 864e5) { hourly = rows.filter(h => h[0] >= t0 && h[0] < tEnd); IVMS = IV_MS[iv]; HFULL = rows; }
     else hourly = n <= 10 && atEnd && D.hourly?.length && SYM() === 'BTCUSDT' ? D.hourly.filter(h => h[0] >= t0) : null;
   }
   else if (IV_MS[CS]) {
     let rows = chartIntra(CS);
     if (!(rows?.length && rows[0][0] <= t0 + 864e5 && (atEnd || rows.at(-1)[0] >= tEnd - IV_MS[CS]))) rows = intraRange(CS, t0, tEnd) ?? (rows?.length ? null : rows);
-    if (rows?.length && rows[0][0] <= t0 + 864e5) { hourly = rows.filter(h => h[0] >= t0 && h[0] < tEnd); IVMS = IV_MS[CS]; }
+    if (rows?.length && rows[0][0] <= t0 + 864e5) { hourly = rows.filter(h => h[0] >= t0 && h[0] < tEnd); IVMS = IV_MS[CS]; HFULL = rows; }
     else CSNOTE = (tEnd - t0) / IV_MS[CS] > INTRA_MAX ? t('csTooLong') : t('csLoad');
   }
+  if (hourly && !HFULL) HFULL = D.hourly;
+  // V22: bei Minuten-/Stundenkerzen auch innerhalb der Tage zoomen (ZF = links/rechts abgeschnittene Tage) – vorher waren mindestens 5 ganze Tage zu sehen
+  if (hourly && VSTYLE === 'vss' && !RC_IDX && (ZF.a > 0 || ZF.b > 0)) { const sp0 = n + padR, za = clamp(ZF.a, 0, sp0 - 0.002), zb = clamp(ZF.b, 0, sp0 - za - 0.002); bw = iw / (sp0 - za - zb); xD0 = P.l - za * bw; xEnd = xD0 + n * bw; }
+  else if (!RC_IDX && !hourly) ZF = { a: 0, b: 0 };
   if (!RC_IDX) { HOURS = hourly; CDIV = hourly ? IVMS : ({ '1w': 'w', '1mo': 'mo', '1y': 'y' })[CS] || 'd'; } if ($('csNote')) $('csNote').textContent = VSTYLE === 'vss' ? CSNOTE : '';
-  const XT = t => P.l + (t - t0) / 864e5 * bw;
+  const XT = t => xD0 + (t - t0) / 864e5 * bw;
   // Preisreihe (Tage oder Stunden)
   // V17: Stundenkerzen mit dem Euro-Kurs IHRES Tages umrechnen – wie Tageskerzen und Pivots (vorher heutiger Kurs → Lücke zwischen Pivot-Linie und Docht)
   const pts = hourly ? hourly.map(h => { const day = Math.floor((h[0] - t0) / 864e5), r = data[day]; return { x: XT(h[0] + IVMS / 2), c: conv(h[4], r), o: conv(h[1], r), h: conv(h[2], r), l: conv(h[3], r), day, v: h[5] }; })
     : data.map((r, i) => ({ x: X(i), c: conv(r[3], r), o: conv(r[9] ?? r[3], r), h: conv(r[10] ?? r[3], r), l: conv(r[11] ?? r[3], r), day: i, v: r[18] }));
   const lastLive = SYM() !== 'BTCUSDT' ? (AM[SYM()]?.last ? conv(AM[SYM()].last) : null) : LIVE.price ? (CUR === 'eur' ? (LIVE.eur ? LIVE.price / LIVE.eur : null) : LIVE.price * facLive()) : null;
   if (hourly && lastLive && atEnd) pts.push({ x: Math.min(P.l + iw, XT(Date.now())), c: lastLive, o: lastLive, h: lastLive, l: lastLive, day: n - 1 });
-  const lows = pts.map(p => candles ? p.l : p.c), highs = pts.map(p => candles ? p.h : p.c);
+  // V22: beim Zoom innerhalb der Tage richten sich Preisachse und Volumenprofil nach den SICHTBAREN Kerzen (wie TradingView)
+  const ptsV = hourly && (ZF.a > 0 || ZF.b > 0) && !RC_IDX ? (v => v.length ? v : pts)(pts.filter(p => p.x >= P.l - bw * 0.02 && p.x <= P.l + iw + bw * 0.02)) : pts;
+  const lows = ptsV.map(p => candles ? p.l : p.c), highs = ptsV.map(p => candles ? p.h : p.c);
   const lo0 = Math.min(...lows), hi0 = Math.max(...highs), pad = (hi0 - lo0) * 0.1 || hi0 * 0.02;
   const mid = (lo0 + hi0) / 2 + yShift, half = ((hi0 - lo0) / 2 + pad) * yZoom, yl = mid - half, yh = mid + half;
   const Y = v => P.t + (1 - (v - yl) / (yh - yl)) * ih;
@@ -4032,7 +4054,7 @@ function renderCharts0() {
   const tick = (d, i) => { const day = +d[0].slice(8, 10), mo = +d[0].slice(5, 7) - 1; if (n <= 12) return true; if (n <= 45) return (VIEW.s + i) % 7 === 0; if (n <= 120) return day === 1 || day === 15; return day === 1 && mo % mStep === 0; };
   const tickLabel = d => { const day = +d[0].slice(8, 10), mo = +d[0].slice(5, 7) - 1; if (n <= 12) return `${WD[LANG][new Date(d[0] + 'T12:00:00Z').getUTCDay()]} ${dmy(d[0], false)}`; if (n <= 120) return `${day}. ${MON[LANG][mo]}`; return MON[LANG][mo] + (mStep > 1 || mo === 0 ? " '" + d[0].slice(2, 4) : ''); };
   const gridO = ST.gridOpacity / 100;
-  data.forEach((d, i) => { if (tick(d, i)) g += `<line x1="${hourly ? P.l + i * bw : X(i)}" x2="${hourly ? P.l + i * bw : X(i)}" y1="0" y2="${H1}" stroke="#fff" stroke-opacity="${gridO}"/>`; });
+  data.forEach((d, i) => { if (tick(d, i)) g += `<line x1="${hourly ? xD0 + i * bw : X(i)}" x2="${hourly ? xD0 + i * bw : X(i)}" y1="0" y2="${H1}" stroke="#fff" stroke-opacity="${gridO}"/>`; });
   const step = niceStep((yh - yl) / 6);
   for (let v = Math.max(0, Math.ceil(yl / step) * step); v <= yh; v += step) g += `<line x1="${P.l}" x2="${P.l + iw}" y1="${Y(v)}" y2="${Y(v)}" stroke="#fff" stroke-opacity="${gridO * .8}"/><text x="${VSTYLE === 'vss' ? P.l + iw + P.r / 2 : W - 8}" y="${Y(v) + 4}" fill="${ST.axisColor}" font-size="${ST.axisSize}" text-anchor="${VSTYLE === 'vss' ? 'middle' : 'end'}">${moneyK(v)}</text>`;
   // V20: Zeitleiste unter dem Kurs-Chart (wie im Index-Chart) – bei 1–3 Tagen mit Minuten-/Stundenkerzen die Uhrzeit
@@ -4040,7 +4062,7 @@ function renderCharts0() {
   const gAx0 = g.length;
   if (VSTYLE === 'vss') {
     if (hourly && n <= 3) { const stepH = n <= 2 ? 3 : 6; for (let hh = 0; hh <= n * 24; hh += stepH) { const ts = t0 + hh * 36e5, x = XT(ts); if (x < P.l + 16 || x > P.l + iw - 16) continue; const dd = new Date(ts); g += `<text x="${x.toFixed(1)}" y="${H1 - 10}" fill="${ST.axisColor}" font-size="${ST.axisSize}" text-anchor="middle">${dd.getHours() === 0 || hh === 0 ? dmy(new Date(ts - dd.getTimezoneOffset() * 6e4).toISOString().slice(0, 10), false) + ' ' : ''}${String(dd.getHours()).padStart(2, '0')}:00</text>`; } }
-    else data.forEach((d, i) => { if (tick(d, i)) g += `<text x="${(hourly ? P.l + i * bw : X(i)).toFixed(1)}" y="${H1 - 10}" fill="${ST.axisColor}" font-size="${ST.axisSize}" text-anchor="middle">${tickLabel(d)}</text>`; });
+    else data.forEach((d, i) => { if (tick(d, i)) g += `<text x="${(hourly ? xD0 + i * bw : X(i)).toFixed(1)}" y="${H1 - 10}" fill="${ST.axisColor}" font-size="${ST.axisSize}" text-anchor="middle">${tickLabel(d)}</text>`; });
   }
   let AXSVG = ''; if (OSCON()) { AXSVG = g.slice(gAx0); g = g.slice(0, gAx0); }
   g += `<g clip-path="url(#plot)">`;
@@ -4054,8 +4076,9 @@ function renderCharts0() {
     g += '</g>';
   }
   // V21b: Volumenprofil wie TradingView – Kauf-/Verkaufsvolumen (steigende/fallende Kerzen) je Preis-Stufe, POC = meistes Volumen, Value Area (70 %) mit VAH/VAL, Farben einstellbar
-  if (VSTYLE === 'vss' && LAY.vp && VPO) { const nb = clamp(Math.round(VPO.bins), 10, 150), stp = (yh - yl) / nb, vU = new Array(nb).fill(0), vD = new Array(nb).fill(0);
-    for (const p of pts) { const v = p.v || 0; if (!(v > 0)) continue; const b0 = clamp(Math.floor((p.l - yl) / stp), 0, nb - 1), b1 = clamp(Math.floor((p.h - yl) / stp), 0, nb - 1), sh = v / (b1 - b0 + 1), A = p.c >= p.o ? vU : vD; for (let b = b0; b <= b1; b++) A[b] += sh; }
+  // V22: Stufen über die Spanne der sichtbaren Kerzen (Tief bis Hoch) – nicht über die Preisachse; sonst wanderte der POC beim Stauchen der Achse
+  if (VSTYLE === 'vss' && LAY.vp && VPO && ptsV.length) { const yl = ptsV.reduce((m, p) => Math.min(m, p.l), Infinity), vhi = ptsV.reduce((m, p) => Math.max(m, p.h), -Infinity), nb = clamp(Math.round(VPO.bins), 10, 150), stp = Math.max(1e-9, vhi - yl) / nb, vU = new Array(nb).fill(0), vD = new Array(nb).fill(0);
+    for (const p of ptsV) { const v = p.v || 0; if (!(v > 0)) continue; const b0 = clamp(Math.floor((p.l - yl) / stp), 0, nb - 1), b1 = clamp(Math.floor((p.h - yl) / stp), 0, nb - 1), sh = v / (b1 - b0 + 1), A = p.c >= p.o ? vU : vD; for (let b = b0; b <= b1; b++) A[b] += sh; }
     const vol = vU.map((u, i) => u + vD[i]), mx = Math.max(...vol);
     if (mx > 0) { const poc = vol.indexOf(mx), tot = vol.reduce((a, b) => a + b, 0); let lo = poc, hi = poc, acc = vol[poc];
       while (acc < tot * VPO.va / 100 && (lo > 0 || hi < nb - 1)) { const a = lo > 0 ? vol[lo - 1] : -1, b = hi < nb - 1 ? vol[hi + 1] : -1; if (a >= b) acc += vol[--lo]; else acc += vol[++hi]; }
@@ -4065,7 +4088,7 @@ function renderCharts0() {
       const lineAt = (pr, c, name, dash) => { const y = Y(pr), xa = VPO.ext ? P.l : xP0, xb = VPO.ext ? P.l + iw : xP1; return `<line x1="${xa.toFixed(1)}" x2="${xb.toFixed(1)}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${c}" stroke-width="1.3"${dash ? ' stroke-dasharray="5 4"' : ''}/><text x="${(right ? xP0 - 4 : xP1 + 4).toFixed(1)}" y="${(y + 3.5).toFixed(1)}" fill="${c}" font-size="10" font-weight="800" text-anchor="${right ? 'end' : 'start'}" paint-order="stroke" stroke="#160b1b" stroke-width="3">${name} ${moneyK(pr)}</text>`; };
       if (VPO.poc) g += lineAt(yl + (poc + .5) * stp, VPO.pocC, 'POC', false);
       if (VPO.vaL) g += lineAt(yl + (hi + 1) * stp, VPO.vaLC, 'VAH', true) + lineAt(yl + lo * stp, VPO.vaLC, 'VAL', true); } }
-  if (OPT.bands && VSTYLE === 'vss') g += `<g mask="url(#bmask)">` + data.map((d, i) => `<rect x="${(P.l + i * bw).toFixed(1)}" y="0" width="${(bw + .6).toFixed(1)}" height="${H1}" fill="${color(d[col])}" opacity=".32"/>`).join('') + `</g>`;
+  if (OPT.bands && VSTYLE === 'vss') g += `<g mask="url(#bmask)">` + data.map((d, i) => `<rect x="${(xD0 + i * bw).toFixed(1)}" y="0" width="${(bw + .6).toFixed(1)}" height="${H1}" fill="${color(d[col])}" opacity=".32"/>`).join('') + `</g>`;
   if (candles && ['1w', '1mo', '1y'].includes(CS) && !hourly) {
     // Wochenkerzen: Tage einer Woche (ab Montag) zusammengefasst
     const wk = []; let cur = null;
@@ -4291,20 +4314,24 @@ function renderCharts0() {
   }
   // V21: Struktur aus den gezeigten Kerzen – Fair Value Gaps, LSOB (Box nach einem Liquidity Sweep), Break of Structure, Trendlinien und ihre Brüche, Impuls-Signale
   if (VSTYLE === 'vss' && OBS && (LAY.ob || LAY.fvg || LAY.bos || LAY.tl || LAY.imp)) {
-    const R = (hourly && atEnd && lastLive ? pts.slice(0, -1) : pts).map(p => ({ o: p.o, h: p.h, l: p.l, c: p.c, x: p.x })), xR = P.l + iw, half = Math.max(1.5, (R.length > 1 ? Math.abs(R[1].x - R[0].x) : bw) * 0.45);
+    // V22: Signale aus ALLEN Kerzen dieser Größe (nicht nur aus den sichtbaren) – vorher begann die Rechnung am linken Rand und die Signale sprangen beim Zoomen/Verschieben
+    const xR = P.l + iw, xL = P.l, R = hourly && HFULL?.length ? (() => { const dk = new Map(all.map(r => [r[0], r]));
+        return HFULL.map(h => { const r = dk.get(new Date(h[0]).toISOString().slice(0, 10)) || data[0]; return { t: h[0], o: conv(h[1], r), h: conv(h[2], r), l: conv(h[3], r), c: conv(h[4], r), x: XT(h[0] + IVMS / 2) }; }); })()
+      : all.map((r, k) => ({ t: Date.parse(r[0]), o: conv(r[9] ?? r[3], r), h: conv(r[10] ?? r[3], r), l: conv(r[11] ?? r[3], r), c: conv(r[3], r), x: xD0 + (k - VIEW.s + 0.5) * bw }));
+    const half = Math.max(1.5, (pts.length > 1 ? Math.abs(pts[1].x - pts[0].x) : bw) * 0.45), vis = x => x >= xL - 30 && x <= xR + 30;
     if (R.length > 6) {
-      if (LAY.fvg) for (const f of fvgList(R, OBS.fvgMin).filter(f => !f.filled || OBS.fvgFilled).slice(-OBS.fvgMax)) { const c = f.up ? '#33d39a' : '#ff4d5e', x1 = R[f.i0].x - half, x2 = f.filled ? R[f.end].x : xR, y1 = Y(f.hi), y2 = Y(f.lo);
+      if (LAY.fvg) for (const f of fvgList(R, OBS.fvgMin).filter(f => (!f.filled || OBS.fvgFilled) && R[f.i0].x <= xR + 30 && (f.filled ? R[f.end].x : xR) >= xL - 30).slice(-OBS.fvgMax)) { const c = f.up ? '#33d39a' : '#ff4d5e', x1 = R[f.i0].x - half, x2 = f.filled ? R[f.end].x : xR, y1 = Y(f.hi), y2 = Y(f.lo);
         g += `<g><title>FVG ${f.up ? '▲ bull' : '▼ bear'} · ${moneyK(f.lo)} – ${moneyK(f.hi)}${f.filled ? ' · ' + t('fvgFilled') : ''}</title><rect x="${x1.toFixed(1)}" y="${y1.toFixed(1)}" width="${Math.max(2, x2 - x1).toFixed(1)}" height="${Math.max(1, y2 - y1).toFixed(1)}" fill="${c}" opacity="${f.filled ? .06 : .14}" stroke="${c}" stroke-opacity=".45" stroke-dasharray="3 3"/>${y2 - y1 > 11 ? `<text x="${(x1 + 3).toFixed(1)}" y="${(y1 + 10).toFixed(1)}" fill="${c}" font-size="9" font-weight="800" opacity=".9">FVG</text>` : ''}</g>`; }
-      if (LAY.ob) for (const B of lsobList(R, swings(R, OBS.sw, OBS.sw), OBS).slice(-OBS.max)) { const c = B.up ? '#2ee6c8' : '#ff8c42', act = !B.broken && B.end === R.length - 1, x1 = R[B.i].x - half, x2 = act ? xR : R[B.end].x + half, y1 = Y(B.hi), y2 = Y(B.lo);
+      if (LAY.ob) for (const B of lsobList(R, swings(R, OBS.sw, OBS.sw), OBS).filter(B => R[B.i].x <= xR + 30 && (!B.broken && B.end === R.length - 1 ? xR : R[B.end].x) >= xL - 30).slice(-OBS.max)) { const c = B.up ? '#2ee6c8' : '#ff8c42', act = !B.broken && B.end === R.length - 1, x1 = R[B.i].x - half, x2 = act ? xR : R[B.end].x + half, y1 = Y(B.hi), y2 = Y(B.lo);
         g += `<g><title>LSOB ${B.up ? 'Long' : 'Short'} · ${t('lsobSw', { p: moneyK(B.sw) })} · Box ${moneyK(B.lo)} – ${moneyK(B.hi)}${B.broken ? ' · ' + t('lsobBroken') : ''}</title><rect x="${x1.toFixed(1)}" y="${y1.toFixed(1)}" width="${Math.max(2, x2 - x1).toFixed(1)}" height="${Math.max(1.5, y2 - y1).toFixed(1)}" fill="${c}" opacity="${B.broken ? .06 : .16}" stroke="${c}" stroke-width="1.2" stroke-opacity="${B.broken ? .35 : .85}"/><text x="${(x1 + 3).toFixed(1)}" y="${(B.up ? y2 - 3 : y1 + 10).toFixed(1)}" fill="${c}" font-size="9.5" font-weight="800">LSOB</text></g>`;
         g += `<line x1="${R[B.swi].x.toFixed(1)}" x2="${R[B.i].x.toFixed(1)}" y1="${Y(B.sw).toFixed(1)}" y2="${Y(B.sw).toFixed(1)}" stroke="${c}" stroke-width="1" stroke-dasharray="2 3" opacity=".75"/>`;
         if (OBS.sig && B.sig) { const s = B.sig, xx = R[s.i].x, tip = B.up ? Y(R[s.i].l) + 10 : Y(R[s.i].h) - 10, base = B.up ? tip + 13 : tip - 13;
           g += `<g><title>LSOB · ${t(OBS.mode === 'touch' ? 'lsobTouch' : 'lsobRej')} · ${B.up ? 'Long' : 'Short'} · ${moneyK(s.p)}</title><path d="M${xx},${tip} L${xx + 7},${base} L${xx - 7},${base} Z" fill="${c}" stroke="#160b1b" stroke-width="1.2"/><text x="${xx}" y="${B.up ? base + 10 : base - 3}" fill="${c}" font-size="9" font-weight="900" text-anchor="middle" paint-order="stroke" stroke="#160b1b" stroke-width="3">LS</text></g>`; } }
       if (LAY.bos || LAY.tl) { const sw = swings(R, STR.L, STR.R);
-        if (LAY.bos) for (const x of bosList(R, sw).slice(-STR.max)) { const c = x.up ? '#33d39a' : '#ff4d5e', y = Y(x.p), xa = R[x.from].x, xb = R[x.i].x;
+        if (LAY.bos) for (const x of bosList(R, sw).filter(x => R[x.from].x <= xR + 30 && R[x.i].x >= xL - 30).slice(-STR.max)) { const c = x.up ? '#33d39a' : '#ff4d5e', y = Y(x.p), xa = R[x.from].x, xb = R[x.i].x;
           g += `<g><title>BOS ${x.up ? '▲' : '▼'} · ${t(x.up ? 'bosHi' : 'bosLo')} ${moneyK(x.p)}</title><line x1="${xa.toFixed(1)}" x2="${xb.toFixed(1)}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${c}" stroke-width="1.3" stroke-dasharray="5 3"/><text x="${((xa + xb) / 2).toFixed(1)}" y="${(y + (x.up ? -4 : 11)).toFixed(1)}" fill="${c}" font-size="9.5" font-weight="800" text-anchor="middle" paint-order="stroke" stroke="#160b1b" stroke-width="3">BOS</text></g>`; }
-        if (LAY.tl) g += tlSvg(R, sw, Y, xR, v => moneyK(v)); }
-      if (LAY.imp) for (const x of impList(R, IMP.pct, IMP.n, IMP.mode)) { const up = IMP.inv ? !x.up : x.up, c = up ? '#33d39a' : '#ff4d5e', xx = R[x.i].x, y = up ? Y(R[x.i].l) + 16 : Y(R[x.i].h) - 8;
+        if (LAY.tl) g += tlSvg(R, sw, Y, xR, v => moneyK(v), xL); }
+      if (LAY.imp) for (const x of impList(R, IMP.pct, IMP.n, IMP.mode).filter(x => vis(R[x.i].x))) { const up = IMP.inv ? !x.up : x.up, c = up ? '#33d39a' : '#ff4d5e', xx = R[x.i].x, y = up ? Y(R[x.i].l) + 16 : Y(R[x.i].h) - 8;
         g += `<g><title>${t('impT', { p: sgn(x.ch, 2), n: IMP.n })} · ${up ? 'Long' : 'Short'}</title><text x="${xx.toFixed(1)}" y="${y.toFixed(1)}" font-size="13" text-anchor="middle" fill="${c}" paint-order="stroke" stroke="#160b1b" stroke-width="3">⚡</text></g>`; }
     }
   }
@@ -4383,7 +4410,7 @@ function renderCharts0() {
       g += `<rect x="${xm}" y="${y1.toFixed(1)}" width="${(xr - xm).toFixed(1)}" height="${Math.max(2, y2 - y1).toFixed(1)}" fill="${colr}" opacity="${Math.min(.9, (main ? .13 : faint ? .05 : .07) * (HEAT.cInt ?? 1)).toFixed(3)}"/>`;
       g += `<line x1="${xm + bw2}" x2="${xr}" y1="${y}" y2="${y}" stroke="${colr}" stroke-width="${main ? 2.3 : c.kind === 'far' ? 1.7 : 1.4}" ${main ? '' : `stroke-dasharray="${faint ? '2 4' : c.kind === 'far' ? '12 4 2 4' : '7 5'}"`} opacity="${faint ? .85 : 1}"/>`;
       g += `<rect x="${xm}" y="${y - 8.5}" width="${bw2}" height="17" rx="3" fill="${colr}" stroke="#160b1b" stroke-width="1"/><text x="${xm + bw2 / 2}" y="${y + 4}" fill="#0b0b10" font-size="11" font-weight="800" text-anchor="middle">${c.id}</text>`;
-      LBL.push({ y, text: `${main ? '★' : ''}${c.id} – ${moneyK(p)} – ${fmt(z.usd / 1e6, 0)}${LANG === 'de' ? ' Mio.' : LANG === 'ar' ? ' مليون' : 'M'}`, bg: c.side === 'L' ? ST.heatLabelBgL : ST.heatLabelBgS, fg: c.side === 'L' ? ST.heatLabelTextL : ST.heatLabelTextS, op: main ? 1 : faint ? .6 : .8, pr: main ? 1 : faint ? 5 : 3 });
+      LBL.push({ y, text: `${main ? '★' : ''}${c.id} – ${moneyK(p)} – ${fmt(z.usd * facLive() / 1e6, 0)}${LANG === 'de' ? ' Mio.' : LANG === 'ar' ? ' مليون' : 'M'}${CUR === 'usd' ? '' : ' ' + curSym(CUR)}`, bg: c.side === 'L' ? ST.heatLabelBgL : ST.heatLabelBgS, fg: c.side === 'L' ? ST.heatLabelTextL : ST.heatLabelTextS, op: main ? 1 : faint ? .6 : .8, pr: main ? 1 : faint ? 5 : 3 });
     }
     if (LAY.bell) for (const c of CL) {
       if (c.kind === 'extra' && !HEAT.alarmExtra) continue;
@@ -4397,7 +4424,7 @@ function renderCharts0() {
     if (LAY.mid) for (const m of midLevels(clusterSet(HM, { nearest: true, far: { pct: HEAT.farPct, range: HEAT.farRange } }), MIDO)) {
       const p = conv(m.p); if (!inY(p)) continue; const y = Y(p), lb = m.f === 50 ? 'M' : 'M' + fmt(m.f, m.f % 1 ? 1 : 0);
       g += `<line x1="${xm}" x2="${xr}" y1="${y}" y2="${y}" stroke="${ST.midColor}" stroke-width="${m.f === 50 ? 1.4 : 1}" stroke-dasharray="10 4 2 4" opacity="${m.f === 50 ? 1 : .8}"/>`;
-      LBL.push({ y, text: `${lb} (${m.L}/${m.S}) – ${moneyK(p)}`, bg: ST.midColor, fg: '#160b1b', op: m.f === 50 ? .9 : .75, pr: 4 }); }
+      LBL.push({ y, text: `${lb} ${t('midS_' + (m.pr || 'top'))} (${m.L}/${m.S}) – ${moneyK(p)}`, bg: ST.midColor, fg: '#160b1b', op: m.f === 50 ? .9 : .75, pr: 4 }); }
   }
   if (VSTYLE === 'vss' && LAY.own) for (const l of LINES) {
     if (!l.on) continue; const p = conv(l.p); if (!inY(p)) continue; const y = Y(p);
@@ -4501,13 +4528,13 @@ function renderCharts0() {
   } else if (n <= 31) {
     // wenige Tage: einzelne breite Balken
     const gap = Math.min(6, bw * 0.06);
-    h += `<g mask="url(#bm)">` + data.map((d, i) => { const y = Y2(d[colI]); return `<rect x="${(P.l + i * bw + gap / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${(bw - gap).toFixed(1)}" height="${(base - y).toFixed(1)}" rx="3" fill="${color(d[colI])}" opacity=".9"/>`; }).join('') + `</g>`;
-    h += data.map((d, i) => `<line x1="${(P.l + i * bw + gap / 2).toFixed(1)}" x2="${(P.l + (i + 1) * bw - gap / 2).toFixed(1)}" y1="${Y2(d[colI]).toFixed(1)}" y2="${Y2(d[colI]).toFixed(1)}" stroke="${color(d[colI])}" stroke-width="2"/>`).join('');
+    h += `<g mask="url(#bm)">` + data.map((d, i) => { const y = Y2(d[colI]); return `<rect x="${(xD0 + i * bw + gap / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${(bw - gap).toFixed(1)}" height="${(base - y).toFixed(1)}" rx="3" fill="${color(d[colI])}" opacity=".9"/>`; }).join('') + `</g>`;
+    h += data.map((d, i) => `<line x1="${(xD0 + i * bw + gap / 2).toFixed(1)}" x2="${(xD0 + (i + 1) * bw - gap / 2).toFixed(1)}" y1="${Y2(d[colI]).toFixed(1)}" y2="${Y2(d[colI]).toFixed(1)}" stroke="${color(d[colI])}" stroke-width="2"/>`).join('');
   } else {
     // viele Tage: Fläche mit dunklen Fugen (Balken-Optik)
     h += `<path d="${area}" fill="url(#lg2)" mask="url(#bm)" opacity=".95"/>`;
     const k = Math.max(1, Math.ceil(3.2 / bw)); let stripes = '';
-    for (let i = 0; i <= n; i += k) stripes += `M${(P.l + i * bw).toFixed(1)},0V${base}`;
+    for (let i = 0; i <= n; i += k) stripes += `M${(xD0 + i * bw).toFixed(1)},0V${base}`;
     h += `<path d="${stripes}" stroke="#0c060f" stroke-width="${clamp(bw * k * 0.28, .7, 3)}" opacity=".9" clip-path="url(#ac)"/>`;
     const topLine = 'M' + top.slice(1);
     h += `<path d="${topLine}" fill="none" stroke="#f3e6fa" stroke-width="5" opacity=".18" filter="url(#iglow)"/>`;
@@ -4629,7 +4656,7 @@ function renderCharts0() {
   h += `<line id="xh2" x1="0" x2="0" y1="0" y2="${H2}" stroke="#fff" stroke-opacity=".35" stroke-dasharray="3 4" visibility="hidden"/><circle id="hv2" r="4.5" fill="#fff" stroke="#160b1b" stroke-width="2" visibility="hidden"/><circle id="hv3" r="4.5" fill="${ST.offColor}" stroke="#160b1b" stroke-width="2" visibility="hidden"/>`;
   const svg2 = $('idxChart'); svg2.setAttribute('viewBox', `0 0 ${W} ${H2}`); svg2.innerHTML = h;
   if (RC_IDX) { chartGeom2 = { W, iw, P, n, bw, X, Y, Y2, XT, t0, ySpan: yh - yl, pts, hourly: false, yl, yh, ih, H1, H2, ih2, colI, lo2, hi2, Qt: Q.t, Qb: Q.b }; chartData2 = data; chartO72 = o7; return; }
-  chartGeom = { W, iw, P, n, bw, X, Y, Y2, XT, t0, ySpan: yh - yl, pts, hourly: !!hourly, yl, yh, ih, H1, H2, ih2, colI, lo2, hi2, Qt: Q.t, Qb: Q.b };
+  chartGeom = { W, iw, P, n, bw, X, Y, Y2, XT, t0: t0 + (P.l - xD0) / bw * 864e5, ySpan: yh - yl, pts, hourly: !!hourly, yl, yh, ih, H1, H2, ih2, colI, lo2, hi2, Qt: Q.t, Qb: Q.b };
   renderHeatInfo(); renderSigStats(); renderDir();
 }
 // Tooltip wie im Video: Datum, Bitcoin, Index · Zone, Offiziell, laufende Extremphasen
@@ -4804,8 +4831,10 @@ function tlBreaks(R, sw) { const out = [], S = sw.slice().sort((a, b) => a.c - b
     const a = HS.at(-2), b = HS.at(-1); if (a && b && b.p < a.p && j > b.c && dH !== a.i + ':' + b.i) { const v = val(a, b, j); if (R[j].c > v && R[j - 1].c <= val(a, b, j - 1)) { out.push({ i: j, up: true, p: v, a, b }); dH = a.i + ':' + b.i; } }
     const c = LS.at(-2), d = LS.at(-1); if (c && d && d.p > c.p && j > d.c && dL !== c.i + ':' + d.i) { const v = val(c, d, j); if (R[j].c < v && R[j - 1].c >= val(c, d, j - 1)) { out.push({ i: j, up: false, p: v, a: c, b: d }); dL = c.i + ':' + d.i; } } }
   return out; }
-function tlSvg(R, sw, Yf, xR, lab) { let s = ''; const brk = STR.tlBrk ? tlBreaks(R, sw) : [], prs = tlPairs(sw);
-  for (const ty of ['hi', 'lo']) for (const pr of prs.filter(p => p.t === ty).slice(-STR.tlN)) {
+function tlSvg(R, sw, Yf, xR, lab, xL) { let s = ''; const brk = STR.tlBrk ? tlBreaks(R, sw) : [], prs = tlPairs(sw);
+  // V22: nur Linien, die im sichtbaren Ausschnitt liegen (die Rechnung läuft über alle Kerzen)
+  const inV = p => xL == null || (R[p.a.i].x <= xR + 5 && (p.end == null || R[Math.min(R.length - 1, p.end)].x >= xL));
+  for (const ty of ['hi', 'lo']) for (const pr of prs.filter(p => p.t === ty && inV(p)).slice(-STR.tlN)) {
     const { a, b } = pr, x1 = R[a.i].x, y1 = Yf(a.p), x2 = R[b.i].x, y2 = Yf(b.p); if (x2 === x1) continue; const bk = brk.find(q => q.a.i === a.i && q.b.i === b.i);
     const xe = bk ? R[bk.i].x : pr.end != null ? R[Math.min(R.length - 1, pr.end)].x : xR, ye = y1 + (y2 - y1) * (xe - x1) / (x2 - x1), c = ty === 'hi' ? '#ff7a8a' : '#5fe3b0';
     s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${xe.toFixed(1)}" y2="${ye.toFixed(1)}" stroke="${c}" stroke-width="1.5"${pr.end != null && !bk ? ' stroke-dasharray="6 4" opacity=".6"' : ''}/>`;
@@ -5179,6 +5208,24 @@ function freeCross(e, svg, x) {
 }
 // Bedienung wie TradingView: Mausrad = Zeit zoomen, ziehen = verschieben, Preis-/Zeitachse ziehen = zoomen, Doppelklick = zurücksetzen
 const PTRS = new Map(); let PINCH = null;
+// V22: Zoom innerhalb der Tage bei Minuten-/Stundenkerzen (wie TradingView bis auf ~12 Kerzen) – ZF = links/rechts abgeschnittene Tage
+var ZF = { a: 0, b: 0 };
+const zfMin = () => Math.max(0.004, 12 * (typeof CDIV === 'number' ? CDIV : 36e5) / 864e5);
+function zfWheel(f, k) {
+  if (!HOURS || VSTYLE !== 'vss') return false;
+  const width = VIEW.e - VIEW.s + 1, on = ZF.a + ZF.b > 0; if (!on && !(k < 1 && width <= 5)) return false;
+  const span = width - ZF.a - ZF.b, ns = clamp(span * k, zfMin(), width);
+  if (ns >= width - 1e-6) { ZF = { a: 0, b: 0 }; return true; }
+  const anc = ZF.a + f * span; let a = anc - f * ns, b = width - a - ns; if (a < 0) { b += a; a = 0; } if (b < 0) { a += b; b = 0; }
+  ZF = { a: Math.max(0, a), b: Math.max(0, b) }; return true;
+}
+function zfPan(dr, dx) { const width = dr.view.e - dr.view.s + 1, span = width - dr.zf.a - dr.zf.b, G = chartGeom, pxd = dr.rect.width * (G.iw / G.W) / span, dd = -dx / pxd;
+  let a = dr.zf.a + dd, b = dr.zf.b - dd, sh = 0; if (a < 0) sh = -Math.ceil(-a); else if (b < 0) sh = Math.ceil(-b);
+  const s = clamp(dr.view.s + sh, 0, Math.max(0, ALL.length - 2)); sh = s - dr.view.s; a -= sh; b += sh;
+  VIEW = { s, e: s + width - 1 }; ZF = { a: clamp(a, 0, width - span), b: clamp(b, 0, width - span) }; }
+function zfX(dr, dx) { if (!HOURS || VSTYLE !== 'vss') return false; const width = dr.view.e - dr.view.s + 1, k = Math.exp(-dx * 0.006);
+  if (!(dr.zf.a + dr.zf.b > 0) && !(k < 1 && width <= 5)) return false;
+  const span = width - dr.zf.a - dr.zf.b, ns = clamp(span * k, zfMin(), width); VIEW = { ...dr.view }; ZF = ns >= width - 1e-6 ? { a: 0, b: 0 } : { a: Math.max(0, width - dr.zf.b - ns), b: dr.zf.b }; return true; }
 function setWindow(s, width) { const n = ALL.length; width = clamp(Math.round(width), 5, n + Math.round(n * 0.5)); s = clamp(Math.round(s), 0, n - 2); VIEW = { s, e: s + width - 1 }; }
 for (const id of ['priceChart', 'idxChart']) {
   const svg = $(id), isPrice = id === 'priceChart';
@@ -5193,7 +5240,7 @@ for (const id of ['priceChart', 'idxChart']) {
     if (isPrice && drawDown(e, svg)) return;   // V21: Zeichenwerkzeug aktiv bzw. Zeichnung angefasst
     const tid = e.target.id;
     const dec = !COUPLE && VSTYLE === 'vss' && !isPrice;
-    drag = { dec, x: e.clientX, y: e.clientY, view: { ...(dec ? VIEW2 || VIEW : VIEW) }, zoom: yZoom, shift: yShift, mode: tid === 'axisGrab' ? 'y' : tid === 'axisGrab2' ? 'y2' : tid === 'xGrab' || tid === 'xGrabP' ? 'x' : tid === 'shiftGrab' ? 'shift' : tid.startsWith('own-') ? 'line' : 'pan', line: tid.startsWith('own-') ? tid.slice(4) : null, r2: Y2R.hi - Y2R.lo, c2: (Y2R.hi + Y2R.lo) / 2, rect: svg.getBoundingClientRect(), price: isPrice, span: chartGeom.ySpan || 1, moved: false };
+    drag = { dec, x: e.clientX, y: e.clientY, view: { ...(dec ? VIEW2 || VIEW : VIEW) }, zf: { ...ZF }, zoom: yZoom, shift: yShift, mode: tid === 'axisGrab' ? 'y' : tid === 'axisGrab2' ? 'y2' : tid === 'xGrab' || tid === 'xGrabP' ? 'x' : tid === 'shiftGrab' ? 'shift' : tid.startsWith('own-') ? 'line' : 'pan', line: tid.startsWith('own-') ? tid.slice(4) : null, r2: Y2R.hi - Y2R.lo, c2: (Y2R.hi + Y2R.lo) / 2, rect: svg.getBoundingClientRect(), price: isPrice, span: chartGeom.ySpan || 1, moved: false };
     svg.setPointerCapture(e.pointerId);
   });
   svg.addEventListener('pointermove', e => {
@@ -5221,8 +5268,8 @@ for (const id of ['priceChart', 'idxChart']) {
     else if (drag.mode === 'shift') { const G = chartGeom, mx = (e.clientX - drag.rect.left) / drag.rect.width * G.W, pad = clamp(Math.round((G.P.l + G.iw - mx) / G.bw), 0, Math.round(width * 0.8));
       VIEW = { s: Math.max(0, ALL.length - 1 + pad - width + 1), e: ALL.length - 1 + pad }; CHART.pct = Math.round(pad / width * 100); CHART.shift = pad > 0; store.set('fg10_chart', JSON.stringify(CHART)); }
     else if (drag.mode === 'y') yZoom = clamp(drag.zoom * Math.exp(dy * 0.006), 0.05, 10);
-    else if (drag.mode === 'x') { const nw = width * Math.exp(-dx * 0.006); setWindow(drag.view.e - nw + 1, nw); }
-    else { setWindow(drag.view.s - dx / pxPerDay, width); if (drag.price) yShift = drag.shift + dy / drag.rect.height * drag.span; }
+    else if (drag.mode === 'x') { if (!(drag.price && zfX(drag, dx))) { const nw = width * Math.exp(-dx * 0.006); setWindow(drag.view.e - nw + 1, nw); } }
+    else { if (drag.price && drag.zf && drag.zf.a + drag.zf.b > 0) zfPan(drag, dx); else setWindow(drag.view.s - dx / pxPerDay, width); if (drag.price) yShift = drag.shift + dy / drag.rect.height * drag.span; }
     if (keepV) { VIEW2 = VIEW; VIEW = keepV; }
     rerender();
   });
@@ -5239,6 +5286,7 @@ for (const id of ['priceChart', 'idxChart']) {
     if (e.target.id === 'axisGrab2') { setY2((Y2R.hi + Y2R.lo) / 2, (Y2R.hi - Y2R.lo) * Math.exp(e.deltaY * 0.001)); rerender(); return; }
     const r = svg.getBoundingClientRect(), f = clamp(((e.clientX - r.left) / r.width * chartGeom.W - chartGeom.P.l) / chartGeom.iw, 0, 1);
     const dec = !COUPLE && VSTYLE === 'vss' && !isPrice, keepV = VIEW; if (dec) VIEW = VIEW2 || { ...keepV };
+    if (isPrice && zfWheel(f, Math.exp(e.deltaY * 0.0012))) { hideHover(); rerender(); return; }
     const width = VIEW.e - VIEW.s + 1, anchor = VIEW.s + f * width, nw = clamp(width * Math.exp(e.deltaY * 0.0012), 5, ALL.length);
     setWindow(anchor - f * nw, nw); if (dec) { VIEW2 = VIEW; VIEW = keepV; } hideHover(); rerender();
   }, { passive: false });
@@ -5720,6 +5768,9 @@ setInterval(() => { if (Date.now() - lastLoad > (window.FG_STANDALONE ? 600000 :
     { k: 'l_px', g: 'liq', l: 'Innenabstand links/rechts', css: '.ticker>div.liqtitle', p: ['padding-left', 'padding-right'], min: 0, max: 60 },
     { k: 'l_pt', g: 'liq', l: 'Innenabstand oben', css: '.ticker>div.liqtitle', p: ['padding-top'], min: 0, max: 40 },
     { k: 'l_pb', g: 'liq', l: 'Innenabstand unten', css: '.ticker>div.liqtitle', p: ['padding-bottom'], min: 0, max: 40 },
+    { k: 'l_bh', g: 'liq', l: 'Knöpfe Währung · Heatmap: Höhe', css: '.liqtitle .tkvcur,.liqtitle .tkhd>.tog,.liqtitle .liqcur', p: ['height'], min: 16, max: 60 },
+    { k: 'l_bf', g: 'liq', l: 'Knöpfe Währung · Heatmap: Schrift', css: '.liqtitle .tkvcur,.liqtitle .tkhd>.tog,.liqtitle .liqcur button', p: ['font-size'], min: 8, max: 30, st: 0.5 },
+    { k: 'l_bw', g: 'liq', l: 'Knöpfe Währung · Heatmap: Mindestbreite', css: '.liqtitle .tkvcur,.liqtitle .tkhd>.tog', p: ['min-width'], min: 0, max: 220 },
     { k: 'r_num', g: 'ls', l: 'Schrift Zahlen', css: '.liq .sd', p: ['font-size'], min: 8, max: 70, st: 0.5 },
     { k: 'r_lbl', g: 'ls', l: 'Schrift „LONGS“ / „SHORTS“', css: '.liq .sd.l>small:first-of-type,.liq .sd.s>small:last-of-type', p: ['font-size'], min: 6, max: 40, st: 0.5 },
     { k: 'r_usdt', g: 'ls', l: 'Schrift „USDT“', css: '.liq .sd.l>small:last-of-type,.liq .sd.s>small:first-of-type', p: ['font-size'], min: 6, max: 40, st: 0.5 },

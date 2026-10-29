@@ -169,3 +169,18 @@ button, select, input { font: inherit; color: inherit; }
 label.chk { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); margin: 4px 0; }
 /* V21b: schmale Bildschirme – Zeitraum- und Kerzen-Leiste brechen um (kein seitliches Scrollen) */
 @media (max-width: 600px) { #rangeSeg, .toolbar, .toolbar .seg { flex-wrap: wrap; max-width: 100%; } }
+/* V22: Erklärungen beim Drüberfahren, Farbskala, Liquidationen nahe am Kurs */
+.tooltip { max-width: 330px; }
+.tooltip .tt + .tt { border-top: 1px solid rgba(255,255,255,.12); margin-top: 6px; padding-top: 6px; }
+.tooltip .tb { color: #d9cfe2; font-size: 12px; line-height: 1.4; margin-top: 2px; white-space: normal; }
+.hmleg { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; font-size: 11px; color: #9a8db0; border: 1.5px solid #4a3556; border-radius: 8px; padding: 3px 8px; cursor: help; }
+.hmleg i { display: inline-block; width: 110px; height: 9px; border-radius: 5px; }
+.nearliq .neart { width: 100%; border-collapse: collapse; font-size: 13px; }
+.nearliq .neart th { font-size: 11px; color: #9a8db0; font-weight: 700; text-align: right; padding: 2px 4px; }
+.nearliq .neart td { padding: 3px 4px; text-align: right; font-variant-numeric: tabular-nums; }
+.nearliq .neart td:first-child { text-align: left; color: #cdbfd8; font-weight: 700; }
+.nearliq .neart .l { color: #22d3a6; } .nearliq .neart .s { color: #ff4d6d; }
+.nearliq .neart tr.nbar td { padding: 0 4px 6px; }
+.nearliq .b-bar { display: flex; height: 6px; border-radius: 4px; overflow: hidden; background: #241530; }
+.nearliq .b-bar-l { background: #22d3a6; } .nearliq .b-bar-s { background: #ff4d6d; }
+@media (max-width: 700px) { .hmleg { margin-left: 0; } .hmleg i { width: 70px; } }

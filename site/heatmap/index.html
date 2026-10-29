@@ -24,7 +24,7 @@
     <div class="oi-val" id="oiAll">–</div>
   </div>
   <span class="back"></span>
-  <div class="seg" id="rangeSeg">
+  <div class="seg" id="rangeSeg" title="Zeitraum des Charts – bei langen Zeiträumen werden die Kerzen automatisch größer">
     <button data-range="720">12 Std.</button>
     <button data-range="1440">24 Std.</button>
     <button data-range="4320" class="on">3 Tage</button>
@@ -32,25 +32,35 @@
     <button data-range="43200">30 Tage</button>
     <button data-range="259200">6 Monate</button>
     <button data-range="525600">1 Jahr</button>
+    <button data-range="1051200">2 Jahre</button>
+    <button data-range="1576800">3 Jahre</button>
+    <button data-range="3600000" title="Ganzer Verlauf (ab etwa 2021, Stundenwerte vom PC-Programm)">Alles</button>
   </div>
 </header>
 
 <main class="layout">
   <section class="chart-card">
     <div class="toolbar">
-      <div class="seg" id="tfSeg">
+      <div class="seg" id="tfSeg" title="Kerzengröße (Minuten-Kerzen gibt es für die letzten 30 Tage, davor Stunden-Kerzen)">
+        <button data-tf="1">1m</button>
+        <button data-tf="3">3m</button>
         <button data-tf="5">5m</button>
         <button data-tf="15">15m</button>
+        <button data-tf="30">30m</button>
         <button data-tf="60" class="on">1H</button>
+        <button data-tf="120">2H</button>
         <button data-tf="240">4H</button>
+        <button data-tf="360">6H</button>
         <button data-tf="720">12H</button>
         <button data-tf="1440">1D</button>
+        <button data-tf="4320">3D</button>
         <button data-tf="10080">1W</button>
       </div>
-      <button class="tb" id="zoomIn">+</button>
-      <button class="tb" id="zoomOut">−</button>
-      <button class="tb on" id="autoBtn">Auto</button>
-      <button class="tb" id="fitBtn">Ganze Ansicht</button>
+      <button class="tb" id="zoomIn" title="Hineinzoomen (Zeit)">+</button>
+      <button class="tb" id="zoomOut" title="Herauszoomen (Zeit)">−</button>
+      <button class="tb on" id="autoBtn" title="Preisachse automatisch an den sichtbaren Kurs anpassen">Auto</button>
+      <button class="tb" id="fitBtn" title="Ganzen Zeitraum zeigen">Ganze Ansicht</button>
+      <div class="hmleg" id="hmLeg" title="Farbskala der Heatmap: dunkel = wenige, hell/gelb = viele geschätzte offene Liquidationen (Wert je Feld)"><span>0</span><i></i><span id="hmLegMax">–</span></div>
     </div>
     <div class="canvas-wrap" id="wrap">
       <canvas id="chart"></canvas>
@@ -65,32 +75,38 @@
       <div id="zones" class="zones"></div>
     </div>
 
+    <div class="card" title="Geschätzte offene Liquidationen nahe am Kurs: Longs unterhalb, Shorts oberhalb (Modell, gewählte Hebel und Seiten)">
+      <div class="card-title">Liquidationen nahe am Kurs</div>
+      <div id="nearLiq" class="nearliq"></div>
+      <div class="muted small">Die Seite mit mehr Liquidationen wirkt oft wie ein Magnet – keine Garantie.</div>
+    </div>
+
     <div class="card">
       <div class="card-title">Einstellungen</div>
       <div class="label">Hebel</div>
-      <div class="chips" id="levChips"></div>
+      <div class="chips" id="levChips" title="Welche Hebel ins Modell eingehen (5x … 100x)"></div>
       <div class="label">Seite</div>
       <div class="chips" id="sideChips">
-        <button class="chip on" data-side="short">Shorts</button>
-        <button class="chip on" data-side="long">Longs</button>
+        <button class="chip on" data-side="short" title="Liquidationspreise von Short-Positionen (liegen über dem Kurs)">Shorts</button>
+        <button class="chip on" data-side="long" title="Liquidationspreise von Long-Positionen (liegen unter dem Kurs)">Longs</button>
       </div>
       <div class="label">Nur neu eröffnete Positionen</div>
-      <div class="chips" id="sinceChips">
+      <div class="chips" id="sinceChips" title="Nur Positionen zählen, die in diesem Zeitraum eröffnet wurden">
         <button class="chip2 on" data-since="0">Alle</button>
         <button class="chip2" data-since="1440">24 Std.</button>
         <button class="chip2" data-since="4320">3 Tage</button>
         <button class="chip2" data-since="10080">7 Tage</button>
       </div>
       <div class="label">Echte Positionen Hyperliquid</div>
-      <div class="chips" id="hlChips">
+      <div class="chips" id="hlChips" title="Echte Liquidationspreise der größten Wallets auf Hyperliquid (türkis)">
         <button class="chip2" data-hl="0">Aus</button>
         <button class="chip2 teal on" data-hl="1">Einblenden</button>
       </div>
       <div class="label">Ebenen</div>
       <div class="chips" id="layerChips">
-        <button class="chip2 on" data-layer="volume">Volumenprofil</button>
-        <button class="chip2 on" data-layer="bubbles">Bubbles</button>
-        <button class="chip2 on" data-layer="walls">Orderbuch-Wände</button>
+        <button class="chip2 on" data-layer="volume" title="Gehandeltes Volumen je Preis (links im Chart) mit POC, VAH und VAL">Volumenprofil</button>
+        <button class="chip2 on" data-layer="bubbles" title="Kreise: große Market-Käufe (grün), -Verkäufe (rot) und Liquidationen (gelb)">Bubbles</button>
+        <button class="chip2 on" data-layer="walls" title="Striche rechts vom Kurs: große Limit-Orders im Orderbuch – grün = Kaufaufträge (unten), rot = Verkaufsaufträge (oben)">Orderbuch-Wände</button>
       </div>
       <!-- V21: weitere Einstellungen -->
       <div class="label">Raster im Chart</div>
@@ -181,9 +197,9 @@
 </main>
 
 <footer class="bottom">
-  <div class="b-price" id="bPrice">–</div>
+  <div class="b-price" id="bPrice" title="Aktueller Kurs (Binance Futures)">–</div>
   <div class="b-stand"><span class="dot"></span> <span id="stand">Stand –</span></div>
-  <div class="b-liq-label">LIQUIDATIONEN</div>
+  <div class="b-liq-label" title="Liquidationen der letzten 24 Stunden (Binance, vom PC-Programm gezählt)">LIQUIDATIONEN</div>
   <div class="b-liq">
     <div class="b-liq-row">
       <span class="lbl">LONGS</span><span class="longs" id="liqLongs">–</span><span class="unit">USDT</span>

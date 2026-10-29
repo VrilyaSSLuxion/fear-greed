@@ -38,7 +38,7 @@ const Local = (() => {
   // V21: Schwellen aus den Einstellungen der Seite (Mio. $), sonst wie bisher je Coin
   const setNum = (k) => { try { const v = parseFloat(localStorage.getItem(k)); return v > 0 ? v * 1e6 : null; } catch (e) { return null; } };
 
-  // V21b: lange Historie (bis 1 Jahr, Stundenwerte) vom PC-Programm – Binance-Stundenkerzen und Open Interest von Bybit; nur Bitcoin.
+  // V21b: lange Historie (V22: so weit zurück wie möglich, ab etwa 2021, Stundenwerte) vom PC-Programm – Binance-Stundenkerzen und Open Interest von Bybit; nur Bitcoin.
   // Die Stundenzeilen kommen VOR die 30 Tage Minutenkerzen; das Open Interest wird an der Nahtstelle auf das Binance-Niveau angeglichen (es zählen nur die Änderungen).
   async function withLongHist(coin, rows) {
     if (coin !== "BTC" || !rows.length) return rows;
@@ -349,13 +349,16 @@ const Local = (() => {
       const best = [...bins.values()].sort((a, b) => b[0] - a[0])[0];
       if (best) hlLevels.push({ price: best[1] / best[0], usd: best[0], side: above ? "short" : "long" });
     }
+    // V22: geschätzte Liquidationen nahe am Kurs (Longs darunter, Shorts darüber) für ±2 / 5 / 10 %
+    const lvAll = m.currentLevels(levs, sides, since), pc = m.price;
+    const near = [2, 5, 10].map((k) => { let L = 0, Sh = 0; for (const [p, usd, s] of lvAll) { if (s === LONG && p < pc && p >= pc * (1 - k / 100)) L += usd; else if (s === SHORT && p > pc && p <= pc * (1 + k / 100)) Sh += usd; } return { k, L, S: Sh }; });
     const t0 = candles.t.length ? candles.t[0] * 1000 : 0;
     let bubbles = m.bubbles.filter((b) => b.t >= t0);
     if (bubbles.length > 4000) bubbles = bubbles.sort((a, b) => b.usd - a.usd).slice(0, 4000);
     return { ready: true, tf, pmin, pmax, rows, candles, heat,
       profile: m.profile(pmin, pmax, rows, levs, sides, since), zones: m.zones(levs, sides, since),
       volume: m.volumeProfile(tf, range, pmin, pmax, rows), hl_profile: hlProf, hl_levels: hlLevels,
-      bubbles, walls: m.walls, price: m.price };
+      bubbles, walls: m.walls, price: m.price, near };
   }
 
   async function api(path, opts = {}) {

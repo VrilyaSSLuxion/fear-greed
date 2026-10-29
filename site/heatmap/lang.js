@@ -3,6 +3,26 @@
    Frei zusammengesetzte Meldungen (z. B. Alarm-Texte mit Zahlen) bleiben vorerst Deutsch. */
 (function () {
   var D = {
+    // V22: neue Zeiträume, Tooltips, Liquidationen nahe am Kurs
+    '2 Jahre': ['2 years', 'سنتان'], '3 Jahre': ['3 years', '3 سنوات'], 'Alles': ['All', 'الكل'], 'Liquidationen nahe am Kurs': ['Liquidations near the price', 'التصفيات القريبة من السعر'],
+    'Die Seite mit mehr Liquidationen wirkt oft wie ein Magnet – keine Garantie.': ['The side with more liquidations often acts like a magnet – no guarantee.', 'الجانب الذي فيه تصفيات أكثر يعمل غالباً كمغناطيس – بلا ضمان.'],
+    'Zeitraum des Charts – bei langen Zeiträumen werden die Kerzen automatisch größer': ['Chart range – for long ranges the candles get bigger automatically', 'مدى الرسم – تكبر الشموع تلقائياً للمدد الطويلة'],
+    'Ganzer Verlauf (ab etwa 2021, Stundenwerte vom PC-Programm)': ['Full history (from about 2021, hourly values from the PC program)', 'السجل الكامل (منذ 2021 تقريباً)'],
+    'Kerzengröße (Minuten-Kerzen gibt es für die letzten 30 Tage, davor Stunden-Kerzen)': ['Candle size (minute candles for the last 30 days, hourly candles before)', 'حجم الشمعة (دقائق لآخر 30 يوماً، ثم ساعات)'],
+    'Hineinzoomen (Zeit)': ['Zoom in (time)', 'تكبير (الزمن)'], 'Herauszoomen (Zeit)': ['Zoom out (time)', 'تصغير (الزمن)'],
+    'Preisachse automatisch an den sichtbaren Kurs anpassen': ['Fit the price axis to the visible price automatically', 'ضبط محور السعر تلقائياً'], 'Ganzen Zeitraum zeigen': ['Show the whole range', 'إظهار المدى كاملاً'],
+    'Farbskala der Heatmap: dunkel = wenige, hell/gelb = viele geschätzte offene Liquidationen (Wert je Feld)': ['Heatmap colour scale: dark = few, bright/yellow = many estimated open liquidations (value per cell)', 'مقياس الألوان: داكن = قليل، فاتح/أصفر = كثير'],
+    'Geschätzte offene Liquidationen nahe am Kurs: Longs unterhalb, Shorts oberhalb (Modell, gewählte Hebel und Seiten)': ['Estimated open liquidations near the price: longs below, shorts above (model, selected leverage and sides)', 'تصفيات مفتوحة تقديرية قرب السعر'],
+    'Liquidationspreise von Short-Positionen (liegen über dem Kurs)': ['Liquidation prices of short positions (above the price)', 'أسعار تصفية مراكز البيع (فوق السعر)'],
+    'Liquidationspreise von Long-Positionen (liegen unter dem Kurs)': ['Liquidation prices of long positions (below the price)', 'أسعار تصفية مراكز الشراء (تحت السعر)'],
+    'Gehandeltes Volumen je Preis (links im Chart) mit POC, VAH und VAL': ['Traded volume per price (left in the chart) with POC, VAH and VAL', 'الحجم المتداول لكل سعر مع POC وVAH وVAL'],
+    'Kreise: große Market-Käufe (grün), -Verkäufe (rot) und Liquidationen (gelb)': ['Circles: large market buys (green), sells (red) and liquidations (yellow)', 'دوائر: مشتريات (أخضر) ومبيعات (أحمر) وتصفيات (أصفر)'],
+    'Striche rechts vom Kurs: große Limit-Orders im Orderbuch – grün = Kaufaufträge (unten), rot = Verkaufsaufträge (oben)': ['Bars right of the price: large limit orders in the order book – green = buy orders (below), red = sell orders (above)', 'خطوط يمين السعر: أوامر كبيرة – أخضر شراء، أحمر بيع'],
+    'Nur Positionen zählen, die in diesem Zeitraum eröffnet wurden': ['Only count positions opened in this period', 'احتساب المراكز المفتوحة في هذه الفترة فقط'],
+    'Echte Liquidationspreise der größten Wallets auf Hyperliquid (türkis)': ['Real liquidation prices of the largest Hyperliquid wallets (teal)', 'أسعار تصفية حقيقية لأكبر محافظ Hyperliquid'],
+    'Welche Hebel ins Modell eingehen (5x … 100x)': ['Which leverage levels the model uses (5x … 100x)', 'الرافعات المستخدمة في النموذج'],
+    'Aktueller Kurs (Binance Futures)': ['Current price (Binance futures)', 'السعر الحالي (Binance)'],
+    'Liquidationen der letzten 24 Stunden (Binance, vom PC-Programm gezählt)': ['Liquidations of the last 24 hours (Binance, counted by the PC program)', 'تصفيات آخر 24 ساعة'],
     'alle Börsen': ['all exchanges', 'كل البورصات'], '24 Std.': ['24 h', '24 ساعة'], '3 Tage': ['3 days', '3 أيام'], '7 Tage': ['7 days', '7 أيام'], '30 Tage': ['30 days', '30 يوماً'], '6 Monate': ['6 months', '6 أشهر'],
     'Ganze Ansicht': ['Full view', 'العرض الكامل'], 'Lade Daten …': ['Loading data …', 'جارٍ تحميل البيانات …'], 'Stärkste Zonen jetzt': ['Strongest zones now', 'أقوى المناطق الآن'],
     'Einstellungen': ['Settings', 'الإعدادات'], 'Hebel': ['Leverage', 'الرافعة'], 'Seite': ['Side', 'الجانب'], 'Nur neu eröffnete Positionen': ['Newly opened positions only', 'المراكز المفتوحة حديثاً فقط'],
@@ -31,7 +51,7 @@
   var RX = [[/^🔔 Preis-Alarm \((über|unter) /, function (m, a) { return [['🔔 Price alert (' + (a === 'über' ? 'above' : 'below') + ' '], ['🔔 تنبيه سعر (' + (a === 'über' ? 'فوق' : 'تحت') + ' ']]; }],
     [/^Preis /, function () { return [['Price '], ['السعر ']]; }], [/^Geschätzt offen /, function () { return [['Est. open '], ['مفتوح تقديرياً ']]; }], [/^Schluss /, function () { return [['Close '], ['الإغلاق ']]; }]];
   var I = { de: -1, en: 0, ar: 1 }, lang = 'de', ORIG = new WeakMap(), ATTR = ['placeholder', 'title', 'aria-label'], busy = false;
-  var getLang = function () { try { var s = sessionStorage.getItem('site_lang'); if (s && s in I) return s; } catch (e) { } try { var d = localStorage.getItem('fg9_deflang'); if (d && d in I) return d; } catch (e) { } return 'de'; };
+  var getLang = function () { try { var s = sessionStorage.getItem('site_lang'); if (s && s in I) return s; } catch (e) { } try { var d = localStorage.getItem('fg9_deflang'); if (d && d in I) return d; } catch (e) { } return window.SITE_LANG in I ? window.SITE_LANG : 'en'; };
   function trText(de) {
     if (lang === 'de') return de; var k = I[lang], t = de.trim(); if (!t) return de;
     var hit = D[t]; if (hit) return de.replace(t, hit[k]);

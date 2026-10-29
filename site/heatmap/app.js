@@ -17,6 +17,10 @@ S.grid = LS("hm_grid", "0") === "1"; S.inten = +LS("hm_inten", "1") || 1; S.prof
 // V21b: Farben und Linien des Volumenprofils (Kauf, Verkauf, POC, VAH/VAL, Deckkraft in/außerhalb der Value Area)
 const VPC = Object.assign({ up: "#2de0c8", dn: "#ff4d6d", poc: "#ffd36b", va: "#7aa7ff", vaL: true, ext: false, vaO: 0.4, oO: 0.18 }, (() => { try { return JSON.parse(LS("hm_vpc", "{}")) || {}; } catch (e) { return {}; } })());
 const AXIS_W = 70, PROF_W = 150, BOTTOM_H = 28;
+// V22: alles, was im Chart gezeichnet wird, merkt sich seine Stelle – für die Erklärungen beim Drüberfahren
+const HIT = [];
+const TL = (de, en, ar) => { const l = window.SITE_LANG || "de"; return l === "en" ? en : l === "ar" ? (ar || en) : de; };
+const TFS = [1, 3, 5, 15, 30, 60, 120, 240, 360, 720, 1440, 4320, 10080];
 const DAYS = ["So.", "Mo.", "Di.", "Mi.", "Do.", "Fr.", "Sa."];
 
 // ---------------------------------------------------------------- Formatierung
@@ -93,7 +97,7 @@ async function loadChart(resetView) {
     if (resetView || !prevN) fitView(true);
     else if (S.follow) { const w = S.view.x1 - S.view.x0; S.view.x1 = n - 1 + w * 0.12; S.view.x0 = S.view.x1 - w; }
     if (S.autoY) autoFitY();
-    renderZones(); draw();
+    renderZones(); renderNear(); renderLegend(); draw();
   } catch (e) {
     $("loading").style.display = "grid"; $("loading").textContent = "Fehler: " + e.message;
     setTimeout(() => loadChart(resetView), 5000);
@@ -169,7 +173,7 @@ function draw() { if (!drawPending) { drawPending = true; requestAnimationFrame(
 function drawNow() {
   if (!S.W) size();
   const W = S.W, H = S.H, r = plotRect(), d = S.data;
-  ctx.clearRect(0, 0, W, H);
+  ctx.clearRect(0, 0, W, H); HIT.length = 0;
   ctx.fillStyle = "#0d0716"; ctx.fillRect(0, 0, W, H);
   if (!d) return;
   const c = d.candles, n = c.t.length;
@@ -211,16 +215,16 @@ function drawNow() {
 function drawLevelLines(r) {
   const d = S.data, right = r.w + PROF_W, lines = [];
   for (const z of d.zones || []) lines.push({ p: z.price, col: z.side === "short" ? COLORS.gold : COLORS.violet, alpha: 0.7,
-    box: `${fmtPrice(z.price)} $ · ${fmtUsd(z.usd)}` });
+    box: `${fmtPrice(z.price)} $ · ${fmtUsd(z.usd)}`, kind: "zone", z });
   if (S.hl) for (const z of d.hl_levels || []) lines.push({ p: z.price, col: COLORS.teal, alpha: 0.7, dash: [3, 4],
-    box: `HL ${fmtPrice(z.price)} $ · ${fmtUsd(z.usd)}` });
+    box: `HL ${fmtPrice(z.price)} $ · ${fmtUsd(z.usd)}`, kind: "hl", z });
   for (const a of S.alerts) {
     if (a.coin !== S.coin || a.status === "closed") continue;
     const ref = a.entry || (a.trigger.type === "price" ? a.trigger.value : null);
-    if (ref) lines.push({ p: +ref, col: "#ffffff", alpha: 0.85, dash: [6, 3],
+    if (ref) lines.push({ p: +ref, col: "#ffffff", alpha: 0.85, dash: [6, 3], kind: "al", a,
       tag: (a.direction === "buy" ? "Kauf " : "Verkauf ") + (a.status === "armed" ? "(wartet)" : "Einstieg") });
-    lines.push({ p: a.sl, col: COLORS.red, alpha: 0.9, dash: [6, 3], tag: "SL" });
-    a.tps.forEach((t, k) => lines.push({ p: t, col: COLORS.green, alpha: 0.9, dash: [6, 3],
+    lines.push({ p: a.sl, col: COLORS.red, alpha: 0.9, dash: [6, 3], tag: "SL", kind: "sl", a });
+    a.tps.forEach((t, k) => lines.push({ p: t, col: COLORS.green, alpha: 0.9, dash: [6, 3], kind: "tp", a,
       tag: `TP${k + 1}` + (a.hits.includes(`TP${k + 1}`) ? " ✓" : "") }));
   }
   ctx.save(); ctx.beginPath(); ctx.rect(0, 0, S.W, r.h); ctx.clip();
@@ -237,6 +241,7 @@ function drawLevelLines(r) {
   const placed = [];
   for (const L of lines) {
     const y = yOf(L.p); if (y < 10 || y > r.h - 10) continue;
+    if (L.kind) HIT.push({ k: "lvl", y, L });
     if (L.box) boxLabel(r.w - 8, y, L.box, L.col, placed);
     if (L.tag) { ctx.font = "bold 11px Inter, sans-serif"; const w = ctx.measureText(L.tag).width + 10;
       ctx.fillStyle = L.col; roundRect(130, y - 9, w, 18, 4); ctx.fill();
@@ -258,7 +263,7 @@ function countdown() {
 function priceLabel(x, y, price) {
   const c = S.data.candles, n = c.t.length; const up = n ? c.c[n - 1] >= c.o[n - 1] : true;
   const bg = up ? COLORS.green : COLORS.red, w = AXIS_W - 6;
-  ctx.fillStyle = bg; roundRect(x, y - 10, w, 36, 5); ctx.fill();
+  ctx.fillStyle = bg; roundRect(x, y - 10, w, 36, 5); ctx.fill(); HIT.push({ k: "plabel", x0: x, x1: x + w, y0: y - 10, y1: y + 26 });
   ctx.fillStyle = "#0d0716"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
   ctx.font = "bold 12px Inter, Segoe UI, sans-serif"; ctx.fillText(fmtPrice(price), x + 6, y + 0.5);
   ctx.font = "11px Inter, Segoe UI, sans-serif"; ctx.fillText(countdown(), x + 6, y + 16);
@@ -280,7 +285,7 @@ function drawAxes(r, cw) {
   for (const p of priceTicks()) ctx.fillText(fmtPrice(p), r.w + PROF_W + 10, yOf(p));
   // Zeitachse
   const c = S.data.candles; if (!c.t.length) return;
-  const steps = [5, 15, 30, 60, 120, 240, 360, 720, 1440, 2880, 10080, 43200].filter((s) => s >= S.tf);
+  const steps = [5, 15, 30, 60, 120, 240, 360, 720, 1440, 2880, 10080, 43200, 129600, 262800, 525600].filter((s) => s >= S.tf);   // V22: bis zu 1 Jahr Abstand (lange Zeiträume)
   const pxPerMin = cw / S.tf; const step = steps.find((s) => s * pxPerMin >= 110) || steps[steps.length - 1];
   const t0 = c.t[Math.max(0, Math.floor(S.view.x0))] || c.t[0];
   const tz = new Date().getTimezoneOffset() * 60;
@@ -290,7 +295,7 @@ function drawAxes(r, cw) {
   for (let k = 0; k < 60 && t <= tEnd; k++, t += step * 60) {
     const i = candleIndexForTime(t); if (i < 0) continue; const x = xOf(Math.floor(i) + (i % 1) - 0.5 + 0.5);
     if (x < 30 || x > r.w - 20) continue;
-    ctx.fillText(fmtTime(t, step >= 1440), x, r.h + BOTTOM_H / 2);
+    ctx.fillText(step >= 43200 ? ((d) => `${pad2(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)}`)(new Date(t * 1000)) : fmtTime(t, step >= 1440), x, r.h + BOTTOM_H / 2);
   }
 }
 function label(x, y, text, bg, fg, axis) {
@@ -321,6 +326,7 @@ function drawVolumeProfile(r) {
     ctx.fillStyle = col; ctx.font = "bold 10.5px Inter, sans-serif"; ctx.textAlign = "left"; ctx.fillText(txt, maxW + 34, y - 2); };
   line(yAt(vp.poc + 0.5), VPC.poc, "POC " + fmtPrice(pAt(vp.poc + 0.5)), [2, 3]);
   if (VPC.vaL) { line(yAt(vp.vah + 1), VPC.va, "VAH " + fmtPrice(pAt(vp.vah + 1)), [5, 4]); line(yAt(vp.val), VPC.va, "VAL " + fmtPrice(pAt(vp.val)), [5, 4]); }
+  HIT.push({ k: "vp", x1: maxW, poc: { y: yAt(vp.poc + 0.5), p: pAt(vp.poc + 0.5) }, vah: VPC.vaL ? { y: yAt(vp.vah + 1), p: pAt(vp.vah + 1) } : null, val: VPC.vaL ? { y: yAt(vp.val), p: pAt(vp.val) } : null, x2: VPC.ext ? r.w : maxW + 110 });
 }
 function drawProfiles(r) {
   const d = S.data, rows = d.rows, x0 = r.w, mid = x0 + 52;
@@ -368,7 +374,7 @@ function drawBubbles(r) {
   for (const b of list) {
     b.price = b.pv / b.usd;
     const x = xOf(b.i), y = yOf(b.price); if (y < -30 || y > r.h + 30) continue;
-    const rad = Math.min(30, Math.max(3, Math.sqrt(b.usd / 1e5) * 2.2)) * zoom;
+    const rad = Math.min(30, Math.max(3, Math.sqrt(b.usd / 1e5) * 2.2)) * zoom; HIT.push({ k: "bub", x, y, rad, b });
     ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2);
     if (b.kind === "liq") { ctx.fillStyle = "rgba(255,214,0,.12)"; ctx.strokeStyle = "rgba(255,214,0,.9)"; }
     else if (b.side === "buy") { ctx.fillStyle = "rgba(34,211,166,.28)"; ctx.strokeStyle = "rgba(34,211,166,.9)"; }
@@ -385,25 +391,74 @@ function drawWalls(r, cw) {
     const room = r.w - x - 8; if (room < 20) continue;
     const len = Math.min(room - 46, 14 + w.usd / mx * 46);
     ctx.fillStyle = w.side === "bid" ? "rgba(34,211,166,.85)" : "rgba(255,77,109,.85)";
-    ctx.fillRect(x, y - 2, Math.max(6, len), 4);
+    ctx.fillRect(x, y - 2, Math.max(6, len), 4); HIT.push({ k: "wall", x0: x - 3, x1: x + Math.max(6, len) + (room > 70 ? 56 : 4), y, w });
     if (room > 70) { ctx.font = "10px Inter, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(fmtUsdShort(w.usd) + " $", x + Math.max(6, len) + 4, y); }
   }
 }
+// V22: Fadenkreuz plus Erklärung zu allem unter der Maus (Orderbuch-Wände, Bubbles, Zonen, Alarme, Volumenprofil, Profile, Achsen)
+function hoverInfo(r, m) {
+  const d = S.data, out = [], p = pOf(m.y), side = (s) => s === "short" ? "Short" : "Long";
+  const box = (title, body, col) => out.push(`<div class="tt"><b style="color:${col || "#ffd36b"}">${title}</b>${body ? `<div class="tb">${body}</div>` : ""}</div>`);
+  // je Art nur das Nächste – liegen mehrere Orderbuch-Wände übereinander, stehen sie in einer Box (höchstens 4)
+  const walls = HIT.filter((h) => h.k === "wall" && m.x >= h.x0 && m.x <= h.x1 && Math.abs(m.y - h.y) <= 6).sort((a, b) => Math.abs(m.y - a.y) - Math.abs(m.y - b.y)).slice(0, 4);
+  if (walls.length) { const bid0 = walls[0].w.side === "bid";
+    box(walls.length > 1 ? TL("🧱 Orderbuch-Wände", "🧱 Order book walls", "🧱 جدران دفتر الأوامر") : bid0 ? TL("🧱 Orderbuch-Wand · Kaufaufträge (Bid)", "🧱 Order book wall · buy orders (bid)", "🧱 جدار دفتر الأوامر · أوامر شراء") : TL("🧱 Orderbuch-Wand · Verkaufsaufträge (Ask)", "🧱 Order book wall · sell orders (ask)", "🧱 جدار دفتر الأوامر · أوامر بيع"),
+      walls.map((h) => `<span style="color:${h.w.side === "bid" ? COLORS.green : COLORS.red}">${fmtUsd(h.w.usd)} @ ${fmtPrice(h.w.price)} $ · ${h.w.side === "bid" ? TL("Kauf", "buy", "شراء") : TL("Verkauf", "sell", "بيع")}</span>`).join("<br>") + "<br>"
+      + TL("Große Limit-Orders im Binance-Orderbuch (Stufen ±0,05 % zusammengefasst): grün = Kaufaufträge unter dem Kurs (Unterstützung), rot = Verkaufsaufträge darüber (Widerstand). Sie können den Kurs bremsen – aber auch jederzeit wieder verschwinden.", "Large limit orders in the Binance order book (levels ±0.05 % combined): green = buy orders below the price (support), red = sell orders above (resistance). They can slow the price down – but can also be pulled at any time.", "أوامر كبيرة في دفتر أوامر Binance: أخضر شراء (دعم)، أحمر بيع (مقاومة). قد تُسحب في أي وقت."), bid0 ? COLORS.green : COLORS.red); }
+  const bub = HIT.filter((h) => h.k === "bub" && Math.hypot(m.x - h.x, m.y - h.y) <= h.rad + 3).sort((a, b) => Math.hypot(m.x - a.x, m.y - a.y) - Math.hypot(m.x - b.x, m.y - b.y))[0];
+  const lvl = HIT.filter((h) => h.k === "lvl" && Math.abs(m.y - h.y) <= 5).sort((a, b) => Math.abs(m.y - a.y) - Math.abs(m.y - b.y))[0];
+  for (const h of HIT) {
+    if (h.k === "wall") continue;
+    else if (h.k === "bub" && h === bub) { const b = h.b;
+      if (b.kind === "liq") box(b.side === "long" ? TL("🟡 Liquidierte Longs", "🟡 Liquidated longs", "🟡 تصفية مراكز شراء") : TL("🟡 Liquidierte Shorts", "🟡 Liquidated shorts", "🟡 تصفية مراكز بيع"),
+        `${fmtUsd(b.usd)} · Ø ${fmtPrice(b.price)} $<br>` + TL(`${side(b.side)}-Positionen wurden in dieser Kerze zwangsgeschlossen (Binance).`, `${side(b.side)} positions were force-closed in this candle (Binance).`, "مراكز أُغلقت قسراً في هذه الشمعة (Binance)."), "#ffd600");
+      else box(b.side === "buy" ? TL("🟢 Große Market-Käufe", "🟢 Large market buys", "🟢 مشتريات سوقية كبيرة") : TL("🔴 Große Market-Verkäufe", "🔴 Large market sells", "🔴 مبيعات سوقية كبيرة"),
+        `${fmtUsd(b.usd)} · Ø ${fmtPrice(b.price)} $<br>` + TL("Aggressive Trades in dieser Kerze (Binance, Trades ab der Bubble-Schwelle in den Einstellungen).", "Aggressive trades in this candle (Binance, trades above the bubble threshold in the settings).", "صفقات قوية في هذه الشمعة (Binance)."), b.side === "buy" ? COLORS.green : COLORS.red); }
+    else if (h.k === "lvl" && h === lvl) { const L = h.L, z = L.z;
+      if (L.kind === "zone") box(TL(`🔥 Stärkste ${side(z.side)}-Liquidations-Zone`, `🔥 Strongest ${side(z.side)} liquidation zone`, "🔥 أقوى منطقة تصفية"), `≈ ${fmtUsd(z.usd)} @ ${fmtPrice(z.price)} $ (${z.dist_pct >= 0 ? "+" : ""}${z.dist_pct.toFixed(1).replace(".", ",")} %)<br>` + TL("Geschätzte offene Positionen, die hier liquidiert würden (Modell aus Open Interest und Hebel). Der Kurs läuft oft zu solchen Zonen – keine Garantie.", "Estimated open positions that would be liquidated here (model from open interest and leverage). Price often moves towards such zones – no guarantee.", "مراكز مفتوحة تقديرية ستُصفّى هنا (نموذج). لا ضمان."), L.col);
+      else if (L.kind === "hl") box(TL("🐋 Hyperliquid – echte Liquidationspreise", "🐋 Hyperliquid – real liquidation prices", "🐋 Hyperliquid – أسعار تصفية حقيقية"), `≈ ${fmtUsd(z.usd)} @ ${fmtPrice(z.price)} $<br>` + TL("Liquidationspreise der Positionen der größten Wallets auf Hyperliquid (öffentlich einsehbar).", "Liquidation prices of the positions of the largest wallets on Hyperliquid (public data).", "أسعار تصفية أكبر المحافظ على Hyperliquid."), L.col);
+      else box(TL("🔔 Dein Alarm", "🔔 Your alert", "🔔 تنبيهك") + ` · ${L.tag}`, `${fmtPrice(L.p)} $` + (L.a ? ` · ${L.a.direction === "buy" ? TL("Kauf", "Buy", "شراء") : TL("Verkauf", "Sell", "بيع")} ${L.a.coin}` : ""), L.col); }
+    else if (h.k === "plabel" && m.x >= h.x0 && m.x <= h.x1 && m.y >= h.y0 && m.y <= h.y1) box(TL("Aktueller Preis", "Current price", "السعر الحالي"), TL("Darunter: Zeit bis zum Schluss der laufenden Kerze.", "Below: time until the current candle closes.", "تحته: الوقت حتى إغلاق الشمعة."), "#fff");
+    else if (h.k === "vp" && S.layers.volume && m.x <= h.x2) {
+      for (const [k, v, txt] of [["POC", h.poc, TL("Point of Control – Preis mit dem meisten gehandelten Volumen im Zeitraum.", "Point of control – price with the most traded volume in the range.", "السعر صاحب أعلى حجم تداول.")], ["VAH", h.vah, TL("Value Area High – obere Grenze der 70 % des Volumens.", "Value area high – upper edge of 70 % of the volume.", "الحد الأعلى لمنطقة القيمة (70 %).")], ["VAL", h.val, TL("Value Area Low – untere Grenze der 70 % des Volumens.", "Value area low – lower edge of 70 % of the volume.", "الحد الأدنى لمنطقة القيمة (70 %).")]])
+        if (v && Math.abs(m.y - v.y) <= 5) box(`${k} · ${fmtPrice(v.p)} $`, txt, k === "POC" ? VPC.poc : VPC.va);
+      if (m.x <= h.x1 && d.volume) { const row = Math.floor((p - d.pmin) / (d.pmax - d.pmin) * d.rows), vb = d.volume.buy[row] || 0, vs = d.volume.sell[row] || 0;
+        if (vb + vs > 0) box(TL("📊 Volumenprofil", "📊 Volume profile", "📊 ملف الحجم"), TL(`In diesem Preisbereich gehandelt: Kauf ${fmtUsd(vb)} · Verkauf ${fmtUsd(vs)}`, `Traded in this price band: buy ${fmtUsd(vb)} · sell ${fmtUsd(vs)}`, `الحجم هنا: شراء ${fmtUsd(vb)} · بيع ${fmtUsd(vs)}`), VPC.up); } }
+  }
+  if (m.x > r.w && m.x <= r.w + PROF_W) { const row = Math.floor((p - d.pmin) / (d.pmax - d.pmin) * d.rows), pr = d.profile, hp = d.hl_profile, L = pr.longs[row] || 0, Sh = pr.shorts[row] || 0;
+    box(TL("Seitenprofil bei ", "Side profile at ", "الملف الجانبي عند ") + fmtPrice(p) + " $", TL(`Modell (rechts): geschätzt offen ${fmtUsd(L + Sh)}${L + Sh ? ` (Long ${fmtUsd(L)} · Short ${fmtUsd(Sh)})` : ""}`, `Model (right): estimated open ${fmtUsd(L + Sh)}${L + Sh ? ` (long ${fmtUsd(L)} · short ${fmtUsd(Sh)})` : ""}`, `النموذج: ${fmtUsd(L + Sh)}`)
+      + (S.hl && hp ? "<br>" + TL(`Hyperliquid (links, türkis): echte Positionen ${fmtUsd((hp.longs[row] || 0) + (hp.shorts[row] || 0))}`, `Hyperliquid (left, teal): real positions ${fmtUsd((hp.longs[row] || 0) + (hp.shorts[row] || 0))}`, `Hyperliquid: ${fmtUsd((hp.longs[row] || 0) + (hp.shorts[row] || 0))}`) : ""), COLORS.gold); }
+  if (m.x > r.w + PROF_W && !out.length) box(TL("Preisachse", "Price axis", "محور السعر"), TL("Ziehen = Preis zoomen · Mausrad = Preis zoomen · Doppelklick = automatisch", "Drag = zoom price · wheel = zoom price · double-click = auto", "اسحب للتكبير · نقر مزدوج = تلقائي"), "#fff");
+  return out;
+}
 function drawCrosshair(r) {
   const m = S.mouse; const tip = $("tip");
-  if (!m || m.x > r.w || m.y > r.h) { tip.style.display = "none"; return; }
-  ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(m.x, 0); ctx.lineTo(m.x, r.h); ctx.moveTo(0, m.y); ctx.lineTo(r.w + PROF_W, m.y); ctx.stroke(); ctx.setLineDash([]);
+  if (!m || !S.data) { tip.style.display = "none"; return; }
+  if (m.y > r.h) { tip.innerHTML = `<div class="tt"><b>${TL("Zeitachse", "Time axis", "محور الزمن")}</b><div class="tb">${TL("Ziehen = Zeit zoomen · Doppelklick = ganze Ansicht", "Drag = zoom time · double-click = full view", "اسحب لتكبير الزمن")}</div></div>`; tip.style.display = "block"; tip.style.left = Math.min(m.x + 14, S.W - 240) + "px"; tip.style.top = (r.h - 70) + "px"; return; }
+  if (m.x <= r.w + PROF_W) { ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+    ctx.beginPath(); if (m.x <= r.w) { ctx.moveTo(m.x, 0); ctx.lineTo(m.x, r.h); } ctx.moveTo(0, m.y); ctx.lineTo(r.w + PROF_W, m.y); ctx.stroke(); ctx.setLineDash([]); }
   const p = pOf(m.y); label(r.w + PROF_W + 4, m.y, fmtPrice(p), "#2a1d3d", "#fff");
-  const c = S.data.candles; const i = Math.round(iOf(m.x));
-  if (i < 0 || i >= c.t.length) { tip.style.display = "none"; return; }
-  const est = heatValueAt(i, p);
-  tip.innerHTML = `<b>${fmtTime(c.t[i], "full")}</b><br>Preis ${fmtPrice(p)} $<br>Geschätzt offen ${fmtUsd(est)}<br>Schluss ${fmtPrice(c.c[i])} $`;
-  tip.style.display = "block";
-  const tx = m.x + 18 + 190 > r.w ? m.x - 200 : m.x + 18;
-  tip.style.left = tx + "px"; tip.style.top = Math.min(r.h - 110, m.y + 14) + "px";
+  const c = S.data.candles; const i = Math.round(iOf(m.x)), parts = hoverInfo(r, m);
+  if (m.x <= r.w && i >= 0 && i < c.t.length) { const est = heatValueAt(i, p);
+    parts.push(`<div class="tt"><b>${fmtTime(c.t[i], "full")}</b><div class="tb">${TL("Preis", "Price", "السعر")} ${fmtPrice(p)} $ · ${TL("Heatmap: geschätzt offen", "Heatmap: estimated open", "تقدير مفتوح")} <b>${fmtUsd(est)}</b><br>O ${fmtPrice(c.o[i])} · H ${fmtPrice(c.h[i])} · L ${fmtPrice(c.l[i])} · C ${fmtPrice(c.c[i])} · Vol ${fmtUsd(c.v[i])}</div></div>`); }
+  if (!parts.length) { tip.style.display = "none"; return; }
+  tip.innerHTML = parts.join(""); tip.style.display = "block";
+  const tw = tip.offsetWidth || 260, th = tip.offsetHeight || 120, tx = m.x + 18 + tw > S.W - 4 ? m.x - tw - 14 : m.x + 18;
+  tip.style.left = Math.max(4, tx) + "px"; tip.style.top = Math.max(4, Math.min(r.h - th - 4, m.y + 14)) + "px";
 }
 
+// V22: Farbskala der Heatmap (Wert je Feld) und Liquidationen nahe am Kurs (±2 / 5 / 10 %)
+function renderLegend() {
+  const el = $("hmLeg"); if (!el || !S.data) return; const h = S.data.heat;
+  if (!el.dataset.g) { const st = [0.06, 0.25, 0.45, 0.62, 0.76, 0.88, 1].map((t) => `${lutColor(t)} ${Math.round(t * 100)}%`).join(","); el.querySelector("i").style.background = `linear-gradient(90deg,${lutColor(0.03)} 0%,${st})`; el.dataset.g = "1"; }
+  $("hmLegMax").textContent = h ? fmtUsd(h.vmax) : "–";
+}
+function renderNear() {
+  const el = $("nearLiq"); if (!el || !S.data) return; const N = S.data.near || [];
+  if (!N.length) { el.innerHTML = `<div class="muted small">–</div>`; return; }
+  el.innerHTML = `<table class="neart"><tr><th></th><th class="l">${TL("Longs darunter", "Longs below", "شراء تحت")}</th><th class="s">${TL("Shorts darüber", "Shorts above", "بيع فوق")}</th></tr>` +
+    N.map((x) => { const tot = x.L + x.S || 1, pl = Math.round(x.L / tot * 100); return `<tr><td>±${x.k} %</td><td class="l">${fmtUsd(x.L)}</td><td class="s">${fmtUsd(x.S)}</td></tr><tr class="nbar"><td></td><td colspan="2"><div class="b-bar"><div class="b-bar-l" style="width:${pl}%"></div><div class="b-bar-s" style="width:${100 - pl}%"></div></div></td></tr>`; }).join("") + `</table>`;
+}
 // ---------------------------------------------------------------- Seitenleiste & Kopf
 function renderZones() {
   const el = $("zones"); const zs = S.data && S.data.zones || [];
@@ -469,7 +524,7 @@ function segHandler(id, attr, fn) {
 function setup() {
   segHandler("tfSeg", "tf", (v) => { S.tf = +v; loadChart(true); });
   // V21b: lange Zeiträume brauchen größere Kerzen (höchstens ~2500 Kerzen) – Kerzengröße passt sich an
-  segHandler("rangeSeg", "range", (v) => { S.range = +v; if (S.range / S.tf > 2500) { const ok = [5, 15, 60, 240, 720, 1440, 10080].find((x) => S.range / x <= 2500) || 10080; S.tf = ok; document.querySelectorAll("#tfSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.tf === ok)); } loadChart(true); });
+  segHandler("rangeSeg", "range", (v) => { S.range = +v; if (S.range / S.tf > 2500) { const ok = TFS.find((x) => S.range / x <= 2500) || 10080; S.tf = ok; document.querySelectorAll("#tfSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.tf === ok)); } loadChart(true); });
   segHandler("sinceChips", "since", (v) => { S.since = +v; loadChart(); });
   segHandler("hlChips", "hl", (v) => { S.hl = v === "1"; draw(); });
   $("levChips").innerHTML = S.meta.leverages.map((l) => `<button class="chip on" data-lev="${l}">${l}x</button>`).join("");

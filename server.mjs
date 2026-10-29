@@ -1,4 +1,4 @@
-// Fear & Greed V21 – Hintergrund-Programm
+// Fear & Greed V22 – Hintergrund-Programm
 // V21: eine zentrale Website – www/ = Startseite, www/fear-greed/ = Fear & Greed (mit data/), www/heatmap/, www/tools/ … (Quelle: site/ und site/www/)
 // Läuft unsichtbar, sammelt jede Minute (einstellbar) alle Daten (inkl. dauerhaftem Liquidations-Mitschnitt),
 // speichert den Verlauf, liefert die Seite unter http://localhost:8797 aus und verschickt Telegram-Alarme.
@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { collect, vkey, BASE_VARIANTS, SRCS, WINS, longHistData } from './collector/engine.mjs';
+import { collect, vkey, BASE_VARIANTS, SRCS, WINS, longHistData, longHistLoad } from './collector/engine.mjs';
 import { tradePlan, tradePlanText, TPLAN_DEF, liqUsd, methodSignals, phaseSignals, trig, trendInfo, applyTrend, mean7, divergences, divRows, clusterSet, heatEvents, alarmText, touchTrack, nextCluster, pivotEvents, pivotPayload, fiftySignals, F50_TYPES, candleSignals, CDL_TYPES, smaSignals, SMA_DEF, vwapSignals, liqCombine, hmParts,
   avgMap, OFF_COL, fractals, fracBreaks, fracIdxFilter, fracNear, FRAC_DEF, maCrossEvents, maLine, lineName, offExitSignals, offFracSignals, seriesCross, HM_PER, vwapCalc } from './collector/shared.mjs';
 
@@ -52,6 +52,9 @@ if (!fs.existsSync(CFG_PATH)) saveCfg(DEF);
 const STATE_PATH = path.join(DATA, 'state.json');
 let state = {};
 try { state = JSON.parse(fs.readFileSync(STATE_PATH, 'utf8')); } catch { }
+// V22: lange Heatmap-Historie (Stunden-OI ab 2021) zwischenspeichern, damit sie nach einem Neustart nicht neu geladen werden muss
+const LH_PATH = path.join(DATA, 'longhist.json'); let lhSaved = 0;
+try { longHistLoad(JSON.parse(fs.readFileSync(LH_PATH, 'utf8'))); } catch { }
 const saveState = () => fs.writeFileSync(STATE_PATH, JSON.stringify(state));
 
 /* ---------- Liquidationen dauerhaft mitschneiden (Binance + Bybit) ---------- */
@@ -376,7 +379,8 @@ function buildSite() {
     if (L.kl.length && L.oi.length) { const oiM = new Map(L.oi);
       const rows = L.kl.map(k => { const t = +k[0], c = +k[4], oi = oiM.get(t); return [Math.floor(t / 60000), +(+k[1]).toFixed(1), +(+k[2]).toFixed(1), +(+k[3]).toFixed(1), +c.toFixed(1), Math.round(+k[7] || 0), Math.round(+k[10] || 0), oi ? Math.round(oi * c) : null]; });
       fs.mkdirSync(path.join(WWW, 'heatmap', 'data'), { recursive: true });
-      fs.writeFileSync(path.join(WWW, 'heatmap', 'data', 'hist-BTC.json'), JSON.stringify({ updated: Date.now(), src: 'Binance 1h + Bybit OI 1h', rows })); } } catch (e) { log('Heatmap-Historie nicht geschrieben:', e.message); }
+      fs.writeFileSync(path.join(WWW, 'heatmap', 'data', 'hist-BTC.json'), JSON.stringify({ updated: Date.now(), src: 'Binance 1h + Bybit OI 1h', rows }));
+      if (L.t && L.t !== lhSaved) { lhSaved = L.t; fs.writeFileSync(LH_PATH, JSON.stringify({ oi: L.oi, kl: L.kl, oiDone: L.oiDone })); } } } catch (e) { log('Heatmap-Historie nicht geschrieben:', e.message); }
   // alte Adresse …/fear-greed/heatmap/ leitet auf …/heatmap/ weiter
   const redir = to => `<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${to}"><a href="${to}">${to}</a>`;
   fs.mkdirSync(path.join(FGW, 'heatmap'), { recursive: true }); fs.writeFileSync(path.join(FGW, 'heatmap', 'index.html'), redir('../../heatmap/'));
@@ -431,7 +435,7 @@ async function publish() {
 }
 
 /* ---------- Windows-Autostart ---------- */
-const LNK = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'Fear-Greed-V21.lnk');
+const LNK = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'Fear-Greed-V22.lnk');
 const autostartOn = () => fs.existsSync(LNK);
 function setAutostart(on) {
   return new Promise((res, rej) => {
@@ -510,7 +514,7 @@ const server = http.createServer(async (req, res) => {
     if (b.rep && typeof b.rep === 'object') { c.rep = {}; for (const [k, v] of Object.entries(b.rep)) c.rep[k] = { iv: Math.min(1440, Math.max(0, +v.iv || 0)), max: Math.min(20, Math.max(1, +v.max || 1)) }; }
     saveCfg(c); send(res, 200, { ok: true }); if (b.recollect) run(); return;
   }
-  if (p === '/api/telegram/test' && req.method === 'POST') { try { await telegram('✅ Testnachricht vom Fear & Greed V21 – Alarme kommen hier an.'); return send(res, 200, { ok: true }); } catch (e) { return send(res, 400, { error: e.message }); } }
+  if (p === '/api/telegram/test' && req.method === 'POST') { try { await telegram('✅ Testnachricht vom Fear & Greed V22 – Alarme kommen hier an.'); return send(res, 200, { ok: true }); } catch (e) { return send(res, 400, { error: e.message }); } }
   if (p === '/api/telegram/chatid' && req.method === 'POST') {
     // Chat-ID automatisch finden: Nutzer schreibt dem Bot vorher eine Nachricht
     try {
@@ -532,7 +536,7 @@ const server = http.createServer(async (req, res) => {
 });
 server.on('error', e => { if (e.code === 'EADDRINUSE') { log(`Port ${PORT} belegt – das Programm läuft schon (http://localhost:${PORT}).`); process.exit(0); } throw e; });
 server.listen(PORT, '127.0.0.1', () => {
-  log(`Fear & Greed V21 läuft: http://localhost:${PORT}/fear-greed/`);
+  log(`Fear & Greed V22 läuft: http://localhost:${PORT}/fear-greed/`);
   buildSite();
   const loop = async () => { await run(); setTimeout(loop, iv().data * 60e3); };
   loop();
