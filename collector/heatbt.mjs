@@ -53,9 +53,11 @@ export function heatBacktest(LH, o = {}) {
     if (j < warm || j % step || j + 1 >= kl.length) continue;
     const C = clustersAt(active, c); if (!C) continue;
     const r24 = j >= 24 ? c / +kl[j - 24][4] - 1 : 0, r7 = j >= 168 ? c / +kl[j - 168][4] - 1 : 0;
+    // weitere Merkmale für das lernende Modell: Schwankung der letzten 24 Std. und Änderung des Open Interest in 24 Std.
+    let hh = -Infinity, ll = Infinity; for (let q = Math.max(0, j - 23); q <= j; q++) { hh = Math.max(hh, +kl[q][2]); ll = Math.min(ll, +kl[q][3]); } const v24 = (hh - ll) / c, o0 = oiM.get(+kl[Math.max(0, j - 24)][0]), oi24 = cur > 0 && o0 > 0 ? cur / o0 - 1 : 0;
     for (const kind of ['near', 'top']) { const zL = C.L[kind], zS = C.S[kind]; if (!zL || !zS) continue;
       const hit = firstHit(kl, j, zL.p, zS.p, maxH);
-      snaps.push({ kind, t, c, dL: (c - zL.p) / c, dS: (zS.p - c) / c, uL: zL.u, uS: zS.u, r24, r7, hit: hit?.s || null, hh: hit?.h ?? null }); }
+      snaps.push({ kind, t, c, dL: (c - zL.p) / c, dS: (zS.p - c) / c, uL: zL.u, uS: zS.u, r24, r7, v24, oi24, hit: hit?.s || null, hh: hit?.h ?? null }); }
   }
   const out = { updated: Date.now(), from: +kl[0][0], to: +kl.at(-1)[0], hours: kl.length, step, maxH, ms: 0, kinds: {} };
   for (const kind of ['near', 'top']) {
@@ -80,5 +82,5 @@ export function heatBacktest(LH, o = {}) {
       medH: hrs[Math.floor(hrs.length / 2)], in24: in24 / n, buckets: bk,
       model: { w: wAll.map(v => +v.toFixed(4)), test: { n: te.length, acc: accM, base: accB }, use: te.length >= 300 && accM >= accB + 0.015 } };
   }
-  out.ms = Date.now() - t0; return out;
+  out.ms = Date.now() - t0; if (o.snaps) out.snaps = snaps; return out;
 }
