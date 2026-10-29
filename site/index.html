@@ -1040,6 +1040,29 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
   .bttab tr.btb td:first-child{color:#ff8a95}
   .bttab tr.bthb td{color:#ffd36b}
   .bttab td.bthd{color:var(--dim);font-weight:800;padding-top:10px}
+  /* V22: Dialog „ƒx Indikatoren“ */
+  #indModal .dlg{max-width:860px}
+  .indhead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+  .indhead input{flex:1 1 220px;background:#120916;border:2px solid #fff;color:var(--text);border-radius:10px;padding:8px 12px;font:inherit}
+  .indtabs{display:inline-flex;flex-wrap:wrap;gap:6px}
+  .indtabs button{background:#241530;border:1.5px solid #8f78a0;color:#eee;border-radius:8px;padding:5px 10px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+  .indtabs button.on{border-color:#f6c453;color:#f6c453}
+  .indsec{color:var(--dim);font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin:12px 0 4px}
+  .indrow{display:flex;align-items:center;gap:8px;padding:7px 8px;border-bottom:1px solid #2a1d33;font-size:13.5px}
+  .indrow.act{background:#1f1226;border-radius:8px;margin-bottom:4px}
+  .indrow button:not(.btn){background:#241530;border:1px solid #6b5578;color:#eee;border-radius:6px;padding:2px 8px;cursor:pointer}
+  .indrow .indeye{opacity:.45}.indrow .indeye.on{opacity:1;border-color:#f6c453}
+  .indrow .star{color:#f6c453}.indsp{flex:1}.indk{margin-left:auto;color:var(--dim);font-size:11.5px}
+  .indbadge{font-size:10px;font-weight:800;border-radius:5px;padding:1px 6px;background:#33d39a33;color:#33d39a}
+  .indbad{font-size:11px;color:#ff8a95;margin-left:6px}
+  .indset{display:flex;flex-wrap:wrap;gap:8px 14px;padding:8px 10px 10px;border:1px dashed #6b5578;border-radius:8px;margin:0 0 8px;font-size:12.5px}
+  .indset input[type=number]{width:62px;background:#120916;border:1px solid #6b5578;color:#eee;border-radius:5px;padding:2px 4px}
+  .indset select{background:#120916;color:#eee;border:1px solid #6b5578;border-radius:5px}
+  .indnote{flex-basis:100%;color:#cdbfd8;font-size:12px;margin:4px 0 0}
+  .indbt{flex-basis:100%;border-collapse:collapse;font-size:12px}.indbt th,.indbt td{padding:3px 6px;border-bottom:1px solid #2a1d33;text-align:right}.indbt td:first-child,.indbt th:first-child{text-align:left}
+  .indpine{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .indpine input,.indpine textarea{background:#0f0713;border:1.5px solid #8f78a0;color:#e8e0ee;border-radius:8px;padding:8px;font:12.5px Consolas,monospace}
+  .indpine textarea{min-height:220px;resize:vertical}
 </style>
 <link rel="stylesheet" href="../nav.css">
 </head>
@@ -1191,7 +1214,7 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
         <div class="tgrp vss"><button class="tog vss" id="togVw" data-t="btnVw"></button><button class="tog vss" id="togVwS" data-t="btnSigS"></button><div class="ddwrap"><button class="tog" id="vwDd"></button><div class="ddmenu tall" id="vwMenu"></div></div></div>
         <div class="tgrp vss"><button class="tog vss" id="togOb">LSOB</button><button class="tog vss" id="togFvg">FVG</button><div class="ddwrap"><button class="tog" id="obDd">▾</button><div class="ddmenu tall" id="obMenu"></div></div></div>
         <div class="tgrp vss"><button class="tog vss" id="togBos">BOS</button><button class="tog vss" id="togTl" data-t="btnTl"></button><button class="tog vss" id="togBrk" data-t="btnBrk"></button><button class="tog vss" id="togVolx" data-t="btnVolx"></button><div class="ddwrap"><button class="tog" id="strDd">▾</button><div class="ddmenu tall" id="strMenu"></div></div></div>
-        <div class="tgrp vss"><button class="tog vss" id="togVp" data-t="btnVp"></button><button class="tog vss" id="togOsc">RSI</button><div class="ddwrap"><button class="tog" id="indDd">▾</button><div class="ddmenu tall" id="indMenu"></div></div></div>
+        <div class="tgrp vss"><button class="tog vss" id="indFx" data-t="indBtn"></button><button class="tog vss" id="togVp" data-t="btnVp"></button><button class="tog vss" id="togOsc">RSI</button><div class="ddwrap"><button class="tog" id="indDd">▾</button><div class="ddmenu tall" id="indMenu"></div></div></div>
         <div class="tgrp vss" hidden></div>
         <div class="tgrp vss"><button class="tog vss" id="togBell" data-t="btnBell"></button><div class="ddwrap"><button class="tog" id="bellDd"></button><div class="ddmenu" id="bellMenu"></div></div></div><div class="tgrp vss"><button class="tog vss" id="togOwn" data-t="btnOwn"></button><div class="ddwrap"><button class="tog" id="ownDd"></button><div class="ddmenu tall" id="ownMenu"></div></div></div>
         <div class="layers vss"><button class="tog" id="layBtn" data-t="btnLayers"></button><div class="laymenu" id="layMenu"></div></div>
@@ -1277,6 +1300,7 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
 <div class="tip" id="tip"></div>
 <div class="toast hidden" id="toast"></div>
 <div class="alstack" id="alStack"></div>
+<div class="modal" id="indModal"><div class="dlg wide"><h2 id="indTitle"></h2><div id="indBody"></div><div class="btns"><button class="btn pri" data-close data-t="close"></button></div></div></div>
 <div class="modal" id="impModal"><div class="dlg wide"><h2 id="impTitle"></h2><div id="impBody"></div><div class="btns"><button class="btn pri" data-close data-t="close"></button></div></div></div>
 <div class="modal" id="comboModal"><div class="dlg wide"><h2 id="comboTitle"></h2><div id="comboBody"></div><div class="btns"><button class="btn pri" data-close data-t="close"></button></div></div></div>
 <div class="modal" id="alLogModal"><div class="dlg wide"><h2 data-t="alLogTitle"></h2><div class="alog" id="alLog"></div><div class="btns"><button class="btn sm" id="alLogClear" data-t="alLogClear"></button><button class="btn pri" data-close data-t="close"></button></div></div></div>
@@ -1694,6 +1718,10 @@ Object.assign(T.ar, {"al_tl2":"خط الاتجاه: اللمسة الثانية 
 Object.assign(T.de, {"tl2AlB":"Zweiter Wendepunkt bestätigt – neue {w}-Linie von {a} nach {b}. Schluss {c}. Backtest Tageskerzen 09.2020–10.2026 (Swing 3/3): neue Linien allein ohne Vorteil (30 T −0,3 %, 217 Fälle) – nur als Hinweis.","tl3AlB":"Der Kurs hat die {w}-Linie berührt (Linie jetzt {p}) und schloss bei {c} wieder {o}. Idee: {s}. Backtest Tageskerzen 09.2020–10.2026: Abpraller an der 3. Berührung ohne Vorteil (30 T −0,3 %, 106 Fälle; mit Swing 5/5 sogar schlechter als Zufall) – nur als Hinweis, keine Garantie."});
 Object.assign(T.en, {"tl2AlB":"Second pivot confirmed – new {w} line from {a} to {b}. Close {c}. Backtest daily candles 09.2020–10.2026 (swing 3/3): new lines alone had no edge (30 d −0.3 %, 217 cases) – just a hint.","tl3AlB":"Price touched the {w} line (line now {p}) and closed at {c}, {o} again. Idea: {s}. Backtest daily candles 09.2020–10.2026: bounces at the 3rd touch had no edge (30 d −0.3 %, 106 cases; with swing 5/5 even worse than chance) – just a hint, no guarantee."});
 Object.assign(T.ar, {"tl2AlB":"تأكدت القمة/القاع الثانية – خط {w} جديد من {a} إلى {b}. الإغلاق {c}. الاختبار الرجعي: الخطوط الجديدة وحدها بلا أفضلية (217 حالة) – للتنبيه فقط.","tl3AlB":"لمس السعر خط {w} (الخط الآن {p}) وأغلق عند {c} {o}. الفكرة: {s}. الاختبار الرجعي: الارتداد عند اللمسة الثالثة بلا أفضلية (106 حالات) – للتنبيه فقط، بلا ضمان."});
+// V22: Texte
+Object.assign(T.de, {"indBtn":"ƒx Indikatoren","indTitle":"Indikatoren","indShowHide":"Ein-/ausblenden","indSettings":"Einstellungen, Signale, Alarm, Backtest","indRemove":"Entfernen","indc_cross":"Kreuz-Signale","indc_ut":"U-Turn-Signale","indc_div":"Divergenzen","indc_onPrice":"U-Turn auch im Kurs-Chart","indSig":"Signale zeigen","indAl":"Alarm bei neuem Signal","indAlTf":"Alarm auf Kerzen","pineNote":"Pine Script läuft über die freie Bibliothek PineTS (laut Hersteller noch experimentell): einfache Indikatoren mit plot()/plotshape() klappen meist, Skripte mit Tabellen, Zeichnungen oder anderen Zeitrahmen oft nicht. Gerechnet wird auf der gerade gezeigten Kerzengröße. Klappt ein Skript nicht, baue ich es als festen Indikator ein.","indBtG":"Signal","indBtHit":"Treffer 30 T","indBtNote":"Backtest Tageskerzen 09.2020 bis heute: Vorteil = Kursänderung in Signalrichtung minus zufällige Tage mit gleicher Long/Short-Mischung; t ab etwa 2 deutlich. Keine Garantie.","indBtNone":"Mit diesen Einstellungen keine Signale auf Tageskerzen – kein Backtest.","indNone":"Noch keine Indikatoren im Chart. Unten einen hinzufügen.","indPane":"eigenes Fenster","indOver":"im Kurs-Chart","indAdd":"Hinzufügen","indTryPine":"Code aus deinem TradingView-Konto mit PineTS ausführen","pineNameP":"Name (optional)","pineRun":"Ausführen und hinzufügen","indSearch":"Indikator suchen …","indTab_all":"Alle","indTab_builtin":"Eingebaut","indTab_my":"Meine Skripte (VrilyaSS)","indTab_pine":"Pine Script einfügen","indActive":"Im Chart","indList":"Verfügbar","indLoading":"Lade deine TradingView-Skripte …","indMyNote":"Fest nachgebaut (★): 3 Skripte. Alle anderen deiner Skripte lassen sich mit ▶ Pine direkt über PineTS ausprobieren oder auf TradingView öffnen.","indNoCode":"Für dieses Skript liegt kein Quellcode vor.","pineNone":"Das Skript lieferte keine Linien oder Signale.","pineBusy":"rechnet …","indAlT":"{d} {n} · {s} ({tf})","indAlB":"Signal „{s}“ von {n} auf {tf}-Kerzen, Schluss {c}. Backtest im Indikator-Dialog (⚙). Keine Garantie.","al_ind":"Indikator-Signale (im Dialog „ƒx Indikatoren“ je Indikator an)","alk_ind":"Indikator"});
+Object.assign(T.en, {"indBtn":"ƒx Indicators","indTitle":"Indicators","indShowHide":"Show/hide","indSettings":"Settings, signals, alert, backtest","indRemove":"Remove","indc_cross":"Cross signals","indc_ut":"U-turn signals","indc_div":"Divergences","indc_onPrice":"U-turn on the price chart too","indSig":"Show signals","indAl":"Alert on new signal","indAlTf":"Alert on candles","pineNote":"Pine Script runs via the free PineTS library (experimental according to its maker): simple indicators with plot()/plotshape() usually work, scripts with tables, drawings or other timeframes often do not. It is calculated on the candle size shown. If a script fails, I will build it in as a fixed indicator.","indBtG":"Signal","indBtHit":"Hits 30 d","indBtNote":"Backtest daily candles 09.2020 to today: edge = price change in signal direction minus random days with the same long/short mix; t from about 2 is clear. No guarantee.","indBtNone":"No signals on daily candles with these settings – no backtest.","indNone":"No indicators on the chart yet. Add one below.","indPane":"own pane","indOver":"on price chart","indAdd":"Add","indTryPine":"Run code from your TradingView account with PineTS","pineNameP":"Name (optional)","pineRun":"Run and add","indSearch":"Search indicator …","indTab_all":"All","indTab_builtin":"Built-in","indTab_my":"My scripts (VrilyaSS)","indTab_pine":"Paste Pine Script","indActive":"On chart","indList":"Available","indLoading":"Loading your TradingView scripts …","indMyNote":"Rebuilt (★): 3 scripts. All your other scripts can be tried with ▶ Pine via PineTS or opened on TradingView.","indNoCode":"No source code available for this script.","pineNone":"The script returned no lines or signals.","pineBusy":"calculating …","indAlT":"{d} {n} · {s} ({tf})","indAlB":"Signal “{s}” from {n} on {tf} candles, close {c}. Backtest in the indicator dialog (⚙). No guarantee.","al_ind":"Indicator signals (switch on per indicator in “ƒx Indicators”)","alk_ind":"Indicator"});
+Object.assign(T.ar, {"indBtn":"ƒx المؤشرات","indTitle":"المؤشرات","indShowHide":"إظهار/إخفاء","indSettings":"الإعدادات والإشارات والتنبيه والاختبار","indRemove":"إزالة","indc_cross":"إشارات التقاطع","indc_ut":"إشارات الانعطاف","indc_div":"الدايفرجنس","indc_onPrice":"الانعطاف في رسم السعر أيضاً","indSig":"إظهار الإشارات","indAl":"تنبيه عند إشارة جديدة","indAlTf":"التنبيه على شموع","pineNote":"يعمل Pine Script عبر مكتبة PineTS المجانية (تجريبية): المؤشرات البسيطة تعمل غالباً، والمعقدة قد لا تعمل.","indBtG":"الإشارة","indBtHit":"نجاح 30 يوماً","indBtNote":"اختبار رجعي على الشموع اليومية منذ 09.2020. بلا ضمان.","indBtNone":"لا إشارات على الشموع اليومية – لا اختبار.","indNone":"لا مؤشرات في الرسم بعد. أضف واحداً أدناه.","indPane":"نافذة خاصة","indOver":"في رسم السعر","indAdd":"إضافة","indTryPine":"تشغيل الكود عبر PineTS","pineNameP":"الاسم (اختياري)","pineRun":"تشغيل وإضافة","indSearch":"ابحث عن مؤشر …","indTab_all":"الكل","indTab_builtin":"مدمج","indTab_my":"سكربتاتي (VrilyaSS)","indTab_pine":"لصق Pine Script","indActive":"في الرسم","indList":"متاح","indLoading":"جارٍ تحميل سكربتاتك …","indMyNote":"مُعاد بناؤها (★): 3 سكربتات. الباقي يمكن تجربته عبر ▶ Pine أو فتحه في TradingView.","indNoCode":"لا يوجد كود لهذا السكربت.","pineNone":"لم يُرجع السكربت خطوطاً أو إشارات.","pineBusy":"جارٍ الحساب …","indAlT":"{d} {n} · {s} ({tf})","indAlB":"إشارة «{s}» من {n} على شموع {tf}، الإغلاق {c}. بلا ضمان.","al_ind":"إشارات المؤشرات","alk_ind":"مؤشر"});
 
 /* ================= Zustand ================= */
 const $ = id => document.getElementById(id);
@@ -2762,7 +2790,7 @@ $('lvSet').addEventListener('click', e => {
   if (q) { const [hi, lo] = q.dataset.lvq.split('/').map(Number); LV.p1.hi = hi; LV.p1.lo = lo; saveLV(); RUNCACHE = {}; SCACHE = {}; renderLevelSet(); render(); return; }
   const el = e.target.closest('.sw'); if (!el) return; const k = el.dataset.l; LV[k].show = !LV[k].show; el.classList.toggle('on', LV[k].show); saveLV(); renderCharts(); });
 // V16: Ton und Wiederholung je Alarmart
-const ALK = ['tl2', 'tl3', 'hest','signal', 'off', 'div', 'cluster', 'react', 'lines', 'pivot', 'f50', 'cdl', 'sma', 'vwap', 'frac', 'ma', 'fib', 'idxal', 'clsig', 'bos', 'lsob', 'imp', 'brk', 'volx'];
+const ALK = ['tl2', 'tl3', 'hest', 'ind','signal', 'off', 'div', 'cluster', 'react', 'lines', 'pivot', 'f50', 'cdl', 'sma', 'vwap', 'frac', 'ma', 'fib', 'idxal', 'clsig', 'bos', 'lsob', 'imp', 'brk', 'volx'];
 function renderAlSnd() {
   const S = AL.snd || {}, R = AL.rep || {};
   $('alSnd').innerHTML = `<div class="sethead" style="margin-top:10px">${t('sndHead')}</div><p class="muted" style="font-size:12px;margin-top:4px">${t('sndSub')}</p>
@@ -2792,7 +2820,7 @@ $('alSnd').addEventListener('click', e => {
 });
 function renderAlertSet() {
   renderAlSnd();
-  $('alBrowser').innerHTML = ['sound', 'notify', 'p1', 'p2', 'turn', 'heat', 'react', 'lines', 'pivot', 'f50', 'cdl', 'sma', 'vwap', 'frac', 'ma', 'fib', 'idxal', 'clsig', 'bos', 'tl2', 'tl3', 'lsob', 'imp', 'brk', 'volx', 'hest', 'div', 'off'].map(k => `<label><input type="checkbox" data-a="${k}" ${AL[k] ? 'checked' : ''}> ${t('al_' + k, { a: LV.p1.hi + '/' + LV.p1.lo, b: LV.p2.hi + '/' + LV.p2.lo })}</label>`).join('')
+  $('alBrowser').innerHTML = ['sound', 'notify', 'p1', 'p2', 'turn', 'heat', 'react', 'lines', 'pivot', 'f50', 'cdl', 'sma', 'vwap', 'frac', 'ma', 'fib', 'idxal', 'clsig', 'bos', 'tl2', 'tl3', 'ind', 'lsob', 'imp', 'brk', 'volx', 'hest', 'div', 'off'].map(k => `<label><input type="checkbox" data-a="${k}" ${AL[k] ? 'checked' : ''}> ${t('al_' + k, { a: LV.p1.hi + '/' + LV.p1.lo, b: LV.p2.hi + '/' + LV.p2.lo })}</label>`).join('')
     + `<div style="margin-top:10px"><button type="button" class="btn sm pri" id="alTestAll">🔔 ${t('alTestAll')}</button></div>`;
 }
 $('alBrowser').addEventListener('change', async e => { const k = e.target.dataset.a; if (!k) return; AL[k] = e.target.checked; store.set('fg6_alerts', JSON.stringify(AL)); if (k === 'notify' && AL.notify && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission(); });
@@ -4355,11 +4383,13 @@ function renderCharts0() {
     g += `<text x="${X(p.i)}" y="${Y(pr) + (p.t === 'H' ? -14 : 24)}" fill="${color(vals[p.i])}" font-size="13" font-weight="800" text-anchor="middle" paint-order="stroke" stroke="#160b1b" stroke-width="3">${vals[p.i]}</text>`;
   }
   // V21: Struktur aus den gezeigten Kerzen – Fair Value Gaps, LSOB (Box nach einem Liquidity Sweep), Break of Structure, Trendlinien und ihre Brüche, Impuls-Signale
+  // V22: eine gemeinsame Kerzenreihe (ALLE Kerzen der gewählten Größe, mit x-Position) für Struktur-Signale, Indikatoren und deren Fenster
+  const IR = VSTYLE !== 'vss' ? [] : hourly && HFULL?.length ? (() => { const dk = new Map(all.map(r => [r[0], r]));
+      return HFULL.map(h => { const r = dk.get(new Date(h[0]).toISOString().slice(0, 10)) || data[0]; return { t: h[0], o: conv(h[1], r), h: conv(h[2], r), l: conv(h[3], r), c: conv(h[4], r), v: h[5] || 0, x: XT(h[0] + IVMS / 2) }; }); })()
+    : all.map((r, k) => ({ t: Date.parse(r[0]), o: conv(r[9] ?? r[3], r), h: conv(r[10] ?? r[3], r), l: conv(r[11] ?? r[3], r), c: conv(r[3], r), v: r[18] || 0, x: xD0 + (k - VIEW.s + 0.5) * bw }));
   if (VSTYLE === 'vss' && OBS && (LAY.ob || LAY.fvg || LAY.bos || LAY.tl || LAY.imp)) {
     // V22: Signale aus ALLEN Kerzen dieser Größe (nicht nur aus den sichtbaren) – vorher begann die Rechnung am linken Rand und die Signale sprangen beim Zoomen/Verschieben
-    const xR = P.l + iw, xL = P.l, R = hourly && HFULL?.length ? (() => { const dk = new Map(all.map(r => [r[0], r]));
-        return HFULL.map(h => { const r = dk.get(new Date(h[0]).toISOString().slice(0, 10)) || data[0]; return { t: h[0], o: conv(h[1], r), h: conv(h[2], r), l: conv(h[3], r), c: conv(h[4], r), x: XT(h[0] + IVMS / 2) }; }); })()
-      : all.map((r, k) => ({ t: Date.parse(r[0]), o: conv(r[9] ?? r[3], r), h: conv(r[10] ?? r[3], r), l: conv(r[11] ?? r[3], r), c: conv(r[3], r), x: xD0 + (k - VIEW.s + 0.5) * bw }));
+    const xR = P.l + iw, xL = P.l, R = IR;   // V22: gemeinsame Kerzenreihe (siehe oben)
     const half = Math.max(1.5, (pts.length > 1 ? Math.abs(pts[1].x - pts[0].x) : bw) * 0.45), vis = x => x >= xL - 30 && x <= xR + 30;
     if (R.length > 6) {
       if (LAY.fvg) for (const f of fvgList(R, OBS.fvgMin).filter(f => (!f.filled || OBS.fvgFilled) && R[f.i0].x <= xR + 30 && (f.filled ? R[f.end].x : xR) >= xL - 30).slice(-OBS.fvgMax)) { const c = f.up ? '#33d39a' : '#ff4d5e', x1 = R[f.i0].x - half, x2 = f.filled ? R[f.end].x : xR, y1 = Y(f.hi), y2 = Y(f.lo);
@@ -4386,6 +4416,7 @@ function renderCharts0() {
   }
   // V21: Zeichnungen (✏️) – mit Zeit und Kurs gespeichert, darum passen sie bei jedem Zoom und jeder Kerzengröße; je Asset eigene
   // V21c: Zeichnungen kommen in eine eigene oberste Ebene (unten bei den eigenen Linien), sonst fangen Cluster-Bänder den Klick ab
+  if (VSTYLE === 'vss' && !RC_IDX && INDS?.some?.(e => e.on)) g += indPriceSvg(IR, Y, P.l, P.l + iw);   // V22: Indikatoren im Kurs-Chart
   let gDr = '';
   if (VSTYLE === 'vss' && DRAW?.show && !RC_IDX) { const M = { XT, Y: v => Y(v * facLive()), x0: P.l, x1: P.l + iw, y0: 0, y1: H1 - P.b, fx: facLive() };
     for (const it of DRAW.items) if ((it.sym || 'BTCUSDT') === SYM() && it.a && (it.b || !['trend', 'rect', 'fib'].includes(it.k))) gDr += drawItemSvg(it, M, DSEL === it.id || DRW?.it === it); }
@@ -4528,7 +4559,7 @@ function renderCharts0() {
   if (VSTYLE === 'vss') g += `<g id="xlb1" visibility="hidden"><rect x="-56" y="${H1 - P.b + 3}" width="112" height="${P.b - 6}" rx="5" fill="#f4eef8"/><text x="0" y="${H1 - P.b / 2 + 4}" fill="#160b1b" font-size="11.5" font-weight="800" text-anchor="middle"></text></g>`;
   g += `<line id="xh1" x1="0" x2="0" y1="0" y2="${H1}" stroke="#fff" stroke-opacity=".35" stroke-dasharray="3 4" visibility="hidden"/><circle id="hv1" r="5" fill="#fff" stroke="#160b1b" stroke-width="2" visibility="hidden"/>`;
   if (!RC_IDX) { const svg1 = $('priceChart'); svg1.setAttribute('viewBox', `0 0 ${W} ${H1}`); svg1.innerHTML = g; }
-  if (!RC_IDX) renderOsc({ W, P, iw, pts, all, hourly, AXSVG, H1 });   // V21: RSI / MACD unter Chart 1
+  if (!RC_IDX) renderOsc({ W, P, iw, pts, all, hourly, AXSVG, H1, IR });   // V21: RSI / MACD unter Chart 1
 
   // ---- Index-Chart (7-Tage-Mittel): Balken wie im Video ----
   // V18: Mittelung des Index-Charts wählbar (7 = wie im Video); 50er-Signale, Divergenz und Zahlen nur, wenn sie zur angezeigten Reihe passen
@@ -4929,24 +4960,166 @@ function rsiCalc(c, n) { const out = new Array(c.length).fill(null); let g = 0, 
   return out; }
 function emaArr(c, n) { const k = 2 / (n + 1), out = []; let e = null; for (const v of c) { if (v == null) { out.push(e); continue; } e = e == null ? v : v * k + e * (1 - k); out.push(e); } return out; }
 function macdCalc(c, f, s, g) { const a = emaArr(c, f), b = emaArr(c, s), m = c.map((_, i) => a[i] - b[i]), sg = emaArr(m, g); return { m, s: sg, h: m.map((v, i) => v - sg[i]) }; }
-function OSCON() { return VSTYLE === 'vss' && !!LAY.osc && !!OSC && !!(OSC.rsi || OSC.macd); }
+// ---- V22: Indikatoren laden wie bei TradingView („ƒx“) – eingebaute, nachgebaute VrilyaSS-Skripte und eigener Pine-Code (PineTS, experimentell) ----
+var INDC = {}, INDS = (() => { try { const a = JSON.parse(store.get('fg22_inds', '[]')); return Array.isArray(a) ? a : []; } catch { return []; } })(), INDTAB = 'all', INDQ = '', INDOPEN = null, PINEC = {}, MYTV = null;
+const saveInds = () => { try { store.set('fg22_inds', JSON.stringify(INDS)); } catch { } };
+const smaA = (a, n) => a.map((_, i) => { if (i < n - 1) return null; let s = 0; for (let k = i - n + 1; k <= i; k++) { if (a[k] == null) return null; s += a[k]; } return s / n; });
+const rmaA = (a, n) => { const o = []; let r = null, c = 0, s = 0; for (const v of a) { if (v == null) { o.push(r); continue; } if (r == null) { s += v; c++; if (c === n) r = s / n; o.push(r); } else { r = (r * (n - 1) + v) / n; o.push(r); } } return o; };
+const stochA = (R, n, src) => R.map((_, i) => { if (i < n - 1) return null; let hh = -Infinity, ll = Infinity; for (let k = i - n + 1; k <= i; k++) { const h = src ? src[k] : R[k].h, l = src ? src[k] : R[k].l; if (h == null) return null; hh = Math.max(hh, h); ll = Math.min(ll, l); } const c = src ? src[i] : R[i].c; return hh > ll ? (c - ll) / (hh - ll) * 100 : 50; });
+const cciA = (src, n) => src.map((_, i) => { if (i < n - 1) return null; let s = 0; for (let k = i - n + 1; k <= i; k++) s += src[k]; const m = s / n; let d = 0; for (let k = i - n + 1; k <= i; k++) d += Math.abs(src[k] - m); d /= n; return d ? (src[i] - m) / (0.015 * d) : 0; });
+const atrA = (R, n) => rmaA(R.map((r, i) => i ? Math.max(r.h - r.l, Math.abs(r.h - R[i - 1].c), Math.abs(r.l - R[i - 1].c)) : r.h - r.l), n);
+const xUp = (a, b, i) => i > 0 && a[i] != null && b[i] != null && a[i - 1] != null && b[i - 1] != null && a[i] > b[i] && a[i - 1] <= b[i - 1];
+const xDn = (a, b, i) => i > 0 && a[i] != null && b[i] != null && a[i - 1] != null && b[i - 1] != null && a[i] < b[i] && a[i - 1] >= b[i - 1];
+// Wendepunkt wie ta.pivotlow/pivothigh: bekannt erst lb Kerzen später (ci), gezeichnet am Wendepunkt (i)
+const pivA = (a, L, Rr, low) => { const o = []; for (let i = L; i < a.length - Rr; i++) { const v = a[i]; if (v == null) continue; let ok = true; for (let k = i - L; k <= i + Rr && ok; k++) { if (k === i || a[k] == null) continue; if (low ? (k < i ? a[k] < v : a[k] <= v) : (k < i ? a[k] > v : a[k] >= v)) ok = false; } if (ok) o.push(i); } return o; };
+const IL = (de, en, ar) => ({ de, en, ar: ar || en });
+const STOCH_BANDS = [[99, '#f23645', 3], [89, '#ffffff', 2], [79, '#00e5ff', 2], [56, '#f23645', 1], [50, '#ffffff', 3], [44, '#26a69a', 1], [21, '#00e5ff', 2], [11, '#ffffff', 2], [1, '#26a69a', 3]];
+const IND_REG = {
+  stochvss: { my: true, tv: ['2nImx5iC', 'cytnrRZf', 'XsoWCwU6', 'OGDOwEjO'], pane: true, n: IL('Stochastik + U-Turn + Divergenz + 3X-Bänder (VrilyaSS)', 'Stochastic + U-turn + divergence + 3X bands (VrilyaSS)'),
+    p: { k: 21, s: 5, d: 5, lb: 5, cross: true, ut: true, div: true, onPrice: true }, pk: ['k', 's', 'd', 'lb'], ck: ['cross', 'ut', 'div', 'onPrice'],
+    calc(R, p) { const K = smaA(stochA(R, p.k), p.s), D = smaA(K, p.d), sig = [], L = p.lb;
+      if (p.cross) for (let i = 1; i < R.length; i++) { if (xUp(K, D, i)) sig.push({ i, up: true, txt: 'Buy', g: 'Kreuz', y: D[i], c: '#26a69a' }); else if (xDn(K, D, i)) sig.push({ i, up: false, txt: 'Sell', g: 'Kreuz', y: D[i], c: '#f23645' }); }
+      const lo = pivA(K, L, L, true), hi = pivA(K, L, L, false);
+      if (p.ut) { for (const i of lo) sig.push({ i, ci: i + L, up: true, txt: 'UT Buy', g: 'U-Turn', y: K[i], c: '#2962ff', price: true }); for (const i of hi) sig.push({ i, ci: i + L, up: false, txt: 'UT Sell', g: 'U-Turn', y: K[i], c: '#ff9800', price: true }); }
+      if (p.div) { const dv = (P, low) => { for (let j = 1; j < P.length; j++) { const a = P[j - 1], b = P[j]; if (b - a < 5 || b - a > 60) continue;
+          if (low) { if (R[b].l < R[a].l && K[b] > K[a]) sig.push({ i: b, ci: b + L, up: true, txt: 'Bull', g: 'Divergenz', y: K[b], c: '#26a69a' }); else if (R[b].l > R[a].l && K[b] < K[a]) sig.push({ i: b, ci: b + L, up: true, txt: 'H Bull', g: 'Div. versteckt', y: K[b], c: '#26a69a88' }); }
+          else { if (R[b].h > R[a].h && K[b] < K[a]) sig.push({ i: b, ci: b + L, up: false, txt: 'Bear', g: 'Divergenz', y: K[b], c: '#f23645' }); else if (R[b].h < R[a].h && K[b] > K[a]) sig.push({ i: b, ci: b + L, up: false, txt: 'H Bear', g: 'Div. versteckt', y: K[b], c: '#f2364588' }); } } };
+        dv(lo, true); dv(hi, false); }
+      return { range: [0, 100], lines: [{ n: '%K', v: K, c: '#00bcd4', w: 2 }, { n: '%D', v: D, c: '#f23645', w: 3 }], hl: STOCH_BANDS.map(([v, c, w]) => ({ v, c, w })), fills: [[99, 79, '#f2364526'], [56, 44, '#78787826'], [21, 1, '#26a69a26']], sig }; } },
+  ema1155: { my: true, tv: ['mbVtpacp'], n: IL('11 EMA / 55 EMA mit U-Turn-Signalen (VrilyaSS)', '11/55 EMA system with U-turn signals (VrilyaSS)'), p: { a: 11, b: 55, cross: true, ut: true }, pk: ['a', 'b'], ck: ['cross', 'ut'],
+    calc(R, p) { const c = R.map(r => r.c), A = emaArr(c, p.a), B = emaArr(c, p.b), sig = [], dir = A.map((v, i) => i && A[i - 1] != null ? Math.sign(v - A[i - 1]) : 0);
+      for (let i = 2; i < R.length; i++) { if (p.cross && xUp(A, B, i)) sig.push({ i, up: true, txt: 'Buy', g: 'Kreuz', c: '#26a69a' }); else if (p.cross && xDn(A, B, i)) sig.push({ i, up: false, txt: 'Sell', g: 'Kreuz', c: '#f23645' });
+        if (p.ut && dir[i - 1] === -1 && dir[i] === 1) sig.push({ i, up: true, txt: 'U-Buy', g: 'U-Turn', c: '#2962ff' }); else if (p.ut && dir[i - 1] === 1 && dir[i] === -1) sig.push({ i, up: false, txt: 'U-Sell', g: 'U-Turn', c: '#ff9800' }); }
+      return { lines: [{ n: 'EMA ' + p.a, v: A, c: '#ffeb3b', w: 2 }, { n: 'EMA ' + p.b, v: B, c: '#4caf50', w: 3 }], sig }; } },
+  sma621: { my: true, tv: ['RuL3Cx8P'], n: IL('6/21 SMA-Kreuzung + U-Turn + CCI (VrilyaSS)', '6/21 SMA cross + U-turn + CCI (VrilyaSS)'), p: { a: 6, b: 21, cci: 21, cross: true, ut: true }, pk: ['a', 'b', 'cci'], ck: ['cross', 'ut'],
+    note: IL('Hinweis: Das U-Turn-Signal im Original verlangt gleichzeitig „tiefster Wert der letzten 5 Kerzen“ und „steigt gerade“ – es löst darum praktisch nie aus. Genau so nachgebaut.', 'Note: the original U-turn signal needs “lowest of the last 5 bars” and “rising now” at the same time – so it practically never fires. Rebuilt exactly like that.'),
+    calc(R, p) { const c = R.map(r => r.c), A = smaA(c, p.a), B = smaA(c, p.b), C = cciA(c, p.cci), sig = [];
+      for (let i = 4; i < R.length; i++) { const cu = C[i] != null && C[i - 1] != null && C[i] > C[i - 1], cd = C[i] != null && C[i - 1] != null && C[i] < C[i - 1];
+        if (p.cross && xUp(A, B, i) && cu) sig.push({ i, up: true, txt: 'Buy Cross', g: 'Kreuz + CCI', c: '#26a69a' }); else if (p.cross && xDn(A, B, i) && cd) sig.push({ i, up: false, txt: 'Sell Cross', g: 'Kreuz + CCI', c: '#f23645' });
+        if (p.ut && A[i - 4] != null) { const w = A.slice(i - 4, i + 1), rise = A[i] > A[i - 1] && A[i - 1] <= A[i - 2], fall = A[i] < A[i - 1] && A[i - 1] >= A[i - 2];
+          if (Math.min(...w) === A[i] && rise && cu) sig.push({ i, up: true, txt: 'Buy U-Turn', g: 'U-Turn + CCI', c: '#26a69a' }); if (Math.max(...w) === A[i] && fall && cd) sig.push({ i, up: false, txt: 'Sell U-Turn', g: 'U-Turn + CCI', c: '#f23645' }); } }
+      return { lines: [{ n: 'SMA ' + p.a, v: A, c: '#ffffff', w: 1 }, { n: 'SMA ' + p.b, v: B, c: '#4caf50', w: 2 }], sig }; } },
+  stoch: { pane: true, n: IL('Stochastik', 'Stochastic'), p: { k: 14, s: 1, d: 3 }, pk: ['k', 's', 'd'],
+    calc(R, p) { const K = smaA(stochA(R, p.k), p.s), D = smaA(K, p.d); return { range: [0, 100], lines: [{ n: '%K', v: K, c: '#2962ff', w: 1.5 }, { n: '%D', v: D, c: '#ff6d00', w: 1.5 }], hl: [{ v: 80, c: '#787b86', d: 1 }, { v: 50, c: '#787b86', d: 1 }, { v: 20, c: '#787b86', d: 1 }], fills: [[80, 20, '#2962ff12']], sig: [] }; } },
+  stochrsi: { pane: true, n: IL('Stochastic RSI', 'Stochastic RSI'), p: { r: 14, k: 14, sk: 3, d: 3 }, pk: ['r', 'k', 'sk', 'd'],
+    calc(R, p) { const rs = rsiCalc(R.map(r => r.c), p.r), K = smaA(stochA(R, p.k, rs), p.sk), D = smaA(K, p.d); return { range: [0, 100], lines: [{ n: 'K', v: K, c: '#2962ff', w: 1.5 }, { n: 'D', v: D, c: '#ff6d00', w: 1.5 }], hl: [{ v: 80, c: '#787b86', d: 1 }, { v: 20, c: '#787b86', d: 1 }], fills: [[80, 20, '#2962ff12']], sig: [] }; } },
+  cci: { pane: true, n: IL('CCI (Commodity Channel Index)', 'CCI (commodity channel index)'), p: { n: 20 }, pk: ['n'],
+    calc(R, p) { const C = cciA(R.map(r => (r.h + r.l + r.c) / 3), p.n); return { lines: [{ n: 'CCI', v: C, c: '#2962ff', w: 1.5 }], hl: [{ v: 100, c: '#787b86', d: 1 }, { v: 0, c: '#787b86', d: 1 }, { v: -100, c: '#787b86', d: 1 }], fills: [[100, -100, '#2962ff10']], sig: [] }; } },
+  bb: { n: IL('Bollinger-Bänder', 'Bollinger Bands'), p: { n: 20, m: 2 }, pk: ['n', 'm'],
+    calc(R, p) { const c = R.map(r => r.c), B = smaA(c, p.n), sd = c.map((_, i) => { if (B[i] == null) return null; let s = 0; for (let k = i - p.n + 1; k <= i; k++) s += (c[k] - B[i]) ** 2; return Math.sqrt(s / p.n); });
+      return { lines: [{ n: 'Basis', v: B, c: '#ff6d00', w: 1 }, { n: 'Oben', v: B.map((v, i) => v == null ? null : v + p.m * sd[i]), c: '#2962ff', w: 1 }, { n: 'Unten', v: B.map((v, i) => v == null ? null : v - p.m * sd[i]), c: '#2962ff', w: 1 }], band: [1, 2, '#2962ff14'], sig: [] }; } },
+  supertrend: { n: IL('Supertrend', 'Supertrend'), p: { n: 10, m: 3 }, pk: ['n', 'm'],
+    calc(R, p) { const A = atrA(R, p.n), up = [], dn = [], tr = [], sig = []; let t = 1;
+      for (let i = 0; i < R.length; i++) { const hl2 = (R[i].h + R[i].l) / 2; if (A[i] == null) { up.push(null); dn.push(null); tr.push(null); continue; }
+        let u = hl2 - p.m * A[i], d = hl2 + p.m * A[i]; const pu = up[i - 1], pd = dn[i - 1];
+        if (pu != null && R[i - 1].c > pu) u = Math.max(u, pu); if (pd != null && R[i - 1].c < pd) d = Math.min(d, pd);
+        const pt = t; if (t === -1 && pd != null && R[i].c > pd) t = 1; else if (t === 1 && pu != null && R[i].c < pu) t = -1;
+        up.push(u); dn.push(d); tr.push(t); if (i && t !== pt) sig.push({ i, up: t === 1, txt: t === 1 ? 'Buy' : 'Sell', g: 'Wechsel', c: t === 1 ? '#26a69a' : '#f23645' }); }
+      return { lines: [{ n: 'Aufwärts', v: up.map((v, i) => tr[i] === 1 ? v : null), c: '#26a69a', w: 2 }, { n: 'Abwärts', v: dn.map((v, i) => tr[i] === -1 ? v : null), c: '#f23645', w: 2 }], sig }; } },
+  utbot: { n: IL('UT Bot Alerts', 'UT Bot Alerts'), p: { a: 1, n: 10 }, pk: ['a', 'n'],
+    calc(R, p) { const A = atrA(R, p.n), st = [], sig = []; let s = null;
+      for (let i = 0; i < R.length; i++) { const c = R[i].c, pc = i ? R[i - 1].c : c; if (A[i] == null) { st.push(null); continue; } const loss = p.a * A[i], ps = s;
+        if (ps == null) s = c - loss; else if (c > ps && pc > ps) s = Math.max(ps, c - loss); else if (c < ps && pc < ps) s = Math.min(ps, c + loss); else s = c > ps ? c - loss : c + loss;
+        st.push(s); if (ps != null && c > s && pc <= ps) sig.push({ i, up: true, txt: 'Buy', g: 'UT', c: '#26a69a' }); else if (ps != null && c < s && pc >= ps) sig.push({ i, up: false, txt: 'Sell', g: 'UT', c: '#f23645' }); }
+      return { lines: [{ n: 'Trailing Stop', v: st, c: '#b48cff', w: 1.5 }], sig }; } },
+  pine: { custom: true, n: IL('Eigenes Pine Script', 'Own Pine Script'), p: {}, pk: [] }
+};
+const indName = e => e.k === 'pine' ? (e.p.name || 'Pine') : (IND_REG[e.k]?.n[LANG] || IND_REG[e.k]?.n.de || e.k);
+// Ergebnis je Eintrag und Kerzenreihe zwischenspeichern (Rechnung über alle Kerzen der Größe – Signale springen beim Zoomen nicht)
+function indCalc(e, R) { const def = IND_REG[e.k]; if (!def || !R.length) return null;
+  if (e.k === 'pine') { const key = R.length + ':' + R[0].t + ':' + R.at(-1).t + ':' + R.at(-1).c, c = PINEC[e.u]; if (c?.key === key) return c.res; if (!c?.busy) pineRun(e, R, key); return c?.res || null; }
+  const key = JSON.stringify(e.p) + R.length + ':' + R[0].t + ':' + R.at(-1).t + ':' + R.at(-1).c + ':' + R[0].x + CUR, c = INDC[e.u]; if (c?.key === key) return c.res;
+  const res = def.calc(R, { ...def.p, ...e.p }); INDC[e.u] = { key, res }; return res; }
+function indPanes() { return VSTYLE === 'vss' && INDS?.length ? INDS.filter(e => e.on && (IND_REG[e.k]?.pane || (e.k === 'pine' && PINEC[e.u]?.res && !PINEC[e.u].res.overlay))) : []; }
+// Pine Script über PineTS (wird erst beim ersten Gebrauch geladen)
+function loadPineTS() { return window.PineTS ? Promise.resolve() : (window.__pineLoad ||= new Promise((ok, no) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/pinets@0.13.1/dist/pinets.min.browser.js'; s.onload = () => window.PineTS ? ok() : no(new Error('PineTS nicht gefunden')); s.onerror = () => no(new Error('PineTS konnte nicht geladen werden')); document.head.appendChild(s); })); }
+async function pineRun(e, R, key) { const c = PINEC[e.u] = { ...(PINEC[e.u] || {}), busy: true };
+  try { await loadPineTS(); const P = new window.PineTS(R.map(r => ({ open: r.o, high: r.h, low: r.l, close: r.c, volume: r.v || 0, openTime: r.t }))), ctx = await P.run(e.p.code), plots = ctx?.plots || {}, n = R.length;
+    const overlay = /indicator\s*\([^)]*overlay\s*=\s*true/i.test(e.p.code) || /study\s*\([^)]*overlay\s*=\s*true/i.test(e.p.code), cols = ['#f6c453', '#2962ff', '#ff6d00', '#26a69a', '#e040fb', '#00e5ff', '#ff5252'], lines = [], hl = [], sig = []; let ci = 0;
+    for (const [title, pl] of Object.entries(plots)) { const raw = (pl?.data || []).map(d => d && typeof d === 'object' && 'value' in d ? d.value : d), v = new Array(n).fill(null); for (let k = 0; k < raw.length && k < n; k++) v[n - raw.length + k] = raw[k];
+      const nums = v.filter(x => typeof x === 'number' && isFinite(x)), bools = v.filter(x => x === true || x === false);
+      if (bools.length && !nums.length || (nums.length && nums.every(x => x === 0 || x === 1) && /buy|sell|long|short|bull|bear|signal|turn|up|down/i.test(title))) { const up = !/sell|short|bear|down/i.test(title); v.forEach((x, i) => { if (x === true || x === 1) sig.push({ i, up, txt: title.replace(/#\d+$/, '').slice(0, 14), g: title, c: up ? '#26a69a' : '#f23645' }); }); continue; }
+      if (!nums.length) continue; const f = nums[0]; if (nums.every(x => x === f)) { hl.push({ v: f, c: '#787b86', d: 1 }); continue; }
+      lines.push({ n: title.replace(/#\d+$/, ''), v: v.map(x => typeof x === 'number' && isFinite(x) ? x : null), c: cols[ci++ % cols.length], w: 1.5 }); }
+    c.res = { overlay, lines, hl, sig, fills: [] }; c.err = lines.length || sig.length || hl.length ? null : t('pineNone'); }
+  catch (err) { c.res = null; c.err = String(err?.message || err).slice(0, 200); }
+  c.key = key; c.busy = false; rerender(); if ($('indModal')?.classList.contains('open')) renderInd(); }
+// im Kurs-Chart: Linien, Band, Signale (Dreieck + Text unter/über der Kerze)
+function indPriceSvg(R, Yf, xL, xR) { let s = ''; const vis = i => R[i] && R[i].x >= xL - 40 && R[i].x <= xR + 40;
+  const path = v => { let d = '', pen = false; for (let i = 0; i < R.length; i++) { if (!vis(i) || v[i] == null) { pen = false; continue; } d += (pen ? 'L' : 'M') + R[i].x.toFixed(1) + ',' + Yf(v[i]).toFixed(1); pen = true; } return d; };
+  const mark = (x, i, up, txt, col) => { const y = up ? Yf(R[i].l) + 8 : Yf(R[i].h) - 8, b = up ? y + 11 : y - 11; return `<g><title>${esc(txt)}</title><path d="M${x.toFixed(1)},${y.toFixed(1)} L${(x + 6).toFixed(1)},${b.toFixed(1)} L${(x - 6).toFixed(1)},${b.toFixed(1)} Z" fill="${col}" stroke="#160b1b" stroke-width="1"/><text x="${x.toFixed(1)}" y="${(up ? b + 10 : b - 3).toFixed(1)}" fill="${col}" font-size="9" font-weight="900" text-anchor="middle" paint-order="stroke" stroke="#160b1b" stroke-width="3">${esc(txt)}</text></g>`; };
+  for (const e of INDS) { if (!e.on) continue; const def = IND_REG[e.k]; if (!def) continue; const r = indCalc(e, R); if (!r) continue; const isPane = def.pane || (e.k === 'pine' && !r.overlay);
+    if (!isPane) { if (r.band) { const a = r.lines[r.band[0]].v, b = r.lines[r.band[1]].v; let up = '', dn = ''; for (let i = 0; i < R.length; i++) if (vis(i) && a[i] != null && b[i] != null) { up += (up ? 'L' : 'M') + R[i].x.toFixed(1) + ',' + Yf(a[i]).toFixed(1); dn = 'L' + R[i].x.toFixed(1) + ',' + Yf(b[i]).toFixed(1) + dn; } if (up) s += `<path d="${up}${dn}Z" fill="${r.band[2]}"/>`; }
+      for (const L of r.lines) s += `<path d="${path(L.v)}" fill="none" stroke="${L.c}" stroke-width="${L.w || 1.5}" stroke-linejoin="round"/>`; }
+    if (e.sig !== false) for (const x of r.sig || []) if ((!isPane || (x.price && (e.p.onPrice ?? def.p?.onPrice))) && vis(x.i)) s += mark(R[x.i].x, x.i, x.up, x.txt, x.c); }
+  return s; }
+// eigenes Fenster unter dem Chart (wie RSI/MACD): Bänder, Flächen, Linien, Signal-Schilder
+function indPaneSvg(e, C, y0, PH) { const R = C.IR || [], r = indCalc(e, R), { W, P, iw } = C; let s = `<line class="fsep" x1="0" x2="${W}" y1="${y0 + PH}" y2="${y0 + PH}"/>`; const nm = indName(e);
+  if (!r) return s + `<text x="${P.l + 6}" y="${y0 + 16}" fill="#cdbfd8" font-size="11" font-weight="800">${esc(nm)} · ${esc(PINEC[e.u]?.err || t('pineBusy'))}</text>`;
+  const vis = i => R[i] && R[i].x >= P.l - 30 && R[i].x <= P.l + iw + 30; let lo = Infinity, hi = -Infinity;
+  if (r.range) [lo, hi] = r.range; else { for (const L of r.lines) for (let i = 0; i < R.length; i++) if (vis(i) && L.v[i] != null) { lo = Math.min(lo, L.v[i]); hi = Math.max(hi, L.v[i]); } for (const h of r.hl || []) { lo = Math.min(lo, h.v); hi = Math.max(hi, h.v); } if (!isFinite(lo)) { lo = 0; hi = 1; } const pd = (hi - lo) * 0.08 || 1; lo -= pd; hi += pd; }
+  const Yv = v => y0 + 6 + (1 - (v - lo) / (hi - lo)) * (PH - 12), ax = (y, v) => `<text x="${P.l + iw + P.r / 2}" y="${(y + 4).toFixed(1)}" fill="#cdbfd8" font-size="10.5" text-anchor="middle">${v}</text>`;
+  s += `<g clip-path="url(#oclip${e.u})">`;
+  for (const [a, b, c] of r.fills || []) s += `<rect x="${P.l}" y="${Yv(a).toFixed(1)}" width="${iw}" height="${Math.max(0, Yv(b) - Yv(a)).toFixed(1)}" fill="${c}"/>`;
+  for (const h of r.hl || []) s += `<line x1="${P.l}" x2="${P.l + iw}" y1="${Yv(h.v).toFixed(1)}" y2="${Yv(h.v).toFixed(1)}" stroke="${h.c}" stroke-width="${h.w || 1}" stroke-opacity="${h.w ? .75 : .6}"${h.d ? ' stroke-dasharray="4 4"' : ''}/>`;
+  for (const L of r.lines) { let d = '', pen = false; for (let i = 0; i < R.length; i++) { if (!vis(i) || L.v[i] == null) { pen = false; continue; } d += (pen ? 'L' : 'M') + R[i].x.toFixed(1) + ',' + Yv(L.v[i]).toFixed(1); pen = true; } s += `<path d="${d}" fill="none" stroke="${L.c}" stroke-width="${L.w || 1.5}" stroke-linejoin="round"/>`; }
+  if (e.sig !== false) for (const x of r.sig || []) { if (!vis(x.i) || x.y == null) continue; const xx = R[x.i].x, yy = Yv(x.y), w = Math.max(26, x.txt.length * 5.6 + 8), by = x.up ? yy + 5 : yy - 19;
+    s += `<g><title>${esc(nm + ' · ' + x.txt)}</title><rect x="${(xx - w / 2).toFixed(1)}" y="${by.toFixed(1)}" width="${w.toFixed(1)}" height="14" rx="3" fill="${x.c}"/><text x="${xx.toFixed(1)}" y="${(by + 10.5).toFixed(1)}" fill="#fff" font-size="9" font-weight="800" text-anchor="middle">${esc(x.txt)}</text></g>`; }
+  s += `</g>`;
+  if (r.hl?.length) for (const h of r.hl.filter((h, k, a) => a.length <= 4 || [0, Math.floor(a.length / 2), a.length - 1].includes(k))) s += ax(Yv(h.v), fmt(h.v, Math.abs(h.v) < 10 && h.v % 1 ? 1 : 0));
+  const lastV = r.lines.map(L => { for (let i = R.length - 1; i >= 0; i--) if (L.v[i] != null && R[i].x <= P.l + iw + 2) return L.n + ' ' + fmt(L.v[i], Math.abs(L.v[i]) >= 100 ? 0 : 1); return ''; }).filter(Boolean).join(' · ');
+  return `<defs><clipPath id="oclip${e.u}"><rect x="${P.l}" y="${y0}" width="${iw}" height="${PH}"/></clipPath></defs>` + s + `<text x="${P.l + 6}" y="${y0 + 14}" fill="#f6c453" font-size="11" font-weight="800" paint-order="stroke" stroke="#160b1b" stroke-width="3">${esc(nm)}${lastV ? ' · ' + esc(lastV) : ''}</text>`; }
+// Backtest je Signal-Gruppe auf Tageskerzen (Richtung, Vorteil gegenüber zufälligen Tagen mit gleicher Long/Short-Mischung)
+function indBacktest(e) { const R = dayRowsAll(); if (R.length < 300) return null; const r = (IND_REG[e.k]?.calc && e.k !== 'pine') ? IND_REG[e.k].calc(R, { ...IND_REG[e.k].p, ...e.p }) : PINEC[e.u]?.res; if (!r?.sig?.length) return [];
+  const N = R.length, avg = H2 => { let s = 0, n = 0; for (let i = 0; i + H2 < N; i++) { s += R[i + H2].c / R[i].c - 1; n++; } return s / n; }, A7 = avg(7), A30 = avg(30), G = {};
+  for (const x of r.sig) { const i = x.ci ?? x.i; if (i + 30 >= N) continue; (G[x.g] ||= []).push({ up: x.up, r7: (R[i + 7].c / R[i].c - 1) * (x.up ? 1 : -1), r30: (R[i + 30].c / R[i].c - 1) * (x.up ? 1 : -1) }); }
+  return Object.entries(G).map(([g, S]) => { const n = S.length, nl = S.filter(x => x.up).length, b7 = (2 * nl - n) / n * A7, b30 = (2 * nl - n) / n * A30, m7 = S.reduce((a, x) => a + x.r7, 0) / n, m30 = S.reduce((a, x) => a + x.r30, 0) / n, sd = Math.sqrt(S.reduce((a, x) => a + (x.r30 - m30) ** 2, 0) / Math.max(1, n - 1));
+    return { g, n, hit: S.filter(x => x.r30 > 0).length / n * 100, e7: (m7 - b7) * 100, e30: (m30 - b30) * 100, t: sd ? (m30 - b30) / (sd / Math.sqrt(n)) : 0 }; }); }
+// Dialog „ƒx Indikatoren“
+function openInd() { renderInd(); openModal('indModal'); if (!MYTV) fetch('../tools/tradingview.json').then(r => r.json()).then(j => { MYTV = j; if (INDTAB === 'my') renderInd(); }).catch(() => { MYTV = { scripts: [] }; }); }
+function indAdd(k, p = {}) { const e = { u: 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), k, on: true, p: { ...p } }; INDS.push(e); INDOPEN = e.u; saveInds(); rerender(); renderInd(); }
+function renderInd() { const b = $('indBody'); if (!b) return; $('indTitle').textContent = 'ƒx ' + t('indTitle'); const q = INDQ.toLowerCase(), M = s => !q || s.toLowerCase().includes(q);
+  const act = INDS.length ? INDS.map(e => { const def = IND_REG[e.k] || {}, open = INDOPEN === e.u, bt = open ? indBacktest(e) : null;
+      return `<div class="indrow act"><button class="indeye ${e.on ? 'on' : ''}" data-ie="${e.u}" title="${t('indShowHide')}">👁</button><b>${esc(indName(e))}</b>${e.k === 'pine' && PINEC[e.u]?.err ? `<span class="indbad">${esc(PINEC[e.u].err)}</span>` : ''}<span class="indsp"></span><button data-io="${e.u}" title="${t('indSettings')}">⚙</button><button data-ix="${e.u}" title="${t('indRemove')}">✕</button></div>`
+        + (open ? `<div class="indset">${(def.pk || []).map(k => `<label>${k} <input type="number" step="any" data-ip="${e.u}:${k}" value="${e.p[k] ?? def.p[k]}"></label>`).join('')}${(def.ck || []).map(k => `<label><input type="checkbox" data-ic="${e.u}:${k}" ${(e.p[k] ?? def.p[k]) ? 'checked' : ''}> ${t('indc_' + k)}</label>`).join('')}
+          <label><input type="checkbox" data-is="${e.u}" ${e.sig !== false ? 'checked' : ''}> ${t('indSig')}</label><label><input type="checkbox" data-ia="${e.u}" ${e.al ? 'checked' : ''}> ${t('indAl')}</label><label>${t('indAlTf')} <select data-it="${e.u}">${['15m', '1h', '4h', '1d'].map(v => `<option ${(e.tf || '4h') === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+          ${def.note ? `<p class="indnote">${def.note[LANG] || def.note.de}</p>` : ''}${e.k === 'pine' ? `<p class="indnote">${t('pineNote')}</p>` : ''}
+          ${bt ? (bt.length ? `<table class="indbt"><tr><th>${t('indBtG')}</th><th>${t('btN')}</th><th>${t('indBtHit')}</th><th>${t('btE7')}</th><th>${t('btE30')}</th><th>t</th></tr>${bt.map(x => `<tr><td>${esc(x.g)}</td><td>${x.n}</td><td>${fmt(x.hit, 0)} %</td><td>${sgn(x.e7, 1)} %</td><td><b style="color:${x.e30 > 0 ? '#33d39a' : '#ff6b7a'}">${sgn(x.e30, 1)} %</b></td><td>${sgn(x.t, 2)}</td></tr>`).join('')}</table><p class="indnote">${t('indBtNote')}</p>` : `<p class="indnote">${t('indBtNone')}</p>`) : ''}</div>` : ''); }).join('') : `<p class="muted">${t('indNone')}</p>`;
+  const builtin = Object.entries(IND_REG).filter(([k, d]) => !d.custom && (INDTAB === 'all' || (INDTAB === 'builtin' && !d.my) || (INDTAB === 'my' && d.my)) && M(d.n.de + ' ' + d.n.en)).map(([k, d]) => `<div class="indrow"><span class="star">${d.my ? '★' : '☆'}</span>${esc(d.n[LANG] || d.n.de)}${d.my ? '<span class="indbadge">VrilyaSS</span>' : ''}<span class="indk">${d.pane ? t('indPane') : t('indOver')}</span><button class="btn sm" data-ia2="${k}">+ ${t('indAdd')}</button></div>`).join('');
+  const mapped = new Set(Object.values(IND_REG).flatMap(d => d.tv || [])), my = INDTAB === 'my' && MYTV ? (MYTV.scripts || []).filter(s => s.t === 'i' && !mapped.has(s.id) && M(s.n)).slice(0, 60).map(s => `<div class="indrow"><span class="star">☆</span>${esc(s.n)}<span class="indsp"></span><button class="btn sm" data-ipine="${s.id}" title="${t('indTryPine')}">▶ Pine</button><a class="btn sm" href="https://www.tradingview.com/script/${s.id}/" target="_blank" rel="noopener">TV ↗</a></div>`).join('') : '';
+  const pine = INDTAB === 'pine' ? `<div class="indpine"><input id="pineName" placeholder="${t('pineNameP')}"><textarea id="pineCode" spellcheck="false" placeholder="//@version=5&#10;indicator(&quot;Mein Indikator&quot;)&#10;plot(ta.ema(close, 20))"></textarea><button class="btn sm pri" id="pineAdd">▶ ${t('pineRun')}</button><p class="indnote">${t('pineNote')}</p></div>` : '';
+  b.innerHTML = `<div class="indhead"><input id="indQ" type="search" placeholder="🔍 ${t('indSearch')}" value="${esc(INDQ)}"><span class="indtabs">${['all', 'builtin', 'my', 'pine'].map(v => `<button data-itab="${v}" class="${INDTAB === v ? 'on' : ''}">${t('indTab_' + v)}</button>`).join('')}</span></div>`
+    + `<div class="indsec">${t('indActive')}</div>${act}` + (INDTAB === 'pine' ? pine : `<div class="indsec">${t('indList')}</div>${builtin}${INDTAB === 'my' ? (MYTV ? my || `<p class="muted">–</p>` : `<p class="muted">${t('indLoading')}</p>`) + `<p class="indnote">${t('indMyNote')}</p>` : ''}`); }
+document.addEventListener('input', e => { if (e.target.id === 'indQ') { INDQ = e.target.value; const pos = e.target.selectionStart; renderInd(); const q = $('indQ'); if (q) { q.focus(); q.setSelectionRange(pos, pos); } } });
+document.addEventListener('change', e => { const d = e.target.dataset || {}, f = u => INDS.find(x => x.u === u); let ch = false;
+  if (d.ip) { const [u, k] = d.ip.split(':'), x = f(u), v = +e.target.value; if (x && isFinite(v) && v > 0) { x.p[k] = v; ch = true; } }
+  if (d.ic) { const [u, k] = d.ic.split(':'), x = f(u); if (x) { x.p[k] = e.target.checked; ch = true; } }
+  if (d.is) { const x = f(d.is); if (x) { x.sig = e.target.checked; ch = true; } } if (d.ia) { const x = f(d.ia); if (x) { x.al = e.target.checked; ch = true; } } if (d.it) { const x = f(d.it); if (x) { x.tf = e.target.value; ch = true; } }
+  if (ch) { saveInds(); rerender(); renderInd(); } });
+document.addEventListener('click', async e => { const b = e.target.closest?.('#indBody button, #indFx'); if (!b) return; const d = b.dataset;
+  if (b.id === 'indFx') { openInd(); return; } if (d.itab) { INDTAB = d.itab; renderInd(); return; } if (d.ia2) { indAdd(d.ia2); return; }
+  if (d.ie) { const x = INDS.find(y => y.u === d.ie); if (x) { x.on = !x.on; saveInds(); rerender(); renderInd(); } return; } if (d.io) { INDOPEN = INDOPEN === d.io ? null : d.io; renderInd(); return; }
+  if (d.ix) { INDS = INDS.filter(y => y.u !== d.ix); delete PINEC[d.ix]; saveInds(); rerender(); renderInd(); return; }
+  if (b.id === 'pineAdd') { const code = $('pineCode').value.trim(); if (!code) return; const nm = $('pineName').value.trim() || (code.match(/(?:indicator|study|strategy)\s*\(\s*(?:title\s*=\s*)?["']([^"']+)/)?.[1] || 'Pine').slice(0, 60); INDTAB = 'all'; indAdd('pine', { code, name: nm }); return; }
+  if (d.ipine) { b.disabled = true; try { const code = await (await fetch(`../tools/quellcode/tv/${d.ipine}.txt`)).text(); if (!/indicator|study|strategy/.test(code)) throw new Error('kein Code'); const nm = (code.match(/(?:indicator|study|strategy)\s*\(\s*(?:title\s*=\s*)?["']([^"']+)/)?.[1] || d.ipine).slice(0, 60); indAdd('pine', { code, name: nm, tv: d.ipine }); } catch { b.textContent = '–'; toast(t('indNoCode')); } } });
+function OSCON() { return VSTYLE === 'vss' && ((!!LAY.osc && !!OSC && !!(OSC.rsi || OSC.macd)) || indPanes().length > 0); }
 function renderOsc(C) {
   const wrap = $('oscWrap'), svg = $('oscChart'), sp = $('splitterO'); if (!wrap || !svg) return;
   const on = OSCON(); wrap.hidden = !on; if (sp) sp.hidden = !on; if (!on) { svg.innerHTML = ''; return; }
-  const { W, P, iw, pts } = C, PH = OSC.h, AXH = 26, H3 = PH * ((OSC.rsi ? 1 : 0) + (OSC.macd ? 1 : 0)) + AXH, N = pts.length, xs = pts.map(p => p.x);
+  const oR = !!LAY.osc && !!OSC.rsi, oM = !!LAY.osc && !!OSC.macd, IP = indPanes(), { W, P, iw, pts } = C, PH = OSC.h, AXH = 26, H3 = PH * ((oR ? 1 : 0) + (oM ? 1 : 0) + IP.length) + AXH, N = pts.length, xs = pts.map(p => p.x);
   // Tageskerzen: aus dem ganzen Verlauf gerechnet (richtige Werte auch am linken Rand); Minuten-/Stundenkerzen: aus den gezeigten Kerzen
   const closes = C.hourly ? pts.map(p => p.c) : C.all.map(r => conv(r[3], r)), off = C.hourly ? 0 : VIEW.s, fd = v => fmt(v, Math.abs(v) >= 100 ? 0 : Math.abs(v) >= 1 ? 2 : 4);
   const path = (vals, Yf) => { let d = '', pen = false; for (let i = 0; i < N; i++) { const v = vals[i + off]; if (v == null || !isFinite(v)) { pen = false; continue; } d += (pen ? 'L' : 'M') + xs[i].toFixed(1) + ',' + Yf(v).toFixed(1); pen = true; } return d; };
   const lbl = (y, txt, c) => `<text x="${P.l + 6}" y="${y + 14}" fill="${c}" font-size="11" font-weight="800" paint-order="stroke" stroke="#160b1b" stroke-width="3">${txt}</text>`;
   const ax = (y, v, c) => `<text x="${P.l + iw + P.r / 2}" y="${(y + 4).toFixed(1)}" fill="${c || '#cdbfd8'}" font-size="10.5" text-anchor="middle">${v}</text>`;
   let s = `<defs><clipPath id="oclip"><rect x="${P.l}" y="0" width="${iw}" height="${H3 - AXH}"/></clipPath></defs>`, y0 = 0;
-  if (OSC.rsi) { const r = rsiCalc(closes, OSC.rsiN), Yr = v => y0 + 6 + (1 - v / 100) * (PH - 12), last = r[off + N - 1];
+  if (oR) { const r = rsiCalc(closes, OSC.rsiN), Yr = v => y0 + 6 + (1 - v / 100) * (PH - 12), last = r[off + N - 1];
     s += `<rect x="${P.l}" y="${Yr(OSC.hi).toFixed(1)}" width="${iw}" height="${(Yr(OSC.lo) - Yr(OSC.hi)).toFixed(1)}" fill="${OSC.zC}" opacity="${OSC.zO}"/>`;
     for (const v of [OSC.hi, OSC.lo]) s += `<line x1="${P.l}" x2="${P.l + iw}" y1="${Yr(v).toFixed(1)}" y2="${Yr(v).toFixed(1)}" stroke="${OSC.lvC}" stroke-opacity=".6" stroke-dasharray="5 4"/>` + ax(Yr(v), v);
     s += `<line x1="${P.l}" x2="${P.l + iw}" y1="${Yr(50).toFixed(1)}" y2="${Yr(50).toFixed(1)}" stroke="${OSC.midC}" stroke-opacity=".85" stroke-width="1"/>` + ax(Yr(50), 50);
     s += `<path d="${path(r, Yr)}" fill="none" stroke="${OSC.rsiC}" stroke-width="${OSC.rsiW}" stroke-linejoin="round" clip-path="url(#oclip)"/>` + lbl(y0, `RSI ${OSC.rsiN}${last != null ? ' · ' + fmt(last, 1) : ''}`, OSC.rsiC);
     y0 += PH; s += `<line class="fsep" x1="0" x2="${W}" y1="${y0}" y2="${y0}"/>`; }
-  if (OSC.macd) { const m = macdCalc(closes, OSC.f, OSC.s, OSC.g); let mx = 1e-12;
+  if (oM) { const m = macdCalc(closes, OSC.f, OSC.s, OSC.g); let mx = 1e-12;
     for (let i = 0; i < N; i++) for (const a of [m.m, m.s, m.h]) { const v = a[i + off]; if (v != null && isFinite(v)) mx = Math.max(mx, Math.abs(v)); }
     const Ym = v => y0 + PH / 2 - v / mx * (PH / 2 - 8), bwp = Math.max(1, (N > 1 ? Math.abs(xs[1] - xs[0]) : 4) * 0.6);
     s += `<line x1="${P.l}" x2="${P.l + iw}" y1="${Ym(0).toFixed(1)}" y2="${Ym(0).toFixed(1)}" stroke="#fff" stroke-opacity=".2"/><g clip-path="url(#oclip)">`;
@@ -4954,6 +5127,7 @@ function renderOsc(C) {
     const lm = m.m[off + N - 1], ls = m.s[off + N - 1];
     s += `<path d="${path(m.m, Ym)}" fill="none" stroke="${OSC.mC}" stroke-width="1.4"/><path d="${path(m.s, Ym)}" fill="none" stroke="${OSC.sC}" stroke-width="1.3"/></g>` + lbl(y0, `MACD ${OSC.f} ${OSC.s} ${OSC.g}${lm != null && isFinite(lm) ? ' · ' + fd(lm) + ' / ' + fd(ls) : ''}`, OSC.mC) + ax(Ym(0), 0);
     y0 += PH; s += `<line class="fsep" x1="0" x2="${W}" y1="${y0}" y2="${y0}"/>`; }
+  for (const e of IP) { s += indPaneSvg(e, C, y0, PH); y0 += PH; }   // V22: Indikator-Fenster (Stochastik, CCI, eigener Pine-Code …)
   // Zeitleiste ganz unten (wie TradingView: unter dem untersten Fenster) – im Kurs-Chart fällt sie dann weg
   s += (C.AXSVG || '').split(`y="${C.H1 - 10}"`).join(`y="${H3 - 9}"`);
   s += `<line class="fsep" x1="${P.l + iw}" x2="${P.l + iw}" y1="0" y2="${H3 - AXH}"/><rect id="xGrabO" class="grab" x="0" y="${H3 - AXH}" width="${W}" height="${AXH}" fill="transparent" style="cursor:ew-resize"/>`;
@@ -5239,7 +5413,7 @@ function renderBtTable() { const el = $('btStats'); if (!el) return; if (VSTYLE 
 document.addEventListener('click', e => { if (e.target.id === 'btTog') { store.set('fg22_bt', store.get('fg22_bt', '0') === '1' ? '0' : '1'); renderBtTable(); }
   if (e.target.closest?.('#alTestAll')) alTestAll(); });
 // V22: alle Alarmarten nacheinander als Probe auslösen (Ton, Karte, Browser-Meldung) – plus Telegram-Test, falls das PC-Programm erreichbar ist
-function alTestAll() { const ks = ['signal', 'off', 'div', 'cluster', 'react', 'lines', 'pivot', 'f50', 'cdl', 'sma', 'vwap', 'frac', 'ma', 'fib', 'idxal', 'clsig', 'bos', 'tl2', 'tl3', 'lsob', 'imp', 'brk', 'volx', 'hest'];
+function alTestAll() { const ks = ['signal', 'off', 'div', 'cluster', 'react', 'lines', 'pivot', 'f50', 'cdl', 'sma', 'vwap', 'frac', 'ma', 'fib', 'idxal', 'clsig', 'bos', 'tl2', 'tl3', 'ind', 'lsob', 'imp', 'brk', 'volx', 'hest'];
   // Test-Karten verschwinden nach 6 s von selbst und gelten als erledigt (kein Stapel von 24 Karten)
   ks.forEach((k, i) => setTimeout(() => { fireAlert('TEST · ' + t('alk_' + k), t('alTestB'), k); const e = ALOG[0]; if (e) { e.ack = true; e.next = 0; saveAlog(); setTimeout(() => { stopAlarm(e.id); document.querySelector(`#alStack [data-id="${e.id}"]`)?.remove(); }, 6000); } }, i * 1300));
   if (SRV) fetch('/api/telegram/test', { method: 'POST', headers: { 'X-FG': '1' } }).catch(() => { });
@@ -5251,6 +5425,9 @@ function checkStructAlarms() {
   if (STR.al && AL.bos !== false) for (const tf of STR.alTf || []) { const R = rowsOf(tf); if (!R || R.length < 30) continue; const sw = swings(R, STR.L, STR.R), L = R.length - 1;
     for (const x of bosList(R, sw).filter(x => x.i === L)) once(`bos:${tf}:${R[L].t}:${x.up}`, () => fireAlert(t('bosAlT', { tf, d: x.up ? '▲' : '▼' }), t('bosAlB', { tf, c: P(R[L].c), p: P(x.p), s: t(x.up ? 'bosHi' : 'bosLo') }), 'bos'));
     if (STR.alTl) for (const x of tlBreaks(R, sw).filter(x => x.i === L)) once(`tl:${tf}:${R[L].t}:${x.up}`, () => fireAlert(t('tlAlT', { tf, d: x.up ? '▲' : '▼' }), t('tlAlB', { tf, c: P(R[L].c), p: P(x.p), s: x.up ? 'Long' : 'Short' }), 'bos')); }
+  // V22: Indikator-Signale (je Indikator: Alarm an/aus und eigene Kerzengröße)
+  if (AL.ind !== false && INDS?.length) for (const e of INDS) { if (!e.on || !e.al || e.k === 'pine') continue; const def = IND_REG[e.k], tf = e.tf || '4h', R = rowsOf(tf); if (!def || !R || R.length < 60) continue; const L = R.length - 1, r = def.calc(R, { ...def.p, ...e.p });
+    for (const x of (r.sig || []).filter(x => (x.ci ?? x.i) === L)) once(`ind:${e.u}:${tf}:${R[L].t}:${x.txt}`, () => fireAlert(t('indAlT', { d: x.up ? '🟢' : '🔴', n: indName(e), s: x.txt, tf }), t('indAlB', { s: x.txt, n: indName(e), tf, c: P(R[L].c) }), 'ind')); }
   // V22: Trendlinien – 2. Berührung (neue Linie) und 3./weitere Berührung, auf denselben Kerzengrößen wie die Struktur-Alarme
   if (STR.al && (AL.tl2 !== false || AL.tl3 !== false)) for (const tf of STR.alTf || []) { const R = rowsOf(tf); if (!R || R.length < 30) continue; const L = R.length - 1;
     for (const x of tlTouches(R, swings(R, STR.L, STR.R)).filter(x => x.i === L)) { const k = x.n === 2 ? 'tl2' : 'tl3'; if (AL[k] === false) continue; const s = x.up ? 'Long' : 'Short', d = x.up ? '🟢' : '🔴', w = t(x.up ? 'tlSup' : 'tlRes');
@@ -5379,8 +5556,8 @@ for (const [id, isIdx] of [['splitter', false], ['splitter2', true]]) { const sp
   sp.addEventListener('dblclick', () => { if (VSTYLE !== 'vss') { CH1 = 360; CH2 = 200; } else if (isIdx) CH2 = 200; else CH1 = 360; store.set('fg6_h1', CH1); store.set('fg6_h2', CH2); renderCharts(); }); }
 
 /* ================= Alarme im Browser ================= */
-const AL_DEF = { sound: true, notify: true, p1: true, p2: true, turn: true, heat: true, react: true, lines: true, div: true, off: false, pivot: true, f50: true, cdl: true, sma: true, vwap: true, frac: true, ma: true, fib: true, idxal: true, clsig: true, bos: true, lsob: true, imp: true, brk: true, volx: true, tl2: true, tl3: true, hest: false,
-  snd: { bos: 'double', lsob: 'chime', imp: 'alarm', brk: 'alarm', volx: 'double', tl2: 'chime', tl3: 'double', hest: 'soft', signal: 'bell', off: 'soft', div: 'down', cluster: 'double', react: 'up', lines: 'soft', pivot: 'alarm', f50: 'up', cdl: 'chime', sma: 'up', vwap: 'ping', frac: 'chime', ma: 'double', fib: 'ping', idxal: 'chime', clsig: 'alarm', test: 'bell' },
+const AL_DEF = { sound: true, notify: true, p1: true, p2: true, turn: true, heat: true, react: true, lines: true, div: true, off: false, pivot: true, f50: true, cdl: true, sma: true, vwap: true, frac: true, ma: true, fib: true, idxal: true, clsig: true, bos: true, lsob: true, imp: true, brk: true, volx: true, tl2: true, tl3: true, hest: false, ind: true,
+  snd: { bos: 'double', lsob: 'chime', imp: 'alarm', brk: 'alarm', volx: 'double', tl2: 'chime', tl3: 'double', hest: 'soft', ind: 'chime', signal: 'bell', off: 'soft', div: 'down', cluster: 'double', react: 'up', lines: 'soft', pivot: 'alarm', f50: 'up', cdl: 'chime', sma: 'up', vwap: 'ping', frac: 'chime', ma: 'double', fib: 'ping', idxal: 'chime', clsig: 'alarm', test: 'bell' },
   rep: { signal: { iv: 0, max: 3 }, off: { iv: 0, max: 3 }, div: { iv: 0, max: 3 }, cluster: { iv: 0, max: 3 }, react: { iv: 0, max: 3 }, lines: { iv: 0, max: 3 }, pivot: { iv: 120, max: 5 }, f50: { iv: 0, max: 3 }, cdl: { iv: 0, max: 3 }, sma: { iv: 0, max: 3 }, vwap: { iv: 0, max: 3 }, frac: { iv: 0, max: 3 }, ma: { iv: 0, max: 3 }, fib: { iv: 0, max: 3 }, idxal: { iv: 0, max: 3 }, clsig: { iv: 0, max: 3 }, bos: { iv: 0, max: 3 }, lsob: { iv: 0, max: 3 }, imp: { iv: 0, max: 3 }, brk: { iv: 0, max: 3 }, volx: { iv: 0, max: 3 } } };
 let AL = jget('fg6_alerts', AL_DEF);
 // V16: verschiedene Töne je Alarmart
@@ -5409,7 +5586,7 @@ function toast(txt) { const el = $('toast'); el.innerHTML = txt; el.classList.re
 const ALOG = (() => { try { const a = JSON.parse(store.get('fg16_alog', '[]')); return Array.isArray(a) ? a : []; } catch { return []; } })();
 const saveAlog = () => { ALOG.splice(200); store.set('fg16_alog', JSON.stringify(ALOG)); updAlogBtn(); };
 // V20: snd = eigener Ton (z. B. je eigener Alarmlinie), sonst der Ton der Alarmart
-const PLAN_KINDS = ['tl3','signal', 'off', 'div', 'sma', 'vwap', 'frac', 'ma', 'cdl', 'f50', 'pivot', 'react', 'clsig', 'fib', 'bos', 'lsob', 'imp', 'brk', 'volx'];
+const PLAN_KINDS = ['tl3', 'ind','signal', 'off', 'div', 'sma', 'vwap', 'frac', 'ma', 'cdl', 'f50', 'pivot', 'react', 'clsig', 'fib', 'bos', 'lsob', 'imp', 'brk', 'volx'];
 function fireAlert(title, txt, kind = 'other', again = null, snd = null) {
   // V21: Handelsplan anhängen (Long/Short aus dem Titel; SL hinter dem nächsten eigenen Cluster, TP = nächste Cluster der Gegenseite)
   if (!again && TPLAN.on && PLAN_KINDS.includes(kind) && D?.heatmap) { const up = /🟢|▲|Long/.test(title) && !/🔴|▼|Short/.test(title), dn = /🔴|▼|Short/.test(title);
