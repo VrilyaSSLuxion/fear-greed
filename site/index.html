@@ -1079,6 +1079,10 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
   #drawBar .tvb-set input[type=text],#drawBar .tvb-set input[type=number]{background:#131313;border:1px solid #3a3a3a;color:#eee;border-radius:4px;padding:2px 5px}
   .ctxmenu hr,#ctxMenu hr{border:0;border-top:1px solid #3a2846;margin:4px 0}
   .dmal{color:#f6c453!important;font-weight:800}
+  /* V22: Sprachwahl im Handbuch */
+  .manhd{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .manhd h2{margin-right:auto}
+  #manLang{min-width:150px}
 </style>
 <link rel="stylesheet" href="../nav.css">
 </head>
@@ -1326,7 +1330,7 @@ try { if (localStorage.getItem('fg6_mobile') !== 'mobile' && Math.min(screen.wid
 <div class="modal" id="whyModal"><div class="dlg"><h2 data-t="why"></h2><div id="whyText"></div><div class="btns"><button class="btn pri" data-close data-t="close"></button></div></div></div>
 
 <!-- ======= Handbuch / Infokarte ======= -->
-<div class="modal" id="introModal"><div class="dlg wide"><h2 data-t="manTitle"></h2><div class="intro" id="introText"></div>
+<div class="modal" id="introModal"><div class="dlg wide"><div class="manhd"><h2 data-t="manTitle"></h2><select id="manLang" class="csel" title="Sprache · Language · اللغة"><option value="de">DE · Deutsch</option><option value="en">EN · English</option><option value="ar">AR · العربية</option></select></div><div class="intro" id="introText"></div>
   <div class="btns" style="justify-content:space-between;align-items:center"><label class="chk" style="margin:0"><input type="checkbox" id="introStart"> <span data-t="introStart"></span></label><button class="btn pri" data-close data-t="close"></button></div></div></div>
 
 <!-- ======= Einstellungen ======= -->
@@ -3027,11 +3031,13 @@ $('lineSet').addEventListener('click', e => {
   renderLineSet(); renderCharts();
 });
 // Handbuch beim Start, Anzahl letzte Tage
+// V22: Sprache direkt im Handbuch umstellen (gilt für die ganze Seite und Website)
+$('manLang')?.addEventListener('change', e => { const v = e.target.value; LANG = v; store.set('fg9_deflang', v); window.siteSetLang?.(v, true); render(); updLang(); $('introText').innerHTML = t('introHtml'); introMini(); });
 $('swIntro').onclick = () => { store.set('fg8_intro', store.get('fg8_intro', '1') === '1' ? '0' : '1'); $('swIntro').classList.toggle('on', store.get('fg8_intro', '1') === '1'); };
 $('swIntro').classList.toggle('on', store.get('fg8_intro', '1') === '1');
 $('daysN').value = DAYSN;
 $('daysN').addEventListener('input', e => { const v = Math.round(+e.target.value); if (v >= 3 && v <= 14) { DAYSN = v; store.set('fg12_days', v); renderDays(); } });
-function openIntro() { $('introText').innerHTML = t('introHtml'); introMini(); $('introStart').checked = store.get('fg8_intro', '1') === '1'; openModal('introModal'); }
+function openIntro() { $('introText').innerHTML = t('introHtml'); introMini(); if ($('manLang')) $('manLang').value = LANG; $('introStart').checked = store.get('fg8_intro', '1') === '1'; openModal('introModal'); }
 // V18: jede Box im Handbuch einzeln minimieren (– / +), wird gemerkt
 function introMini() {
   let S; try { S = new Set(JSON.parse(store.get('fg18_imini', '[]'))); } catch { S = new Set(); }
@@ -5246,8 +5252,11 @@ function drawItemSvg(it, M, sel) {
   else if (it.k === 'text') { const s = esc(it.txt || 'Text'), fs = +it.fs || 14; vis = txt(xa, ya, s, 'start', tc, fs) + `<rect x="${f1(xa - 3)}" y="${f1(ya - fs)}" width="${f1(s.length * fs * 0.6 + 6)}" height="${f1(fs + 6)}" fill="transparent"/>`; }
   const alOn = it.al?.on && DLINE.includes(it.k) ? (() => { const lv = dLineAt(it, Date.now()); return lv != null ? `<text x="${f1(M.x1 - 4)}" y="${f1(M.Y(lv) + 14)}" font-size="12" text-anchor="end">⏰</text>` : ''; })() : '';
   const hitS = hit ? `<path d="${hit}" stroke="transparent" stroke-width="12" fill="none"/>` : '';
-  const pts = sel ? [['a', xa, ya], ...(hasB ? [['b', xb0, yb0]] : []), ...extraH] : [];
-  const hd = pts.map(([k, x, y]) => `<circle data-drh="${it.id}:${k}" cx="${f1(x)}" cy="${f1(y)}" r="5" fill="#131313" stroke="#2962ff" stroke-width="2" style="cursor:grab"/>`).join('');
+  // V22: Rechteck, Preisbereich, Volumenprofil-Bereich wie TradingView mit 8 Griffen (Ecken + Seitenmitten); Seitenmitten ändern nur Zeit bzw. Preis
+  const box8 = hasB && ['rect', 'range', 'fvp'].includes(it.k), mx = (xa + xb0) / 2, my = (ya + yb0) / 2;
+  const pts = !sel ? [] : box8 ? [['a', xa, ya], ['b', xb0, yb0], ['c1', xa, yb0], ['c2', xb0, ya], ...(it.k === 'fvp' ? [] : [['fa', mx, ya], ['fb', mx, yb0]]), ['ea', xa, my], ['eb', xb0, my]] : [['a', xa, ya], ...(hasB ? [['b', xb0, yb0]] : []), ...extraH];
+  const curOf = k => k === 'ea' || k === 'eb' ? 'ew-resize' : k === 'fa' || k === 'fb' ? 'ns-resize' : box8 ? ((k === 'a' || k === 'b') === ((xb0 - xa) * (yb0 - ya) > 0) ? 'nwse-resize' : 'nesw-resize') : 'grab';
+  const hd = pts.map(([k, x, y]) => `<circle data-drh="${it.id}:${k}" cx="${f1(x)}" cy="${f1(y)}" r="5" fill="#131313" stroke="#2962ff" stroke-width="2" style="cursor:${curOf(k)}"/>`).join('');
   const glow = sel ? ` filter="drop-shadow(0 0 3px ${c})"` : '';
   return `<g data-dr="${it.id}" style="cursor:${LOCK || it.lk ? 'pointer' : 'move'}"${glow}><title>${t('dt_' + it.k)} · ${t('drawCtxTip')}</title>${vis}${hitS}${alOn}</g>${hd}`;
 }
@@ -5310,6 +5319,9 @@ function drawDown(e, svg) {
 function drawMove(e) {
   if (!DRW || !chartGeom) return; const pt = drawPt(e, DRW.mode !== 'move');
   if (DRW.mode === 'new') { DRW.it.b = pt; if (Math.abs(e.clientX - DRW.x) + Math.abs(e.clientY - DRW.y) > 5) DRW.moved = true; }
+  else if (DRW.mode === 'pt' && ['c1', 'c2', 'ea', 'eb', 'fa', 'fb'].includes(DRW.k)) { const it = DRW.it, k = DRW.k;   // V22: Ecken und Seitenmitten des Rechtecks
+    if (k === 'c1') { it.a = { ...it.a, t: pt.t }; it.b = { ...it.b, p: pt.p }; } else if (k === 'c2') { it.b = { ...it.b, t: pt.t }; it.a = { ...it.a, p: pt.p }; }
+    else if (k === 'ea') it.a = { ...it.a, t: pt.t }; else if (k === 'eb') it.b = { ...it.b, t: pt.t }; else if (k === 'fa') it.a = { ...it.a, p: pt.p }; else if (k === 'fb') it.b = { ...it.b, p: pt.p }; }
   else if (DRW.mode === 'pt') { if (DRW.k === 'o') { const v = dLineAt(DRW.it, pt.t); if (v != null) DRW.it.o = pt.p - v; } else DRW.it[DRW.k] = pt; }
   else { const dt = pt.t - DRW.p0.t, dp = pt.p - DRW.p0.p; for (const k of ['a', 'b']) if (DRW.o[k]) DRW.it[k] = { t: DRW.o[k].t + dt, p: DRW.o[k].p + dp }; }
   rerender();
