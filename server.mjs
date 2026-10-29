@@ -8,6 +8,7 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { collect, vkey, BASE_VARIANTS, SRCS, WINS, longHistData, longHistLoad } from './collector/engine.mjs';
+import { heatBacktest } from './collector/heatbt.mjs';
 import { tradePlan, tradePlanText, TPLAN_DEF, liqUsd, methodSignals, phaseSignals, trig, trendInfo, applyTrend, mean7, divergences, divRows, clusterSet, heatEvents, alarmText, touchTrack, nextCluster, pivotEvents, pivotPayload, fiftySignals, F50_TYPES, candleSignals, CDL_TYPES, smaSignals, SMA_DEF, vwapSignals, liqCombine, hmParts,
   avgMap, OFF_COL, fractals, fracBreaks, fracIdxFilter, fracNear, FRAC_DEF, maCrossEvents, maLine, lineName, offExitSignals, offFracSignals, seriesCross, HM_PER, vwapCalc } from './collector/shared.mjs';
 
@@ -249,6 +250,28 @@ async function checkMaTouch(latest, history) {
 const HMs = (latest, c) => liqCombine(latest.heatmap, hmParts(c.heat.src), c.heat.per);
 // V21: Cluster-Größen alle 5 Minuten mitschreiben (data/clusterlog.jsonl, 30 Tage) – Grundlage, um Cluster-Signale später ehrlich auszuwerten
 let clLogT = 0;
+// V22: Heatmap-Einschätzung – Backtest „welche Seite zuerst“ (alle 12 Std. neu aus der langen Historie) und Mitlauf der eigenen Einschätzungen
+const HB_PATH = path.join(DATA, 'heatbt.json'); let HB = null;
+try { HB = JSON.parse(fs.readFileSync(HB_PATH, 'utf8')); } catch { }
+function heatBt() {
+  const L = longHistData(); if (!L.kl?.length || L.kl.length < 5000 || (HB && Date.now() - HB.updated < 12 * 3600e3)) return HB;
+  try { HB = heatBacktest(L); fs.writeFileSync(HB_PATH, JSON.stringify(HB)); log(`Heatmap-Backtest neu (${HB.kinds.top?.n || 0} Zeitpunkte, ${HB.ms} ms)`); } catch (e) { log('Heatmap-Backtest:', e.message); }
+  return HB;
+}
+const qIdx = q => q < 1.5 ? 0 : q < 2.5 ? 1 : 2;
+function heatTrack(latest) {
+  const hm = latest.heatmap, price = latest.btc?.price; if (!hm || !(price > 0)) return null;
+  const CL = clusterSet(hm, { nearest: true }), L1 = CL.find(c => c.id === 'L1'), S1 = CL.find(c => c.id === 'S1');
+  const P = (state.heatPred ||= []), now = Date.now();
+  for (const x of P) if (!x.res) { if (price <= x.pL) x.res = 'L'; else if (price >= x.pS) x.res = 'S'; else if (now - x.t > 7 * 864e5) x.res = 'none'; if (x.res) x.rt = now; }
+  if (L1 && S1 && L1.z.p < price && S1.z.p > price && (!P.length || now - P.at(-1).t >= 4 * 3600e3)) {
+    const dL = (price - L1.z.p) / price, dS = (S1.z.p - price) / price, sd = dL < dS ? 'L' : 'S', c = HB?.kinds?.top?.cells?.[sd]?.[qIdx(Math.max(dL, dS) / Math.min(dL, dS))];
+    P.push({ t: now, price, pL: L1.z.p, pS: S1.z.p, pred: sd, p: c?.p ?? null });
+    if (P.length > 600) P.splice(0, P.length - 600);
+  }
+  const done = P.filter(x => x.res === 'L' || x.res === 'S');
+  return { n: done.length, ok: done.filter(x => x.res === x.pred).length, open: P.filter(x => !x.res).length, since: P[0]?.t || null };
+}
 function logClusters(latest) {
   const c = cfg(), hm = HMs(latest, c), px = latest.btc?.price; if (!hm || !px) return;
   LASTCL = clusterSet(hm, { nearest: true, extra: 6, far: { pct: c.heat.farPct ?? 50, range: c.heat.farRange ?? 20 } }); LASTPX = px;
@@ -331,6 +354,7 @@ async function run() {
     latest.rateLimited = latest.status.filter(x => x.ok === false && /429|rate|too many/i.test(x.msg || '')).map(x => x.name);
     // V19: Live-Index stündlich (alle Varianten) – für die 4-Stunden-Mittelung im Kreis
     recIdx(latest); latest.idxHourly = recOut();
+    try { latest.heatBt = heatBt(); latest.heatPred = heatTrack(latest); } catch (e) { log('Heatmap-Einschätzung:', e.message); }
     fs.writeFileSync(path.join(FGW, 'data', 'latest.json'), JSON.stringify(latest));
     fs.writeFileSync(path.join(FGW, 'data', 'history.json'), JSON.stringify(history));
     // Tagebuch: aktueller Stand je Lauf (für spätere Auswertung, ab wann ein Punkt verlässlich war) – V19: nur die vier bisherigen Varianten (die übrigen stehen stündlich in idxrec.json)
